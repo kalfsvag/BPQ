@@ -1,0 +1,149 @@
+Require Import HoTT.
+
+Section Integers.
+	
+	
+	Fixpoint add (m:nat) : nat->nat :=
+		match m with
+			| O => (fun n:nat => n)
+			| S m => (fun n:nat => S (add m n) )
+		end.
+	
+		
+	Lemma addzero : forall n : nat, n = add n 0.
+	Proof.
+	induction n. reflexivity. (*Base case done*)
+	(*Induction step:*)
+	simpl. rewrite <- IHn. reflexivity.
+	Defined.
+	
+	Lemma zeroadd : forall n : nat, n = add 0 n.
+	Proof. reflexivity. Defined.
+	
+	Lemma pred_second : forall m n : nat, add m (S n) = S (add m n).
+		Proof.
+		intros m n.
+		induction m.
+		(*Base case*) * reflexivity.
+		(*Induction step*) *
+			simpl.
+			rewrite IHm. reflexivity.
+		Defined.
+	
+	Proposition add_commutative : forall n m:nat, add n m = add m n.
+		induction n.
+		(*Base case*) *
+			intro m.
+			rewrite <- addzero. reflexivity.
+		(*Induction step*) *
+			intro m.
+			simpl.
+			rewrite IHn.
+			symmetry.
+			apply pred_second.
+		Defined.
+			
+	
+	Inductive Z : Set :=
+		|subt (n1 n2:nat) : Z
+	.
+	
+	Variable eq_Z_1 : forall m1 m2 n1 n2 : nat, 
+		add m1 n2 = add n1 m2 -> subt m1 m2 = subt n1 n2.
+	
+	Variable eq_Z_2 : forall m1 m2 n1 n2 : nat, 
+		subt m1 m2 = subt n1 n2 -> add m1 n2 = add n1 m2.
+	
+	Definition inj (n: nat) : Z := subt n O.
+	
+	Definition neg (m:Z) :=
+		match m with
+		|subt m1 m2 => subt m2 m1
+	end.
+	
+	Definition add_Z (m n : Z) : Z :=
+		match m with
+		| subt m1 m2 => match n with
+			|subt n1 n2 => subt (add m1 n1) (add m2 n2)
+		end
+	end.
+	
+	Definition subt_Z (m n: Z) : Z :=
+		add_Z m (neg n).
+		
+	Proposition injection : forall m n:nat, inj m = inj n -> m = n.
+	Proof.
+		unfold inj.
+		intros m n p.
+		rewrite (addzero m). rewrite (addzero n).
+		apply eq_Z_2.
+		assumption.
+	Defined.
+	
+	(*Abelian group axioms*)
+	Proposition assocativity : forall l m n : Z, 
+		add_Z (add_Z l m) n = add_Z l (add_Z m n).
+	Proof.
+	Admitted. (*Haven't proven this yet*)
+	
+	Definition O_Z := subt O O.
+	
+	Print Z_ind.
+	
+	Proposition identity : forall n : Z, add_Z n O_Z = n.
+	Proof.
+		induction n.
+		unfold O_Z.
+		unfold add_Z.
+		rewrite <- addzero. rewrite <- addzero. reflexivity.
+	Defined.
+	
+	Proposition inverse : forall n : Z, add_Z n (neg n) = O_Z.
+	Proof.
+		induction n.
+		unfold neg.
+		unfold add_Z.
+		unfold O_Z.
+		apply eq_Z_1.
+		rewrite <- addzero. rewrite <-zeroadd. 
+		apply add_commutative.
+	Defined.
+		
+		
+	(*Variant*)
+	
+	Fixpoint add' (m n : nat) : nat :=
+		match n with
+		|O => m
+		|S n1 => S (add' m n1)
+	end.
+	
+	
+	Proposition equaladditions : forall m n:nat, add m n = add' m n.
+	Proof.
+		induction n.
+		(*Base case n*) * unfold add'. symmetry. apply addzero.
+		
+	
+	
+		induction m.
+		(*Base case m*) *
+			induction n.
+				(*Base case n*) ** reflexivity.
+				(*Induction step n*) ** 
+					simpl.
+					rewrite <- IHn.
+					unfold add.
+					reflexivity.
+		(*Induction step m*) *
+			intro n.
+			simpl.
+			rewrite IHm.
+			 
+			
+			
+		
+		
+		
+		
+		

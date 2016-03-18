@@ -22,14 +22,26 @@ Section Precompose_pointed_equivalence.
 
 
 			- intro g.
+			
 			unfold pointed_precompose.
 			unfold pt_precomose_inverse.
 			unfold pointed_precompose.
-			rewrite (pmap_compose_assoc g (pequiv_inverse f) f).
+			apply equiv_path_pmap.
+			assert (asso : ((g o* pequiv_inverse f) o* f == g o* ( (pequiv_inverse f) o* f))).
+				apply pmap_compose_assoc.
+			assert (inv : ((pequiv_inverse f o* f) ==* (pmap_idmap _))).
+				+refine (Build_pHomotopy _ _).
+					*cbn. intro x. apply eissect.
+					*cbn.
+				
+				
+				apply (pHomotopy_rec A A (pequiv_inverse f o* f) (pmap_idmap A)).
+				
+				unfold pmap_compose.
 			unfold pmap_compose.
 			cbn.
 			unfold moveR_equiv_V.
-			rewrite (ap_pp g (ap f^-1 (point_eq f)^) (eissect f (point A))).
+(*			rewrite (ap_pp g (ap f^-1 (point_eq f)^) (eissect f (point A))).
 			rewrite (ap_compose (f^-1) g (point_eq f)). (*TODO : Not rewrite*)
 			rewrite (concat_p_pp _ _ _).
 			rewrite (concat_p_pp _ _ _).
@@ -71,7 +83,7 @@ Section Precompose_pointed_equivalence.
 			cbn.
 			unfold moveR_equiv_V.
 			
-			admit.
+			admit. *)
 	Admitted.
 
 End Precompose_pointed_equivalence.

@@ -1,4 +1,3 @@
-
 Require Import HoTT.
 Load pType_basics.
 

@@ -4,13 +4,16 @@ Local Open Scope pointed_scope.
 (*Shorthand for making a pointed type from a type. (Assuming that an instance of IsPointed is made earlier)*)
 Notation "'p' A" := (Build_pType A _) (at level 0). (*TODO: What level to choose?*)
 
+Ltac pHomotopy_via mid := apply (phomotopy_compose (g := mid)).
+
+
 Section pType_prelim.
 	
 
 	(*The constant map between ptypes.*)
 	Definition pconst (A B: pType) : pMap A B := 
 		Build_pMap A B (const (point B)) idpath.
-	
+	(*The constant map is base point for the type pMap A B*)
 	Global Instance ispointed_pmap {A B:pType} : IsPointed (pMap A B) := 
 		pconst A B.
 	
@@ -21,9 +24,10 @@ Section pType_prelim.
 		|O => Build_pType (Sphere O) North
 		|S n => psusp (pSphere n)
 		end.
+        
+        (*The functor from Type to pType*)
 	Definition add_pt (A:Type) :  pType := Build_pType (A+Unit) (inr tt).
-	(* 
-	Definition pBool : pType := Build_pType Bool true. *)
+	
 	Global Instance ispointed_unit : IsPointed Unit := tt.
 	
 	Lemma const_comp (A B C: pType) (f:A->*B) : 

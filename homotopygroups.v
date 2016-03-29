@@ -5,17 +5,14 @@ Load pType_basics.
 
 Section Precompose_pointed_equivalence.
         
-         Ltac pHomotopy_via mid := apply (phomotopy_compose (g := mid)).
-	
 	Definition pointed_precompose {A B C:pType} (f:A->*B) : (B->*C) -> (A->*C)
-		:= (* fun g => Build_pMap _ _ (functor_arrow f idmap g) (ap g (point_eq f) @ point_eq g). *)
-		fun g => g o* f.
-	 
+		:= fun g => g o* f.	 
 	
 	Definition pt_precompose_inverse {A B C:pType} (f : A<~>*B) :
 		(A->*C) -> (B->*C)
 		:= pointed_precompose (pequiv_inverse f).
-	
+
+	(*Precomposing with inverse is pointed homotopic to the idmap*)
         Lemma pcompose_inverse {A B:pType} (f : A<~>*B) :
             pequiv_inverse f o* f ==* pmap_idmap A.
           refine (Build_pHomotopy _ _).
@@ -26,6 +23,7 @@ Section Precompose_pointed_equivalence.
            rewrite <- ap_pp. hott_simpl.
         Qed.
         
+        (*The inverse of the inverse is pointed homotopic to the map itself.*)
         Lemma pequiv_inverse_twice {A B:pType} (f:A<~>*B) : f ==* pequiv_inverse (pequiv_inverse f).
           simpl. unfold moveR_equiv_V.
           apply issig_phomotopy. simpl. exists (ap10 idpath). hott_simpl.
@@ -34,39 +32,34 @@ Section Precompose_pointed_equivalence.
           rewrite <- ap_pp.
           hott_simpl.
         Qed.
-          
+        
+        (*Precomposing with pointed equivalence results in an equivalence.*)
 	Lemma isequiv_pt_precomose `{Funext} {A B C:pType} (f : A<~>*B)  : 
 		IsEquiv (@pointed_precompose A B C f).
 		Proof.
                 (*TODO: take away unfolds.*)
 		refine (isequiv_adjointify (pointed_precompose f) (pt_precompose_inverse f) _ _).
-                	- intro g.			
-			unfold pointed_precompose.
-			unfold pt_precompose_inverse.
-			unfold pointed_precompose.
-			apply equiv_path_pmap.
-                        pHomotopy_via (g o* ( (pequiv_inverse f) o* f)).
-                                +apply pmap_compose_assoc.
-                                +pHomotopy_via (g o* (pmap_idmap A)).
-                                 apply pmap_postwhisker.
-                                  apply pcompose_inverse.
-				 *exact (pmap_precompose_idmap g).
-                       -intro g.
-                        apply equiv_path_pmap.
-                        unfold pointed_precompose.
-                        unfold pt_precompose_inverse.
-                        unfold pointed_precompose.
-                        pHomotopy_via (g o* (f o* (pequiv_inverse f))).
-                               +apply pmap_compose_assoc.
-                               +pHomotopy_via (g o* (pmap_idmap B)).
-                                 *apply pmap_postwhisker.
-                                  pHomotopy_via 
-                                    ((pequiv_inverse (pequiv_inverse f)) o* pequiv_inverse f ).
-                                   apply pmap_prewhisker.
-                                   apply pequiv_inverse_twice.
-                                  apply pcompose_inverse.
-                                  *apply pmap_precompose_idmap.
-          Qed.
+                -intro g.			
+		 apply equiv_path_pmap.
+                 pHomotopy_via (g o* ( (pequiv_inverse f) o* f)).
+                 +apply pmap_compose_assoc.
+                 +pHomotopy_via (g o* (pmap_idmap A)).
+                  *apply pmap_postwhisker.
+                   apply pcompose_inverse.
+		  *exact (pmap_precompose_idmap g).
+                -intro g.
+                 apply equiv_path_pmap.
+                 pHomotopy_via (g o* (f o* (pequiv_inverse f))).
+                 +apply pmap_compose_assoc.
+                 +pHomotopy_via (g o* (pmap_idmap B)).
+                  *apply pmap_postwhisker.
+                   pHomotopy_via 
+                     ((pequiv_inverse (pequiv_inverse f)) o* pequiv_inverse f ).
+                   apply pmap_prewhisker.
+                   apply pequiv_inverse_twice.
+                   apply pcompose_inverse.
+                  *apply pmap_precompose_idmap.
+                Qed.
 End Precompose_pointed_equivalence.
 
 

@@ -56,15 +56,48 @@ Section wedge_and_smash.
       exact (ap (sum_to_wedge o inr) (point_eq g)^).
   Defined.
   (*Todo:	Show that the result is a pMap*)
-  
-  Definition sum_to_product {A B:pType} (x : A+B) : A*B:=
+
+  Definition sum_pr1 {A B:pType} (x:A+B) : A :=
     match x with
-      |inl a => (a, point B)
-      |inr b => (point A, b)
+      |inl a => a
+      |inr b => point A
     end.
-  
-  Definition wedge_in_prod {A B:pType} : wedge A B -> A*B :=
-    wedge_rec (A*B) sum_to_product idpath.
+  Definition sum_pr2 {A B:pType} (x:A+B) : B :=
+    match x with
+      |inl a => point B
+      |inr b => b
+    end.
+
+  Definition sum_to_product {A B:pType} (x : A+B) : A*B:= (sum_pr1 x, sum_pr2 x).
+
+
+  Definition wedge_pr1 {A B:pType} : wedge A B -> A :=
+    wedge_rec A sum_pr1 idpath.
+  Definition wedge_pr2 {A B:pType} : wedge A B -> B :=
+    wedge_rec B sum_pr2 idpath.
+
+  Definition wedge_in_prod {A B:pType} (w : wedge A B) : A*B :=
+    pair (wedge_pr1 w) (wedge_pr2 w).
+
+  Lemma wedge_in_prod_recursive {A B:pType} : wedge_in_prod == wedge_rec (A*B) (sum_to_product) idpath.
+    refine (wedge_ind _ _ _ ).
+    -intros [a|b].
+     +exact idpath.
+     +exact idpath.
+    -intros [].
+     rewrite transport_paths_FlFr. hott_simpl.
+     rewrite <- inverse_ap.
+     apply moveR_Vp. hott_simpl. (*TODO: Use pushout_rec?*)
+     unfold wedge_in_prod.
+     unfold sum_to_product.
+     unfold wedge_pr1.
+     unfold wedge_pr2.
+     unfold wedge_rec.
+     unfold sum_pr1.
+     unfold sum_pr2.
+     simpl.
+     
+    
   
   Definition pair' {A B:Type} : B->A->A*B := fun (b:B) (a:A) => pair a b.
   
@@ -85,11 +118,17 @@ Section wedge_and_smash.
 				+apply (ap (fun c:C => (c, g b))).
 				exact (point_eq f). *)
     +intros [].
+     unfold wedge_in_prod.
+     unfold functor_prod. cbn.
+     
+     
      
      transparent assert (Fl : (wedge A B -> C*D)).
-     exact (fun w => functor_prod f g (wedge_in_prod w) ).
+     exact (fun w => (f (wedge_pr1 w), g (wedge_pr2 w))).
      transparent assert (Fr : (wedge A B -> C*D)).
-     exact (fun w => wedge_in_prod (wedge_functor f g w) ).
+     exact (fun w => (wedge_pr1 (wedge_functor f g w), wedge_pr2 (wedge_functor f g w))).
+     
+     
      (* 			transparent assert (p1 : (wedge A B) ).
 				exact (sum_to_wedge (inl (point A))).
 			transparent assert (p2 : (wedge A B) ).
@@ -107,10 +146,23 @@ Section wedge_and_smash.
       *)
      assert ( (ap Fl (pp tt)) = idpath).
      rewrite (ap_apply_Fr (pp tt) (functor_prod f g) (wedge_in_prod)).
+     unfold wedge_in_prod.
      rewrite ((pushout_rec_beta_pp (A*B) sum_to_product (unit_name idpath)) tt ).
      exact idpath. 
      
      rewrite X. clear X. hott_simpl.
+     unfold wedge_in_prod in Fr.
+     
+     rewrite ap_p_pp.
+     unfold Fr.
+     unfold wedge_in_prod.
+     unfold wedge_functor.
+     unfold wedgepath.
+     
+     hott_simpl.
+     change (pp tt) with wedgepath.
+     unfold wedge_rec.
+ unfold pair'.
      unfold Fr.
      rewrite (ap_apply_Fr (pp tt) wedge_in_prod (wedge_functor f g)).
      

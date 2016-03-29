@@ -1,0 +1,45 @@
+Require Import HoTT.
+Require Import Coq.Program.Tactics.
+
+
+Section Book_1_4.
+
+(*Defining the iterator.*)
+Fixpoint iter (C:Type) (c0:C) (cs:C->C) (n:nat) {struct n} : C := 
+	match n with
+		|O=>c0
+		|S p => cs (iter C c0 cs p)
+end.
+
+Variable C:Type.
+Variable c0: C.
+Variable cs: nat->C->C.
+
+(*Make an iterative step function N*C->N*C from the recursive step function cs.*)
+Definition it_from_rec : nat*C -> nat*C :=
+	fun p => ((S o fst) p, cs (fst p) (snd p)).
+
+(*Define recursion in terms of the iterator.*)
+Definition Rec (n:nat) : C :=
+	snd (iter (nat*C) (O,c0)  it_from_rec n).
+
+Proposition defining_equiations :forall n:nat, Rec 0 = c0 /\ Rec (S n) = cs n (Rec n).
+split.
+reflexivity.
+induction n.
+reflexivity. (*Case n=0 is easy.*)
+
+apply ((ap (cs n)) IHn).
+
+
+
+
+
+
+
+
+
+
+
+
+

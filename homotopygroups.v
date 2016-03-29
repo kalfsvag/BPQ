@@ -187,8 +187,8 @@ Section Loops.
      +exact (IHn (loops A)).
      +exact ((loop_susp_adjoint _ _)^-1).
   Defined.
-
-  (*TODO*)
+  (*TODO: Show that this equivalence is natural.*)
+  (*TODO:*)
   Theorem omega_loops_peq `{Funext} :forall n:nat, forall A:pType,
 		                       iterated_loops n A <~>* Omega n A. 
     intros n a.

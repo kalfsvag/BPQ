@@ -6,6 +6,8 @@ Local Open Scope pointed_scope.
 
 Ltac pHomotopy_via mid := apply (phomotopy_compose (g := mid)).
 
+Ltac path_via mid := apply (concat (y:=mid)).
+  
 
 Section pType_prelim.
 	

@@ -85,11 +85,8 @@ Section wedge_and_smash.
   Lemma ap_wedge_in_prod {A B:pType} : ap (@wedge_in_prod A B) wedgepath = idpath.
     refine (pushout_rec_beta_pp _ _ _ _).
   Qed.
-    
-  Definition swap {A B: Type} : A*B -> B*A.
-    intros [a b]. exact (b,a).
-  Defined.
-  Definition pair' {A B:Type} (a:A) (b:B) :B*A := swap (pair a b).
+  
+  Definition pair' {A B : Type}  : A -> B -> B*A := fun a b => (b,a).
   
   Definition natural_wedge_in_prod {A B C D: pType} (f:A->*C) (g:B->*D) : 
     forall w : wedge A B, 
@@ -196,7 +193,7 @@ Section Smash_and_Spheres.
       *exact idpath.
       *refine (Susp_ind _ idpath idpath _ ).
        intros [].
-     +simpl. intros [].
+     +simpl. 
       
   Admitted.
   

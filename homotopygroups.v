@@ -1,12 +1,11 @@
-
+(*TODO: Read STYLE.md and put this into HoTT library*)
 Require Import HoTT.
 Load pType_basics.
-
 
 Section Precompose_pointed_equivalence.
   
   Definition pointed_precompose {A B C:pType} (f:A->*B) : (B->*C) -> (A->*C)
-    := fun g => g o* f.	 
+    := fun g => g o* f.  
   
   Definition pt_precompose_inverse {A B C:pType} (f : A<~>*B) :
     (A->*C) -> (B->*C)
@@ -15,6 +14,7 @@ Section Precompose_pointed_equivalence.
   (*Precomposing with inverse is pointed homotopic to the idmap*)
   Lemma pcompose_inverse {A B:pType} (f : A<~>*B) :
     pequiv_inverse f o* f ==* pmap_idmap A.
+  Proof.
     refine (Build_pHomotopy _ _).
     -intro x. apply eissect.
     -hott_simpl.
@@ -24,7 +24,9 @@ Section Precompose_pointed_equivalence.
   Qed.
   
   (*The inverse of the inverse is pointed homotopic to the map itself.*)
-  Lemma pequiv_inverse_twice {A B:pType} (f:A<~>*B) : f ==* pequiv_inverse (pequiv_inverse f).
+  Lemma pequiv_inverse_twice {A B:pType} (f:A<~>*B) : 
+    f ==* pequiv_inverse (pequiv_inverse f).
+  Proof.
     simpl. unfold moveR_equiv_V.
     apply issig_phomotopy. simpl. exists (ap10 idpath). hott_simpl.
     rewrite <- (point_eq f).
@@ -38,7 +40,7 @@ Section Precompose_pointed_equivalence.
     IsEquiv (@pointed_precompose A B C f).
   Proof.
     refine (isequiv_adjointify (pointed_precompose f) (pt_precompose_inverse f) _ _).
-    -intro g.			
+    -intro g.           
      apply equiv_path_pmap.
      pHomotopy_via (g o* ( (pequiv_inverse f) o* f)).
      +apply pmap_compose_assoc.
@@ -83,7 +85,7 @@ Section Addpoint_forgetful_adjointness.
     -exact (fun _ => idpath).
     -intros [pf pe].
      unfold pMap_to_Map; unfold Map_to_pMap.
-     pointed_reduce. (*Is this magic?*)
+     pointed_reduce. 
      
      assert (Ht : (fun X : A + Unit =>
                      match X with
@@ -142,13 +144,11 @@ Section Two_points.
     intros [].
   Defined.
   
-  Lemma isequiv_sph0_to_two_pts : IsEquiv sph0_to_two_pts.
-    exact (isequiv_adjointify sph0_to_two_pts two_pts_to_sph0 isretr_sph_to_2 issect_sph_to_2).
-  Qed.
-  
-  Lemma equiv_sph0_2 : (pSphere 0) <~>* two_pts.
-    exact (Build_pEquiv _ _ sph0_to_two_pts isequiv_sph0_to_two_pts).
-  Qed.
+  Definition isequiv_sph0_to_two_pts :=
+    isequiv_adjointify sph0_to_two_pts two_pts_to_sph0 isretr_sph_to_2 issect_sph_to_2.
+
+  Definition equiv_sph0_2 :=
+    Build_pEquiv _ _ sph0_to_two_pts isequiv_sph0_to_two_pts.
 
   Lemma equiv_twotoA_A `{Funext} {A:pType} : A <~> (two_pts ->* A).
     equiv_via (Unit->A).
@@ -158,9 +158,9 @@ Section Two_points.
     -exact ( (addpt_forget_adjoint Unit A)^-1 ).
   Qed.
   
-(* 	Lemma sph0_is_twopts`{Univalence}  : (pSphere 0) = (two_pts).
-		exact (path_universe sph0_to_two_pts).
-		Abort. *)  
+(*  Lemma sph0_is_twopts`{Univalence}  : (pSphere 0) = (two_pts).
+        exact (path_universe sph0_to_two_pts).
+        Abort. *)  
 End Two_points.
 
 
@@ -179,7 +179,7 @@ Section Loops.
 
   (*This should be equivalent to the loop space in the library*)
   Theorem loops_equiv_omega `{Funext} : forall n:nat, forall A:pType,
-		                          iterated_loops n A <~> Omega n A.
+                                          iterated_loops n A <~> Omega n A.
     induction n.
     -intro A. exact A_Equiv_Omega0.
     -intro A.
@@ -190,7 +190,7 @@ Section Loops.
   (*TODO: Show that this equivalence is natural.*)
   (*TODO:*)
   Theorem omega_loops_peq `{Funext} :forall n:nat, forall A:pType,
-		                       iterated_loops n A <~>* Omega n A. 
+                                       iterated_loops n A <~>* Omega n A. 
     intros n a.
     refine (Build_pEquiv _ _ _ _). 
   Admitted.
@@ -251,15 +251,15 @@ End Hopf.
 
 
 
-(* 	Lemma equiv_sph0toA_A `{Funext} {A:pType} : A <~> (pSphere 0 ->* A).
-		equiv_via (two_pts ->* A).
-			-exact equiv_twotoA_A.
-			-
-			refine (BuildEquiv _ _ _ _).
-				+exact (fun g => g o* sph0_to_two_pts).
-				+refine (BuildIsEquiv _ _ _ _ _ _ _).
-				admit. admit. admit. admit.
-				(* 
-				apply isequiv_precompose. *)
-		Abort.
+(*  Lemma equiv_sph0toA_A `{Funext} {A:pType} : A <~> (pSphere 0 ->* A).
+        equiv_via (two_pts ->* A).
+            -exact equiv_twotoA_A.
+            -
+            refine (BuildEquiv _ _ _ _).
+                +exact (fun g => g o* sph0_to_two_pts).
+                +refine (BuildIsEquiv _ _ _ _ _ _ _).
+                admit. admit. admit. admit.
+                (* 
+                apply isequiv_precompose. *)
+        Abort.
  *)

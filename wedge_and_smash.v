@@ -97,6 +97,7 @@ Section wedge_and_smash.
     -exact (ap (pair' (g b)) (point_eq f) ).
     -rewrite transport_paths_FlFr.
      rewrite concat_pp_p.
+     (*change (fun x : wedge A B => wedge_in_prod (wedge_functor f g x)) with (wedge_in_prod o (wedge_functor f g)).*)
      rewrite (ap_compose wedge_in_prod (functor_prod f g)).
      rewrite (ap_compose (wedge_functor f g) wedge_in_prod).
      rewrite (@ap_wedge_in_prod A B). hott_simpl.

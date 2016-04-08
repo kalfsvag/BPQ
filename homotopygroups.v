@@ -15,20 +15,23 @@ Section Precompose_pointed_equivalence.
   Lemma pcompose_inverse {A B:pType} (f : A<~>*B) :
     pequiv_inverse f o* f ==* pmap_idmap A.
   Proof.
-    refine (Build_pHomotopy _ _).
-    -intro x. apply eissect.
-    -hott_simpl.
-     unfold point_eq; unfold pequiv_inverse. simpl.
-     unfold moveR_equiv_V. hott_simpl.
-     rewrite <- ap_pp. hott_simpl.
+    apply issig_phomotopy.
+    exists (fun x => eissect _ x).
+    hott_simpl. 
+    unfold pequiv_inverse; simpl.
+    unfold moveR_equiv_V. 
+    rewrite <- ap_pp_p.
+    hott_simpl.
   Qed.
   
   (*The inverse of the inverse is pointed homotopic to the map itself.*)
   Lemma pequiv_inverse_twice {A B:pType} (f:A<~>*B) : 
     f ==* pequiv_inverse (pequiv_inverse f).
   Proof.
-    simpl. unfold moveR_equiv_V.
-    apply issig_phomotopy. simpl. exists (ap10 idpath). hott_simpl.
+    apply issig_phomotopy.
+    exists (ap10 idpath).
+    hott_simpl; simpl.
+    unfold moveR_equiv_V; simpl.
     rewrite <- (point_eq f).
     rewrite eisadj.
     rewrite <- ap_pp.
@@ -36,11 +39,12 @@ Section Precompose_pointed_equivalence.
   Qed.
   
   (*Precomposing with pointed equivalence results in an equivalence.*)
+  (*Should this just follow from isequiv_precompose?*)
   Lemma isequiv_pt_precompose `{Funext} {A B C:pType} (f : A<~>*B)  : 
     IsEquiv (@pointed_precompose A B C f).
   Proof.
     refine (isequiv_adjointify (pointed_precompose f) (pt_precompose_inverse f) _ _).
-    -intro g.           
+    -intro g.
      apply equiv_path_pmap.
      pHomotopy_via (g o* ( (pequiv_inverse f) o* f)).
      +apply pmap_compose_assoc.
@@ -74,45 +78,47 @@ Section Addpoint_forgetful_adjointness.
     intro f.
     refine (Build_pMap _ _ _ _).
     -intros [a | [] ].
-     *exact (f a).
-     *exact (point B).
+     *exact (f a). (*What inl a maps to*)
+     *exact (point B). (*What the basepoint maps to*)
     -exact idpath.
   Defined.
-  
+  (*
   Lemma isequiv_pMap_to_Map {A:Type } {B:pType} `{Funext} : IsEquiv (@pMap_to_Map A B).
   Proof.
     apply (@isequiv_adjointify ( (add_pt A) ->* B  ) (A->B) pMap_to_Map Map_to_pMap).
     -exact (fun _ => idpath).
     -intros [pf pe].
-     unfold pMap_to_Map; unfold Map_to_pMap.
-     pointed_reduce. 
-     
-     assert (Ht : (fun X : A + Unit =>
-                     match X with
-                       | inl a => pf (inl a)
-                       | inr tt => pf (inr tt)
-                     end )
-                  ==
-                  pf ).
-     +intros [ a | [] ];exact idpath.
-     +assert (path : (fun X : A + Unit =>
-                        match X with
-                          | inl a => pf (inl a)
-                          | inr tt => pf (inr tt)
-                        end )
-                     =
-                     pf ).
-      apply path_forall. exact Ht.
-      clear Ht.
-      pointed_reduce.
-      exact idpath.
-  Qed.  
-  
+     apply path_pmap.
+     apply issig_phomotopy.
+     unfold pMap_to_Map; unfold Map_to_pMap; simpl.
+     refine (ex_intro _ _ _).
+     +intros [a | [] ].
+      *exact idpath.
+      *exact pe^ .
+     +simpl. hott_simpl.
+  Qed. 
+  *)
+  Lemma isequiv_Map_to_pMap {A:Type } {B:pType} `{Funext} : IsEquiv (@Map_to_pMap A B).
+  Proof.
+    apply (@isequiv_adjointify (A->B) ( (add_pt A) ->* B  ) Map_to_pMap pMap_to_Map).
+
+    -intros [pf pe].
+     apply path_pmap.
+     apply issig_phomotopy.
+     unfold pMap_to_Map; unfold Map_to_pMap; simpl.
+     refine (ex_intro _ _ _).
+     +intros [a | [] ].
+      *exact idpath.
+      *exact pe^ .
+     +simpl. hott_simpl.
+    -exact (fun _ => idpath).
+  Qed. 
+
   (*Lemma 6_5_3 in book:*)
   Lemma addpt_forget_adjoint `{Funext} (A:Type) (B:pType) : 
-    ( (add_pt A) ->* B  ) <~> ( A -> (pointed_type B) ).
+    ( A -> (pointed_type B) ) <~> ( (add_pt A) ->* B  ).
   Proof.
-    exact (BuildEquiv _ _ pMap_to_Map isequiv_pMap_to_Map).
+    exact (BuildEquiv _ _ Map_to_pMap isequiv_Map_to_pMap).
   Qed.
 End Addpoint_forgetful_adjointness.
 
@@ -135,51 +141,115 @@ Section Two_points.
     -exact (Unit_rec (pSphere 0) North).
   Defined.
   
-  Definition isretr_sph_to_2 : Sect two_pts_to_sph0 sph0_to_two_pts.
-    intros [ [] | [] ] ; exact idpath.
+  Lemma isequiv_sph0_to_two_pts : IsEquiv sph0_to_two_pts.
+    refine (isequiv_adjointify _ two_pts_to_sph0  _ _).
+    -intros [ [] | [] ] ; exact idpath.
+    -refine (Susp_ind _ idpath idpath _).
+     intros [].
   Defined.
-  
-  Definition issect_sph_to_2 : Sect sph0_to_two_pts two_pts_to_sph0.
-    refine (Susp_ind _ idpath idpath _).
-    intros [].
-  Defined.
-  
-  Definition isequiv_sph0_to_two_pts :=
-    isequiv_adjointify sph0_to_two_pts two_pts_to_sph0 isretr_sph_to_2 issect_sph_to_2.
 
   Definition equiv_sph0_2 :=
     Build_pEquiv _ _ sph0_to_two_pts isequiv_sph0_to_two_pts.
+  
+  Definition A_to_twotoA {A:pType} := Map_to_pMap o (Unit_rec A).
 
+  Lemma isequiv_A_to_twotoA `{Funext} {A:pType} : IsEquiv (@A_to_twotoA A).
+    refine isequiv_compose.
+    exact isequiv_Map_to_pMap.
+  Defined.
+
+  Lemma equiv_A_twotoA `{Funext} {A:pType} : Equiv A (two_pts ->*A).
+    exact (BuildEquiv _ _ A_to_twotoA isequiv_A_to_twotoA).
+  Defined.  
+(*
   Lemma equiv_twotoA_A `{Funext} {A:pType} : A <~> (two_pts ->* A).
     equiv_via (Unit->A).
-    -refine (BuildEquiv _ _ _ _).
-     +exact (Unit_rec A).
-     +exact (isequiv_unit_rec A).  
+    -exact (BuildEquiv _ _ (Unit_rec A) (isequiv_unit_rec A)).
     -exact ( (addpt_forget_adjoint Unit A)^-1 ).
-  Qed.
-  
-(*  Lemma sph0_is_twopts`{Univalence}  : (pSphere 0) = (two_pts).
-        exact (path_universe sph0_to_two_pts).
-        Abort. *)  
+  Defined.
+*)
 End Two_points.
 
 
 Section Loops.
+
   (*Define Omega n A as pointed maps from the n-sphere*)
   Definition Omega (n:nat) (A:pType) :pType :=
     Build_pType (pMap (pSphere n) A) _.
   
-  Lemma A_Equiv_Omega0 `{Funext} {A:pType} : A <~> Omega 0 A. (*TODO : Apply isequiv_pt_precompose*)
-    equiv_via (two_pts ->* A).
-    -exact equiv_twotoA_A.
-    -refine (BuildEquiv _ _ _ _).
-     +exact (pointed_precompose equiv_sph0_2).
-     +apply isequiv_pt_precompose.
-  Qed.
+  (*TODO: Use more isEquiv*)
+
+  Definition A_to_Omega0 {A:pType} : A -> Omega 0 A := 
+    (pointed_precompose (sph0_to_two_pts) o A_to_twotoA).
+
+  Definition pointed_A_to_Omega0 `{Funext} {A:pType}  : A_to_Omega0 (point A) = point (Omega 0 A).
+    apply path_pmap.
+    apply issig_phomotopy.
+    refine (ex_intro _ _ _).
+    refine (Susp_ind _ _ _ _).
+    +exact idpath. 
+    +exact idpath.
+    +intros [].
+    +exact idpath.
+  Defined.
+
+  Definition pA_to_Omega0 `{Funext} {A:pType} := 
+    Build_pMap A (Omega 0 A)  A_to_Omega0 pointed_A_to_Omega0.
+
+  Lemma isequiv_A_to_Omega0 `{Funext} {A:pType} : IsEquiv (@A_to_Omega0 A).
+    refine isequiv_compose.
+    -exact isequiv_A_to_twotoA.
+    -apply (isequiv_pt_precompose equiv_sph0_2).
+  Defined.
+  
+  Definition equiv_A_Omega0 `{Funext} {A:pType} := 
+    BuildEquiv _ _ (@A_to_Omega0 A) isequiv_A_to_Omega0.
+
+  Definition iterated_loop_susp_adjoint `{Funext} (n:nat) : 
+    forall A:pType, Omega n A -> Omega 0 (iterated_loops n A).
+    induction n.
+    -intro A. exact idmap.
+    -intro A.
+     intro l.
+     apply (IHn (loops A)).
+     apply loop_susp_adjoint.
+     exact l.
+  Defined.
+     
+
+  Definition omega_to_loops `{Funext} (n:nat) : forall A:pType, iterated_loops n A -> Omega n A.
+    induction n.
+    (*n=0*)
+    -exact (@A_to_Omega0).
+    (*Induction step*)
+    -intro A.
+     simpl.
+     refine ((equiv_inverse (loop_susp_adjoint _ _)) o (IHn (loops A))).
+  Defined.
+
+  Lemma isequiv_omega_to_loops `{Funext} (n:nat) : forall A:pType, IsEquiv (omega_to_loops n A).
+   
+    induction n.
+    -exact (@isequiv_A_to_Omega0 _).
+    -intro A.     
+     refine isequiv_compose.
+     refine (isequiv_adjointify _ _ _ _).
+     +
+     
+    simpl.
+     
+     
+     intro loop.
+     refine (pointed_precompose (C:=A) sph0_to_two_pts).
+     
+     refine compose.
+     
+     apply iterated_loops_rec.
+unfold iterated_loops. simpl.
 
   (*This should be equivalent to the loop space in the library*)
   Theorem loops_equiv_omega `{Funext} : forall n:nat, forall A:pType,
-                                          iterated_loops n A <~> Omega n A.
+                                           Omega n A <~> iterated_loops n A.
     induction n.
     -intro A. exact A_Equiv_Omega0.
     -intro A.
@@ -187,12 +257,37 @@ Section Loops.
      +exact (IHn (loops A)).
      +exact ((loop_susp_adjoint _ _)^-1).
   Defined.
-  (*TODO: Show that this equivalence is natural.*)
+  (*TODO: Show that this equivalence is natural in A.*)
   (*TODO:*)
   Theorem omega_loops_peq `{Funext} :forall n:nat, forall A:pType,
                                        iterated_loops n A <~>* Omega n A. 
-    intros n a.
-    refine (Build_pEquiv _ _ _ _). 
+    intros n A.
+    refine (Build_pEquiv _ _ _ _).
+    -refine (Build_pMap _ _ _ _).
+     +apply loops_equiv_omega.
+     +simpl.
+      apply path_pmap.
+      apply issig_phomotopy.
+      refine (ex_intro _ _ _).
+      intro x.
+      induction n.
+      *change ((point (pSphere 0 ->* A)) x) with (point A). simpl.
+       change {| pointed_type := A; ispointed_type := point A |} with A.
+       
+       unfold iterated_loops.
+       unfold point. simpl.
+simpl.
+       change (const (point A) x) with (point A).
+       
+unfold addpt_forget_adjoint. hott_simpl.
+      *apply path_pmap.
+      simpl.
+      intro x.
+      change (point (iterated_loops n A)) with (@idpath A).
+      pointed_reduce.
+      unfold point.
+      unfold loops_equiv_omega. hott_simpl.
+      
   Admitted.
 
 End Loops.

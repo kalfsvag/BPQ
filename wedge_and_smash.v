@@ -215,7 +215,7 @@ Section Smash_and_Spheres.
   Lemma isequiv_A_to_smash_A {A:pType} : IsEquiv (@A_to_smash_A A).
     refine (BuildIsEquiv _ _ A_to_smash_A smash_A_to_A issect_AtoSm isretr_AtoSm _).
   Admitted.
-
+(*
   Lemma is_pequiv_A_smash_A (A:pType) : A <~>* p (smash A (pSphere 0)).
     refine (Build_pEquiv A (p (smash A (pSphere 0))) _ _).
     -exact (Build_pMap A (p (smash A (pSphere 0))) (@A_to_smash_A A) ispointed_A_to_smash_A).
@@ -224,10 +224,8 @@ Section Smash_and_Spheres.
   
   Lemma commute_smash_susp {A B:pType} : p (smash (psusp A) B) <~>* psusp p (smash A B).
   Admitted.
+  *)
   
-  
-
-
 End Smash_and_Spheres.
 
 
@@ -237,8 +235,7 @@ End Smash_and_Spheres.
 
 (* 		
 		
-		
-		Alternative wedge_functor
+			Alternative wedge_functor
 		
 			rapply (@functor_coeq Unit (A+B)).
 				-exact idmap.

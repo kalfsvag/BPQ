@@ -48,7 +48,7 @@ Section Precompose_pointed_equivalence.
   (*Should this just follow from isequiv_precompose?*)
   Lemma isequiv_pt_precompose `{Funext} {A B C:pType} (f : A->*B) {feq : IsEquiv f} : 
     IsEquiv (@pointed_precompose A B C f).
-  Proof.
+  Proof.    
     refine (isequiv_adjointify (pointed_precompose f) (pt_precompose_inv f) _ _).
     -intro g.
      apply equiv_path_pmap.
@@ -81,7 +81,7 @@ Section Addpoint_forgetful_adjointness.
   
   Definition Map_to_pMap {A:Type } {B:pType} : ( A->(pointed_type B) ) -> ( (add_pt A) ->* B  ).
     intro f.
-    refine (Build_pMap _ _ _ _).
+    rapply Build_pMap.
     -intros [a | [] ].
      *exact (f a). (*What inl a maps to*)
      *exact (point B). (*What the basepoint maps to*)
@@ -118,7 +118,7 @@ Section Two_points.
   Definition two_pts := add_pt Unit. 
 
   Definition sph0_to_two_pts : (pSphere 0) ->* two_pts.
-    refine (Build_pMap _ _ _ _).
+    rapply Build_pMap.
     (*Construct map*)
     -apply (Susp_rec (inr tt) (inl tt)).
      +intros [].
@@ -130,53 +130,12 @@ Section Two_points.
       - exact (Unit_rec (pSphere 0) South).
       - exact (Unit_rec (pSphere 0) North).
   Defined.
-
-(*  Definition two_pts_to_sph0 : two_pts ->* (pSphere 0).
-    refine (Build_pMap _ _ _ _).
-    - intros [].
-      + exact (Unit_rec (pSphere 0) South).
-      + exact (Unit_rec (pSphere 0) North).
-    - exact idpath.
-  Defined.
-  *)    
+    
   Lemma isequiv_sph0_to_two_pts : IsEquiv sph0_to_two_pts.
-    refine (isequiv_adjointify _ two_pts_to_sph0  _ _).
-    -intros [ [] | [] ] ; exact idpath.
-    -refine (Susp_ind _ idpath idpath _).
-     intros [].
-  Defined.
-
-(*  Lemma isequiv_two_pts_to_sph0 : IsEquiv two_pts_to_sph0.
-    refine (isequiv_adjointify _ sph0_to_two_pts  _ _).
-    - refine (Susp_ind _ idpath idpath _).
-      intros [].
-    - intros [ [] | [] ] ; exact idpath.
-  Defined. *)
-
-(*  Definition equiv_sph0_2 :=
-    Build_pEquiv _ _ sph0_to_two_pts isequiv_sph0_to_two_pts.*)
-
-
-  (*Show equivalence between A and 2->*A *)  (*TODO: Write out the type of the definitions (For readability)*)
-  (*Definition A_to_twotoA {A:pType} : A -> two_pts->*A := Map_to_pMap o (Unit_rec A). (*TODO: Do this the other way around.*)
-
-  
-
-  Lemma isequiv_A_to_twotoA `{Funext} {A:pType} : IsEquiv (@A_to_twotoA A).
-    refine isequiv_compose.
-    exact isequiv_Map_to_pMap.
-  Defined.
-
-  Lemma equiv_A_twotoA `{Funext} {A:pType} : A <~> (two_pts ->*A).
-    exact (BuildEquiv _ _ A_to_twotoA isequiv_A_to_twotoA).
-  Defined.  
-(*
-  Lemma equiv_twotoA_A `{Funext} {A:pType} : A <~> (two_pts ->* A).
-    equiv_via (Unit->A).
-    -exact (BuildEquiv _ _ (Unit_rec A) (isequiv_unit_rec A)).
-    -exact ( (adjoint_addpt_forget Unit A)^-1 ).
-  Defined.
-*) *) 
+    rapply (isequiv_adjointify sph0_to_two_pts two_pts_to_sph0).
+    - intros [ [] | [] ] ; repeat exact idpath.
+    - exact (Susp_ind _ idpath idpath (Empty_ind _)).
+  Defined. 
 End Two_points.
 
 
@@ -186,9 +145,6 @@ Section Loops.
   Definition Omega (n:nat) (A:pType) : pType :=
     Build_pType (pMap (pSphere n) A) _.
   
-  (*TODO: Use more isEquiv*)
-  (*TODO : Change roles of sph0_to_two_pts and its inverse above, or just use (pequiv_inv A_to_Omega0) below?
-   *)
   Definition A_to_Omega0 {A:pType} : A -> Omega 0 A := 
     (pointed_precompose sph0_to_two_pts) o Map_to_pMap o (Unit_rec A).
   
@@ -205,16 +161,17 @@ Section Loops.
     Build_pMap A (Omega 0 A)  A_to_Omega0 pointed_A_to_Omega0.
 
   Lemma isequiv_A_to_Omega0 `{Funext} {A:pType} : IsEquiv (@A_to_Omega0 A).
-    refine isequiv_compose.
-    refine isequiv_compose.
-    - exact isequiv_Map_to_pMap.
-    - exact (isequiv_pt_precompose sph0_to_two_pts (feq := isequiv_sph0_to_two_pts)).
+    Proof.
+      refine isequiv_compose.
+      refine isequiv_compose.
+      - exact isequiv_Map_to_pMap.
+      - exact (isequiv_pt_precompose sph0_to_two_pts (feq := isequiv_sph0_to_two_pts)).
   Defined.
   
   Definition equiv_A_Omega0 `{Funext} {A:pType} := 
     BuildEquiv _ _ (@A_to_Omega0 A) isequiv_A_to_Omega0.
   
-  Definition iterated_loop_susp_adjoint `{Funext} (n:nat) : 
+  Definition it_loop_susp_adj `{Funext} (n:nat) : 
     forall A:pType, Omega n A -> Omega 0 (iterated_loops n A).
     induction n.
     -intro A. exact idmap.
@@ -222,8 +179,19 @@ Section Loops.
      exact ( (IHn (loops A)) o (loop_susp_adjoint _ _) ) .
   Defined.
 
-  Lemma isequiv_iterated_loop_susp_adjoint `{Funext} (n:nat) : 
-    forall A:pType, IsEquiv (iterated_loop_susp_adjoint n A).
+  Lemma pointed_it_loop_susp_adj `{Funext} {A:pType} (n:nat) :
+    it_loop_susp_adj n A (point (Omega n A)) = point (Omega 0 (iterated_loops n A)).
+    Proof.
+      induction n.
+      - exact idpath.
+      - admit.
+    Admitted. (*TODO*)
+      
+
+
+
+  Lemma isequiv_it_loop_susp_adj `{Funext} (n:nat) : 
+    forall A:pType, IsEquiv (it_loop_susp_adj n A).
   Proof.
     induction n.
     -intro A.
@@ -234,11 +202,11 @@ Section Loops.
 
   (*My loop spaces and HoTT's loop spaces are equivalent*)
   Definition loops_to_omega `{Funext} {A:pType} (n:nat) : Omega n A -> iterated_loops n A :=
-    (equiv_A_Omega0)^-1 o (iterated_loop_susp_adjoint n A).
+    (equiv_A_Omega0)^-1 o (it_loop_susp_adj n A).
   
   Lemma isequiv_loops_to_omega `{Funext} {A:pType} (n:nat) : IsEquiv (loops_to_omega (A:=A) n).
     refine isequiv_compose.
-    exact (isequiv_iterated_loop_susp_adjoint n A).
+    exact (isequiv_it_loop_susp_adj n A).
   Defined.
 
   (*TODO: Show that this equivalence is natural in A.*)
@@ -251,8 +219,6 @@ Section Loops.
 End Loops.
 
 Section homotopy_groups.
-
-
   Definition homotopy_group (n:nat) (A:pType) :pType :=
     pTr 0 (Omega n A).
 
@@ -261,7 +227,7 @@ Section homotopy_groups.
   Definition SphereToOmega_functor {m n:nat} (f:pSphere m ->* pSphere n) (A:pType) :
     Omega n A ->* Omega m A.
     
-    refine (Build_pMap _ _ _ _).
+    rapply Build_pMap. 
     (*Define the map*)
     * intro h. exact (h o* f).
     (*Prove that it is pointed map.*)
@@ -270,8 +236,7 @@ Section homotopy_groups.
 
   Definition OmegaToHtGr_functor {m n : nat} {A:pType} (f : Omega n A ->* Omega m A) :
     HtGr n A ->* HtGr m A.
-    
-    refine (Build_pMap _ _ _ _).
+    rapply Build_pMap.
     (*Construct map*)
     *apply Trunc_rec.
      intro loop.

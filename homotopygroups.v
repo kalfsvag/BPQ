@@ -2,12 +2,18 @@
 Require Import HoTT. 
 Load pType_basics.
 
+(*The main result in this file is the fact that S^n->*A <~> loops n A.
+I also use this to construct a map between homotopy groups from a map between spheres.
+Lastly I (assuming the Hopf map) construct a map pi_(n+1) A ->* pi_n A. *)
+
+
+(*Show that precomposing with a pointed equivalence induces an equivalence. *)
+(*TODO: do also with postcompose. . .*)
 Section Precompose_pointed_equivalence.
-  
   Definition pointed_precompose {A B C:pType} (f:A->*B) : (B->*C) -> (A->*C)
     := fun g => g o* f.  
   
-  Definition pt_precompose_inverse {A B C:pType} (f : A->*B) {feq : IsEquiv f} :
+  Definition pt_precompose_inv {A B C:pType} (f : A->*B) {feq : IsEquiv f} :
     (A->*C) -> (B->*C)
     := pointed_precompose (pequiv_inv f).
 
@@ -43,7 +49,7 @@ Section Precompose_pointed_equivalence.
   Lemma isequiv_pt_precompose `{Funext} {A B C:pType} (f : A->*B) {feq : IsEquiv f} : 
     IsEquiv (@pointed_precompose A B C f).
   Proof.
-    refine (isequiv_adjointify (pointed_precompose f) (pt_precompose_inverse f) _ _).
+    refine (isequiv_adjointify (pointed_precompose f) (pt_precompose_inv f) _ _).
     -intro g.
      apply equiv_path_pmap.
      pHomotopy_via (g o* ( (pequiv_inv f) o* f)).
@@ -67,7 +73,7 @@ Section Precompose_pointed_equivalence.
   Qed.
 End Precompose_pointed_equivalence.
 
-(*In this section we prove that addpoint and the forgetful functor pType->Type are adjoint. This is lemma 6.5.3 in book.*)
+(*Prove that addpoint and the forgetful functor pType->Type are adjoint. This is lemma 6.5.3 in book.*)
 Section Addpoint_forgetful_adjointness.
   Definition pMap_to_Map {A:Type } {B:pType} : 
     ( (add_pt A) ->* B  ) -> ( A -> (pointed_type B) ) :=
@@ -81,22 +87,7 @@ Section Addpoint_forgetful_adjointness.
      *exact (point B). (*What the basepoint maps to*)
     -exact idpath.
   Defined.
-  (*
-  Lemma isequiv_pMap_to_Map {A:Type } {B:pType} `{Funext} : IsEquiv (@pMap_to_Map A B).
-  Proof.
-    apply (@isequiv_adjointify ( (add_pt A) ->* B  ) (A->B) pMap_to_Map Map_to_pMap).
-    -exact (fun _ => idpath).
-    -intros [pf pe].
-     apply path_pmap.
-     apply issig_phomotopy.
-     unfold pMap_to_Map; unfold Map_to_pMap; simpl.
-     refine (ex_intro _ _ _).
-     +intros [a | [] ].
-      *exact idpath.
-      *exact pe^ .
-     +simpl. hott_simpl.
-  Qed. 
-  *)
+
   Lemma isequiv_Map_to_pMap {A:Type } {B:pType} `{Funext} : IsEquiv (@Map_to_pMap A B).
   Proof.
     apply (@isequiv_adjointify (A->B) ( (add_pt A) ->* B  ) Map_to_pMap pMap_to_Map).
@@ -114,7 +105,7 @@ Section Addpoint_forgetful_adjointness.
   Qed. 
 
   (*Lemma 6_5_3 in book:*)
-  Lemma addpt_forget_adjoint `{Funext} (A:Type) (B:pType) : 
+  Lemma adjoint_addpt_forget `{Funext} (A:Type) (B:pType) : 
     ( A -> (pointed_type B) ) <~> ( (add_pt A) ->* B  ).
   Proof.
     exact (BuildEquiv _ _ Map_to_pMap isequiv_Map_to_pMap).
@@ -126,9 +117,7 @@ End Addpoint_forgetful_adjointness.
 Section Two_points.
   Definition two_pts := add_pt Unit. 
 
-  (*Gives two different proofs of equivalence between S0 and two (only need one. . .)*)
-  
-  Definition sph0_to_two_pts : (pSphere 0) ->* two_pts. (*Don't need to show that this is pointed.*)
+  Definition sph0_to_two_pts : (pSphere 0) ->* two_pts.
     refine (Build_pMap _ _ _ _).
     (*Construct map*)
     -apply (Susp_rec (inr tt) (inl tt)).
@@ -136,14 +125,20 @@ Section Two_points.
     -exact idpath.
   Defined.
   
-  Definition two_pts_to_sph0 : two_pts ->* (pSphere 0).
+  Definition two_pts_to_sph0 : two_pts -> (pSphere 0).
+    intros [].
+      - exact (Unit_rec (pSphere 0) South).
+      - exact (Unit_rec (pSphere 0) North).
+  Defined.
+
+(*  Definition two_pts_to_sph0 : two_pts ->* (pSphere 0).
     refine (Build_pMap _ _ _ _).
     - intros [].
       + exact (Unit_rec (pSphere 0) South).
       + exact (Unit_rec (pSphere 0) North).
     - exact idpath.
   Defined.
-  
+  *)    
   Lemma isequiv_sph0_to_two_pts : IsEquiv sph0_to_two_pts.
     refine (isequiv_adjointify _ two_pts_to_sph0  _ _).
     -intros [ [] | [] ] ; exact idpath.
@@ -179,7 +174,7 @@ Section Two_points.
   Lemma equiv_twotoA_A `{Funext} {A:pType} : A <~> (two_pts ->* A).
     equiv_via (Unit->A).
     -exact (BuildEquiv _ _ (Unit_rec A) (isequiv_unit_rec A)).
-    -exact ( (addpt_forget_adjoint Unit A)^-1 ).
+    -exact ( (adjoint_addpt_forget Unit A)^-1 ).
   Defined.
 *) *) 
 End Two_points.

@@ -157,7 +157,7 @@ Section Loops.
       + intros [].
   Defined.
 
-  Definition pA_to_Omega0 `{Funext} {A:pType} := 
+  Definition pA_to_Omega0 `{Funext} {A:pType}  := 
     Build_pMap A (Omega 0 A)  A_to_Omega0 pointed_A_to_Omega0.
 
   Lemma isequiv_A_to_Omega0 `{Funext} {A:pType} : IsEquiv (@A_to_Omega0 A).
@@ -168,9 +168,16 @@ Section Loops.
       - exact (isequiv_pt_precompose sph0_to_two_pts (feq := isequiv_sph0_to_two_pts)).
   Defined.
   
-  Definition equiv_A_Omega0 `{Funext} {A:pType} := 
-    BuildEquiv _ _ (@A_to_Omega0 A) isequiv_A_to_Omega0.
-  
+  Definition pEquiv_A_Omega0 `{Funext} {A:pType} : A <~>* Omega 0 A := 
+    Build_pEquiv _ _ pA_to_Omega0 isequiv_A_to_Omega0.
+
+  Fixpoint it_loop_susp_adj `{Funext} (n:nat) (A : pType) : Omega n A -> Omega 0 (iterated_loops n A) :=
+    match n with
+      | O => idmap
+      | S n => (it_loop_susp_adj n (loops A)) o (loop_susp_adjoint _ _)
+    end
+  .
+ (*
   Definition it_loop_susp_adj `{Funext} (n:nat) : 
     forall A:pType, Omega n A -> Omega 0 (iterated_loops n A).
     induction n.
@@ -178,16 +185,36 @@ Section Loops.
     -intro A.
      exact ( (IHn (loops A)) o (loop_susp_adjoint _ _) ) .
   Defined.
-
-  Lemma pointed_it_loop_susp_adj `{Funext} {A:pType} (n:nat) :
+*)
+  Lemma pointed_loop_susp_adjoint `{Funext} (A B:pType)  :
+    loop_susp_adjoint A B (pconst (psusp A) B) = pconst A (loops B).
+    Proof.
+      path_via ( (pconst (loops (psusp A)) (loops B)) o* loop_susp_unit A ).
+      - apply path_pmap.
+       apply pmap_prewhisker.
+       apply issig_phomotopy.
+       refine (ex_intro _ _ _).
+        + intro loop.
+          path_via (ap (const (point B)) loop @ 1).
+          { apply concat_1p. }
+          { path_via (ap (const (point B)) loop).
+            { apply concat_p1. }
+            apply ap_const. }
+        + hott_simpl.
+      - apply const_comp. (*Not sure if this is the best proof. . .*)
+    Qed.
+        
+  Lemma pointed_it_loop_susp_adj `{Funext} (n:nat) : forall A:pType,
     it_loop_susp_adj n A (point (Omega n A)) = point (Omega 0 (iterated_loops n A)).
     Proof.
       induction n.
-      - exact idpath.
-      - admit.
-    Admitted. (*TODO*)
-      
-
+      - reflexivity.
+      - intro A.
+        change (it_loop_susp_adj n.+1 A (point (Omega n.+1 A))) with
+        ( (it_loop_susp_adj n (loops A)) ((loop_susp_adjoint _ _) (point (Omega n.+1 A))) ).
+        rewrite (pointed_loop_susp_adjoint (pSphere n) A).
+        exact (IHn (loops A)).
+    Qed.
 
 
   Lemma isequiv_it_loop_susp_adj `{Funext} (n:nat) : 
@@ -200,22 +227,25 @@ Section Loops.
      refine isequiv_compose.
   Defined.
 
-  (*My loop spaces and HoTT's loop spaces are equivalent*)
-  Definition loops_to_omega `{Funext} {A:pType} (n:nat) : Omega n A -> iterated_loops n A :=
-    (equiv_A_Omega0)^-1 o (it_loop_susp_adj n A).
-  
-  Lemma isequiv_loops_to_omega `{Funext} {A:pType} (n:nat) : IsEquiv (loops_to_omega (A:=A) n).
-    refine isequiv_compose.
-    exact (isequiv_it_loop_susp_adj n A).
+  Definition pEquiv_omegaN_omega0 `{Funext} (n:nat) (A:pType) :
+    Omega n A <~>* Omega 0 (iterated_loops n A).
+    refine (Build_pEquiv _ _ _ _).
+    - refine (Build_pMap _ _ _ _).
+      + apply it_loop_susp_adj.
+      + apply pointed_it_loop_susp_adj.
+    - apply isequiv_it_loop_susp_adj.
   Defined.
 
-  (*TODO: Show that this equivalence is natural in A.*)
 
-  (*TODO:*)
-  Theorem omega_loops_peq `{Funext} :forall n:nat, forall A:pType,
-                                       iterated_loops n A <~>* Omega n A. 
-  Admitted.
-
+  (*Now we can prove the main theorem of this section:
+    That Omega is pointed equivalent to iterated_loops.*)
+  Theorem pEquiv_omega_loops `{Funext} (n:nat) (A:pType) :
+    Omega n A <~>* iterated_loops n A.
+  Proof.
+    refine (Build_pEquiv _ _ _ _).
+    - exact ((pequiv_inverse pEquiv_A_Omega0)  o* (pEquiv_omegaN_omega0 n A)).
+    - apply isequiv_compose.
+  Defined.
 End Loops.
 
 Section homotopy_groups.
@@ -261,7 +291,7 @@ Section Hopf.
   Definition Hopf_induced (n:nat){A:pType}: 
     homotopy_group (n+2) A ->* homotopy_group (n+3) A 
     :=
-      SphereToHtGr_functor (functor_sphere n Hopf) A.
+      SphereToHtGr_functor (natural_sphere n Hopf) A.
   
 End Hopf.
 

@@ -14,6 +14,7 @@ Section wedge_and_smash.
   
   Definition sum_to_wedge {A B:pType} : (A+B)->(wedge A B) := push.
   
+  (*TODO: Rename to pw*)
   Definition wedgepath {A B:pType} : 
     sum_to_wedge (inl (point A)) = sum_to_wedge (inr (point B)) 
     := pp tt.
@@ -123,7 +124,7 @@ Section wedge_and_smash.
     := push (inr pair).
   
   Global Instance ispointed_smash {A B:pType} : IsPointed (smash A B) := push (inl tt).
-  
+  (*TODO: Reduce this to not have wedge in parameters*)
   Definition smash_rec {A B:pType} 
 	     (P:Type)
 	     (basepoint:P)
@@ -135,9 +136,12 @@ Section wedge_and_smash.
      +exact (f pair).
     -exact Ht.
   Defined.
+
+
   
-  
+  (*TODO: smash_ind*)
   (*TODO : Smash and wedge are pointed. Functors map to pointed maps.*)
+  (*TODO: Smash and wedge are product and coproduct in pType*)
   (*TODO: Comment better.*)
   
   Definition smash_functor {A B C D:pType} (f:A->*C) (g:B ->* D) :

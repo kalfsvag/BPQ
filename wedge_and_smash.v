@@ -1,69 +1,81 @@
 Require Import HoTT.
 Load pType_basics.
 
-Section wedge_and_smash.
-  (*Define the wedge. The basepoint could just as well have been pushr tt,
-	but some choice had to be made.*)
-  (* 	Definition wedge (A B:pType) := 
-		Build_pType 
-			(pushout (unit_name (point A)) (unit_name (point B) ) )
-			(pushl tt). *)
+Section Wedge.
+  (*Define the wedge as a pushout.*)
   Definition wedge (A B : pType) := pushout (unit_name (point A)) (unit_name (point B) ).
-  
+
+  (*Give the basepoint of the wedge. It could just as well have been pushr tt.*)
   Global Instance ispointed_wedge {A B:pType} : IsPointed (wedge A B) := pushl tt.
-  
+    
+  (*The projection from sum to wedge:*)
   Definition sum_to_wedge {A B:pType} : (A+B)->(wedge A B) := push.
   
-  (*TODO: Rename to pw*)
-  Definition wedgepath {A B:pType} : 
+  (*The path between the two basepoints in the wedge:*)
+  Definition pw {A B:pType} : 
     sum_to_wedge (inl (point A)) = sum_to_wedge (inr (point B)) 
     := pp tt.
   
-  
+  (*Wedge induction: You need compatible products over A and B.*)
   Definition wedge_ind {A B:pType} 
 	     (P : (wedge A B)->Type) 
-	     (f:forall x:A + B, P (sum_to_wedge x)) 
-	     (pp' : transport P (pp tt) (f (inl (point A))) = f (inr (point B)) )
+	     (f: forall a : A, P (sum_to_wedge (inl a)))
+         (g : forall b : B, P (sum_to_wedge (inr b)))
+	     (pw' : transport P pw (f (point A)) = g (point B) )
   :forall w : wedge A B, P w.
-    apply (pushout_ind 
-	     (unit_name (point A)) 
-	     (unit_name (point B)) 
-	     P
-	     f).
-    intros[]. exact pp'.
+  Proof.
+    rapply (@pushout_ind Unit A B).
+    - intros [a | b].
+      exact (f a).
+      exact (g b).
+    - intros [].
+      exact pw'.
   Defined.
   
-  (*To construct a map out of a wedge, you need:
-		-map from A
-		-map from B 
-		-and a proof that these map the basepoints to the same point.*)
-  Definition wedge_rec {A B : pType}
-	     (P : Type)
-	     (f : A+B->P)
-	     (pp' : f (inl (point A)) = f (inr (point B) )) : (wedge A B) -> P.
-    refine (pushout_rec _ f _).
-    -exact (fun _ => pp'). (* intros []. exact pp'. *)
-  Defined.
+  (*Wedge recursion: You need compatible maps from A and B.*)
+  Definition wedge_rec {A B: pType}
+             (P : Type) (f : A -> P) (g : B -> P) (pw' : f (point A) = g (point B) ) : (wedge A B) -> P.
+    Proof.
+      rapply (@pushout_rec Unit A B).
+      - intros [a | b].
+        exact (f a). exact (g b).
+      - intros []. exact pw'.
+    Defined.
+    (*Could also do this:
+  := wedge_ind (fun _ : wedge A B => P) f g (transport_const pw (f (point A)) @ pw').
 
+     But then it would be less convenient to use pushout_rec_beta_pp. . .*)
+
+
+  (*Wedge is a functor.*)
   Definition wedge_functor {A B C D:pType} (f:A->*C) (g:B->*D) : 
-    (wedge A B) -> (wedge C D).
-    rapply (@wedge_rec A B).
-    -exact (sum_to_wedge o (functor_sum f g)).
-    -path_via (@sum_to_wedge C D (inl (point C))).
-     exact (ap (sum_to_wedge o inl) (point_eq f)).
-     path_via (@sum_to_wedge C D (inr (point D))).
-     exact wedgepath.
-     exact (ap (sum_to_wedge o inr) (point_eq g)^).
-  Defined.
+    (wedge A B) -> (wedge C D) :=
+    wedge_rec
+      (wedge C D)
+      (sum_to_wedge o functor_sum f g o inl)
+      (sum_to_wedge o functor_sum f g o inr)
+      (ap (sum_to_wedge o inl) (point_eq f) @ pw @ (ap (sum_to_wedge o inr) (point_eq g))^).
   (*Todo:	Show that the result is a pMap*)
 
+  (*wedge_rec takes the path pw to what it should.*)
+  Lemma wedge_rec_beta_pw {A B : pType}
+        (P : Type) (f : A -> P) (g : B -> P) (pw' : f (point A) = g (point B) ) :
+    ap (wedge_rec P f g pw') pw = pw'.
+  Proof.
+    refine (pushout_rec_beta_pp P _ _ _).
+  Defined.
+    
+  (*For instance, wedge_functor takes pw to pw (more or less).*)
   Lemma ap_wedge_functor {A B C D: pType} (f:A->*C) (g:B->*D) : 
-    ap (wedge_functor f g) (wedgepath) = (ap (sum_to_wedge o inl) (point_eq f) @
-   (wedgepath @ ap (sum_to_wedge o inr) (point_eq g)^)).
-    refine (pushout_rec_beta_pp _ _ _ _).
-  Qed.
+    ap (wedge_functor f g) (pw) =
+    ap (sum_to_wedge o inl) (point_eq f) @ pw @ (ap (sum_to_wedge o inr) (point_eq g))^.
+  Proof.
+    apply wedge_rec_beta_pw.
+  Defined.
+End Wedge.
 
-
+Section Smash.
+  (*First some simple maps used to define the smash product.*)
   Definition sum_pr1 {A B:pType} (x:A+B) : A :=
     match x with
       |inl a => a
@@ -74,71 +86,113 @@ Section wedge_and_smash.
       |inl a => point B
       |inr b => b
     end.
-
   Definition sum_to_product {A B:pType} (x : A+B) : A*B:= (sum_pr1 x, sum_pr2 x).
 
-  Definition wedge_in_prod {A B:pType} : wedge A B -> A*B.
-    rapply (@wedge_rec A B).
-    -exact sum_to_product.
-    -exact idpath.
-  Defined.
-  
-  Lemma ap_wedge_in_prod {A B:pType} : ap (@wedge_in_prod A B) wedgepath = idpath.
+  (*The inclusion of the wedge into the product.*)
+  Definition wedge_in_prod {A B:pType} : wedge A B -> A*B :=
+    wedge_rec (A*B) (sum_to_product o inl) (sum_to_product o inr) idpath.
+  (*This projects the path pw to idpath.*)
+  Lemma ap_wedge_in_prod {A B:pType} : ap (@wedge_in_prod A B) pw = idpath.
     refine (pushout_rec_beta_pp _ _ _ _).
   Qed.
-  
+
+  (*This is just used to make the next proof more readable. . .*)
   Definition pair' {A B : Type}  : A -> B -> B*A := fun a b => (b,a).
-  
+
+  (*The inclusion of the wedge in the product is natural.*)
   Definition natural_wedge_in_prod {A B C D: pType} (f:A->*C) (g:B->*D) : 
     forall w : wedge A B, 
       functor_prod f g (wedge_in_prod w) = wedge_in_prod (wedge_functor f g w).
     rapply (@wedge_ind A B).
-    intros [a|b].
-    -exact (ap (pair (f a)) (point_eq g) ).
-    -exact (ap (pair' (g b)) (point_eq f) ).
+    - intro a. exact (ap (pair (f a)) (point_eq g) ).
+    - intro b. exact (ap (pair' (g b)) (point_eq f) ).
     -rewrite transport_paths_FlFr.
      rewrite concat_pp_p.
-     (*change (fun x : wedge A B => wedge_in_prod (wedge_functor f g x)) with (wedge_in_prod o (wedge_functor f g)).*)
      rewrite (ap_compose wedge_in_prod (functor_prod f g)).
      rewrite (ap_compose (wedge_functor f g) wedge_in_prod).
      rewrite (@ap_wedge_in_prod A B). hott_simpl.
      rewrite (@ap_wedge_functor A B C D f g).
-     rewrite ap_pp. rewrite ap_pp. 
-     rewrite (@ap_wedge_in_prod C D). hott_simpl.
      rewrite (ap_compose inr sum_to_wedge).
      rewrite (ap_compose inl sum_to_wedge).
+     rewrite ap_pp. rewrite ap_pp. 
+     rewrite (@ap_wedge_in_prod C D). hott_simpl.
      rewrite <- (ap_compose sum_to_wedge wedge_in_prod).     
      rewrite <- (ap_compose sum_to_wedge wedge_in_prod).
      pointed_reduce.
      exact idpath.
   Qed.
 
+  (*Define the smash as a pushout.*)
   Definition smash (A B : pType) :=
     pushout (@const (wedge A B) Unit tt) (wedge_in_prod).
-  
-  (* 	Definition smashpush {A B:pType} :=
-		@push (wedge A B) pUnit (A*B) (@const (wedge A B) Unit tt) wedge_in_prod.
-   (*TODO: Remove residues of smashpush*)
-   *)	
+
+  (*The projection from the product to smash.*)
   Definition prod_to_smash {A B:pType} (pair:A*B) : smash A B
     := push (inr pair).
-  
+
+  (*Define the base point of smash.*)
   Global Instance ispointed_smash {A B:pType} : IsPointed (smash A B) := push (inl tt).
-  (*TODO: Reduce this to not have wedge in parameters*)
-  Definition smash_rec {A B:pType} 
-	     (P:Type)
-	     (basepoint:P)
-	     (f:A*B->P)
-	     (Ht: forall w : wedge A B, basepoint = f (wedge_in_prod w)) : (smash A B) -> P.
-    refine (pushout_rec _ _ _).
-    -intros [ [] | pair ].
-     +exact (basepoint).
-     +exact (f pair).
-    -exact Ht.
+
+  (*The wedge collapses to a point in smash.*)
+  Definition ps {A B : pType} :
+    forall w : wedge A B, ispointed_smash = pushr w
+    := pp.
+
+  (*These are nice if you want to use smash without refering to wedge.*)
+  Definition psA {A B : pType} :
+    forall a : A, ispointed_smash = prod_to_smash (a, point B).
+    intro a.
+    exact (ps (sum_to_wedge (inl a))).
+  Defined.
+  
+  Definition psB {A B : pType} :
+    forall b : B, ispointed_smash = prod_to_smash (point A, b).
+    intro b.
+    exact (ps (sum_to_wedge (inr b))).
   Defined.
 
+  (*Smash recursion : You need a map from A*B that is constant on the wedge.*)
+  Definition smash_rec {A B : pType}
+             (P:Type)
+	         (f:A*B->P)
+             (const_w : forall w : wedge A B, f (point A, point B) = f (wedge_in_prod w))
+  : smash A B -> P.
+  Proof.
+    refine (pushout_rec _ _ _).
+    - intros [ [] | pair].
+      + (*What the basepoint of smash A B should be mapped to*)
+        exact (f (point A, point B)).
+      + (*What a general element of smash A B should be mapped to*)
+        exact (f pair).
+    - exact const_w.
+  Defined.
 
-  
+  (*Variant of the recursion that doesn't use wedge.*)
+  Definition smash_rec' {A B:pType} 
+	     (P:Type)
+	     (f:A*B->P)
+         (const_w_1 : forall a : A, f (point A, point B) = f (a, point B))
+         (const_w_2 : forall b : B, f (point A, point B) = f (point A, b))
+         (const_w_12 : const_w_1 (point A) = const_w_2 (point B))
+  : smash A B -> P.
+  Proof.
+    apply (smash_rec P f).
+    -(*Now we show that f is constant on the wedge*)
+      rapply (@wedge_ind A B).
+      + exact const_w_1.
+      + exact const_w_2.
+      + simpl.
+        path_via (const_w_1 (point A)).
+        * path_via ((const_w_1 (point A)) @ ap (f o wedge_in_prod) pw).
+            refine (transport_paths_Fr _ _).
+            (*Do this opaquely for now. . .*)
+            rewrite ap_compose.
+            rewrite ap_wedge_in_prod.
+            hott_simpl.
+        * exact const_w_12.
+  Qed.
+
+  (*TODO: smash_rec_beta?*)
   (*TODO: smash_ind*)
   (*TODO : Smash and wedge are pointed. Functors map to pointed maps.*)
   (*TODO: Smash and wedge are product and coproduct in pType*)
@@ -146,17 +200,57 @@ Section wedge_and_smash.
   
   Definition smash_functor {A B C D:pType} (f:A->*C) (g:B ->* D) :
     smash A B -> smash C D.
+  Proof.
     rapply (@smash_rec A B).
-    -exact (ispointed_smash). (*Basepoint*)
-    -exact (prod_to_smash o (functor_prod f g)). (* : A*B -> smash C D*)
-    (*Well defined:*)
-    -simpl. intro w.
-     path_via (prod_to_smash (wedge_in_prod (wedge_functor f g w))).
-     +unfold prod_to_smash. unfold ispointed_smash.
-      exact (pp (wedge_functor f g w)).
-     +exact (ap prod_to_smash (natural_wedge_in_prod f g w))^.
+    - (*First give the map A*B -> smash C D *)
+      exact (prod_to_smash o (functor_prod f g)). (* : A*B -> smash C D*)
+    - (*Then show it is well defined.*)
+      intro w.
+      (*Show that everything contracts to the basepoint: *)
+      path_via (@ispointed_smash C D).
+      path_via (prod_to_smash (B:=D) (wedge_in_prod (sum_to_wedge (inl (f (point A)))))).
+      + apply (ap prod_to_smash). 
+        apply (ap (fun d : D => (f (point A), d))).
+        apply point_eq. 
+      + apply (ps _)^. 
+      + path_via (prod_to_smash (wedge_in_prod (wedge_functor f g w))).
+        { apply ps. }
+        apply (ap prod_to_smash).
+        apply (natural_wedge_in_prod f g w)^.
   Defined.
-End wedge_and_smash.
+              
+(*      rewrite (natural_wedge_in_prod).
+      path_via (prod_to_smash (B:=D) (wedge_in_prod (sum_to_wedge (inl a)))).
+      
+      path_via (prod_to_smash (f a, point D)).
+      path_via (prod_to_smash (f (point A), point D)).
+      { apply (ap prod_to_smash).
+        apply (ap (fun d:D => (f (point A), d))).
+        apply point_eq. }
+      { apply ((psA (f (point A)))^ @ (psA (f a))). }
+      apply (ap prod_to_smash). 
+      apply (ap (fun d:D => (f a, d))).
+      apply (point_eq g)^.
+    - intro b.
+      path_via (prod_to_smash (point C, g b)).
+      path_via (prod_to_smash (point C, g (point B))).
+      { apply (ap prod_to_smash).
+        apply (ap (fun c : C => (c, g (point B)))).
+        apply point_eq. }
+      { apply ((psB (g (point B)))^ @ (psB (g b))). }
+      { apply (ap prod_to_smash).
+        apply (ap (fun c : C => (c, g b))).
+        apply (point_eq _)^. }
+    - simpl. hott_simpl.
+      rewrite <- ap_pp.
+      rewrite <- ap_pp.
+      apply (ap (ap prod_to_smash)).
+      rewrite ap_V. rewrite ap_V. rewrite concat_pV. rewrite concat_pV.
+      reflexivity.
+  Qed.
+      
+  *)
+End Smash.
 
 
 

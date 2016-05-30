@@ -7,7 +7,8 @@ Section Wedge.
 
   (*Give the basepoint of the wedge. It could just as well have been pushr tt.*)
   Global Instance ispointed_wedge {A B:pType} : IsPointed (wedge A B) := pushl tt.
-    
+  Definition pWedge (A B : pType) := Build_pType (wedge A B) _.
+
   (*The projection from sum to wedge:*)
   Definition sum_to_wedge {A B:pType} : (A+B)->(wedge A B) := push.
   
@@ -22,7 +23,7 @@ Section Wedge.
 	     (f: forall a : A, P (sum_to_wedge (inl a)))
          (g : forall b : B, P (sum_to_wedge (inr b)))
 	     (pw' : transport P pw (f (point A)) = g (point B) )
-  :forall w : wedge A B, P w.
+  : forall w : wedge A B, P w.
   Proof.
     rapply (@pushout_ind Unit A B).
     - intros [a | b].
@@ -46,7 +47,19 @@ Section Wedge.
 
      But then it would be less convenient to use pushout_rec_beta_pp. . .*)
 
-
+  (*Pointed recursion*)
+  Definition wedge_pRec {A B : pType}
+             (P : pType) (f : A ->* P) (g : B ->* P)  : (pWedge A B) ->* P.
+    Proof.
+      refine (Build_pMap _ _ _ _).
+      - rapply (wedge_rec P f g).
+        refine (concat _ _).
+        + exact (point P).
+        + exact (point_eq f).
+        + exact (point_eq g)^.
+     - exact (point_eq f).
+    Defined.
+    
   (*Wedge is a functor.*)
   Definition wedge_functor {A B C D:pType} (f:A->*C) (g:B->*D) : 
     (wedge A B) -> (wedge C D) :=
@@ -94,7 +107,7 @@ Section Smash.
   (*This projects the path pw to idpath.*)
   Lemma ap_wedge_in_prod {A B:pType} : ap (@wedge_in_prod A B) pw = idpath.
     refine (pushout_rec_beta_pp _ _ _ _).
-  Qed.
+  Defined.
 
   (*This is just used to make the next proof more readable. . .*)
   Definition pair' {A B : Type}  : A -> B -> B*A := fun a b => (b,a).
@@ -132,6 +145,7 @@ Section Smash.
 
   (*Define the base point of smash.*)
   Global Instance ispointed_smash {A B:pType} : IsPointed (smash A B) := push (inl tt).
+  Definition pSmash (A B: pType) := Build_pType (smash A B) _.
 
   (*The wedge collapses to a point in smash.*)
   Definition ps {A B : pType} :
@@ -185,12 +199,33 @@ Section Smash.
         path_via (const_w_1 (point A)).
         * path_via ((const_w_1 (point A)) @ ap (f o wedge_in_prod) pw).
             refine (transport_paths_Fr _ _).
-            (*Do this opaquely for now. . .*)
-            rewrite ap_compose.
-            rewrite ap_wedge_in_prod.
-            hott_simpl.
+            path_via (const_w_1 (point A) @ 1).
+            { apply whiskerL.
+              path_via (ap f (ap wedge_in_prod pw)).
+              { apply ap_compose. }
+              refine (concat _ _).
+              exact (ap f idpath).
+               apply ap.
+               apply ap_wedge_in_prod.
+              apply ap_1.
+              }
+            apply concat_p1.
         * exact const_w_12.
-  Qed.
+  Defined.
+  
+  Definition smash_pRec {A B : pType}
+             (P : pType)
+             (f : Build_pType (A*B) _ ->* P)
+             (const_w : forall w: wedge A B, point P = f (wedge_in_prod w))
+  : pSmash A B ->* P.
+    Proof.
+      refine (Build_pMap _ _ _ _).
+      - apply (smash_rec P f ).
+        intro w.
+        exact ((point_eq f) @ (const_w w)).
+      - exact (point_eq f).
+    Defined.
+        
 
   (*TODO: smash_rec_beta?*)
   (*TODO: smash_ind*)
@@ -283,31 +318,64 @@ Section Smash_and_Spheres.
   
   
   Definition smash_A_to_A  {A:pType} : smash A (pSphere 0)  -> A.
-    (*Use smash functor?*)
-    refine (smash_rec A (point A) _ _).
-    -intros [a].
-     apply (Susp_rec (point A) a  ). intros []. (*Basepoint goes to basepoint.*)
-    -refine (wedge_ind _ _ _).
-     +intros [a|].
-      *exact idpath.
-      *refine (Susp_ind _ idpath idpath _ ).
-       intros [].
-     +simpl. 
-      
-  Admitted.
+    refine (smash_rec' A  _ _ _ _).
+    - apply (prod_curry ).
+      intro a.
+      apply (Susp_rec (point A) a  ). apply Empty_ind. (*Basepoint goes to basepoint.*)
+    - intro a. exact idpath.
+    - rapply (@Susp_ind Empty).
+      + exact idpath.
+      + exact idpath.
+      + apply Empty_ind.
+    - exact idpath.
+  Defined.  
   
   Definition A_to_smash_A {A:pType} : A->smash A (pSphere 0) :=
     fun a:A => @prod_to_smash A (pSphere 0) (a,South).
-  
+    
   Definition ispointed_A_to_smash_A {A:pType} : 
     A_to_smash_A (point A) = ispointed_smash
     :=
       (pp (@sum_to_wedge A (pSphere 0) (inr South)))^.
 	                                            
-	                                            Lemma isretr_AtoSm {A:pType} : Sect (@A_to_smash_A A) (@smash_A_to_A A).
-		                                    Admitted.
+  Lemma isretr_AtoSm {A:pType} : Sect (@A_to_smash_A A) (@smash_A_to_A A).
+    intro a.
+    exact idpath.
+  Defined.
   
   Lemma issect_AtoSm {A:pType} : Sect (@smash_A_to_A A) (@A_to_smash_A A).
+    intro a.
+    unfold A_to_smash_A.
+    unfold prod_to_smash.
+    unfold smash_A_to_A.
+    unfold smash_rec'.
+    unfold smash_rec.
+    simpl.
+    unfold prod_curry.
+    simpl.
+    unfold wedge_ind.
+    simpl.
+    unfold Susp_rec.
+    unfold wedge_in_prod.
+    simpl.
+    unfold wedge_rec.
+    simpl.
+    unfold pushout_rec.
+    simpl.
+    unfold pushout_ind.
+    simpl.
+    unfold pushout.
+    simpl.
+    unfold Susp_ind.
+    unfold ap_wedge_in_prod.
+    simpl.
+    unfold pushout_rec_beta_pp.
+    unfold pushout_ind_beta_pp.
+    unfold pushout.
+    
+    refine (pp _)^.
+
+    
   Admitted.
   
   Lemma isequiv_A_to_smash_A {A:pType} : IsEquiv (@A_to_smash_A A).
@@ -358,4 +426,4 @@ End Smash_and_Spheres.
 				-apply ap10. exact idpath.
 				-intro w.
 				apply (ap inr).
-				exact (natural_wedge_in_prod f g w). *)
+				exact (natural_wedge_in_prod f g w). *)*)

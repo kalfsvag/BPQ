@@ -69,31 +69,6 @@ Definition IsMonoid (A : Type) {isset : IsHSet A} (m : A->A->A) (e : A) :=
 
 
 End Monoid.
-(*
-(*In this section I will try to define classifying space of a monoid directly as an inductive type*)
-Section B.
-  (*First define the 2-skeleton of the classifying space.*)
-  Private Inductive B2 (M : Monoid) :=
-    pt_B2 : B2 M.
-
-  Arguments pt_B2 {M}.
-  
-  Axiom mon_loop : forall (M : Monoid) (m : M) , @pt_B2 M = pt_B2.
-  Arguments mon_loop {M} m.
-
-  Axiom mon_hom : forall (M : Monoid) (m1 m2 : M),
-                    (mon_loop m1) @ (mon_loop m2) = mon_loop (multM m1 m2).
-  Arguments mon_hom {M} m1 m2.
-    
-    
-  
-
-  Definition B2_rec {M : Monoid} (P : Type) (pt : P)
-             (loop_P : forall m : M, pt = pt)
-             (hom_P : forall m1 m2 : M
- 
-End B.
-*)
 
 (*A simple result on coequalizers*)
 Lemma Coeq_precompose `{Funext} {B A : Type} {f : B -> A} {g : B -> A} :
@@ -104,185 +79,6 @@ Proof.
   apply cp.
 Defined.
 
-(*
-Section Classifying_Space.
-  (*Try a simpler construction of B M than below. *)
-  
-  (*The 1-skeleton of B.*)
-  Definition B1 (M : Monoid)  := @Coeq M Unit (const tt) (const tt).
-  
-  (*B1 has one point:*)
-  Global Instance ispointed_B1 {M : Monoid} : IsPointed (B1 M) := coeq tt.
-  
-  (*B1 has one loop for every m : M*)
-  Definition mon_loop1 {M : Monoid} : M -> point (B1 M) = point (B1 M) := cp.
-
-  Definition pm1_pm2 {M : Monoid} : M * M * S1 -> B1 M.
-    intros [[m1 m2]].
-    refine (S1_rec (B1 M) (point _) _).
-    exact ((mon_loop1 m1) @ (mon_loop1 m2)).
-  Defined.
-
-  Definition pS1 := Build_pType S1 base.
-  Definition pB1 (M : Monoid) := Build_pType (B1 M) _.
-  
-  Definition S1_to_B1_1 {M : Monoid} (m1 m2 : M) : pS1 ->* pB1 M :=
-    Build_pMap pS1 (pB1 M)
-      (fun x : pS1 => pm1_pm2 (m1, m2, x))
-      idpath.
-
-  Definition p_m1m2 {M : Monoid} : M * M * S1 -> B1 M.
-    intros [[m1 m2]].
-    refine (S1_rec (B1 M) (point _) _).
-    exact (mon_loop1 (multM m1 m2)).
-  Defined.
-
-  Definition S1_to_B1_2 {M : Monoid} (m1 m2 : M) : pS1 ->* pB1 M :=
-    Build_pMap pS1 (pB1 M)
-      (fun x : pS1 => p_m1m2 (m1, m2, x))
-      idpath.
-  Definition pm1_pm2 {M : Monoid} : M * M * S1 -> B1 M.
-    intros [[m1 m2]].
-    refine (S1_rec (B1 M) (point _) _).
-    exact ((mon_loop1 m1) @ (mon_loop1 m2)).
-  Defined.
-
-  Definition pS1 := Build_pType S1 base.
-  Definition pB1 (M : Monoid) := Build_pType (B1 M) _.
-  
-  Definition S1_to_B1_1 {M : Monoid} (m1 m2 : M) : pS1 ->* pB1 M :=
-    Build_pMap pS1 (pB1 M)
-      (fun x : pS1 => pm1_pm2 (m1, m2, x))
-      idpath.
-
-  Definition p_m1m2 {M : Monoid} : M * M * S1 -> B1 M.
-    intros [[m1 m2]].
-    refine (S1_rec (B1 M) (point _) _).
-    exact (mon_loop1 (multM m1 m2)).
-  Defined.
-
-  Definition S1_to_B1_2 {M : Monoid} (m1 m2 : M) : pS1 ->* pB1 M :=
-    Build_pMap pS1 (pB1 M)
-      (fun x : pS1 => p_m1m2 (m1, m2, x))
-      idpath.
-
-
-  (*The 2-skeleton of B*)
-  Definition B2 (M : Monoid) := @Coeq (M * M * S1) (B1 M)
-                                      pm1_pm2
-                                      p_m1m2.
-  Global Instance ispointed_B2 {M : Monoid} : IsPointed (B2 M) := coeq (point (B1 M)).
-  Definition pB2 (M : Monoid) := Build_pType (B2 M) _.
-
-  Definition B1toB2 {M : Monoid} : pB1 M ->* pB2 M :=
-    Build_pMap (pB1 M) (pB2 M) coeq idpath.
-
-  Definition mon_loop2 {M : Monoid} (m : M) : point (B2 M) = point (B2 M) := ap B1toB2 (mon_loop1 m).
-
-  Definition comesFromS1_1 {M : Monoid} (m1 m2 : M) :
-    ap (B1toB2 o (S1_to_B1_1 m1 m2)) loop = (mon_loop2 m1) @ (mon_loop2 m2).
-  Proof.
-    refine (concat _ _). exact (ap B1toB2 ((mon_loop1 m1)@(mon_loop1 m2))).
-    refine (concat _ _). exact (ap B1toB2 (ap (S1_to_B1_1 m1 m2) loop)).
-    { apply ap_compose. }
-    { apply ap.
-      apply S1_rec_beta_loop. }
-    apply (ap_pp B1toB2).
-  Defined.
-
-  Definition comesFromS1_2 {M : Monoid} (m1 m2 : M) :
-    ap (B1toB2 o (S1_to_B1_2 m1 m2)) loop = mon_loop2 (multM m1 m2).
-  Proof.
-    refine (concat _ _). exact (ap B1toB2 (ap (S1_to_B1_2 m1 m2) loop)).
-    { apply ap_compose. }
-    unfold mon_loop2.
-    apply ap.
-    apply S1_rec_beta_loop.    
-  Defined.
-
-  (*This one could be done in more generality:*)
-  Definition restriction_is_equal `{Funext} {M : Monoid} (m1 m2 : M) :
-    B1toB2 o (S1_to_B1_1 m1 m2) = B1toB2 o (S1_to_B1_2 m1 m2).
-  Proof.
-    apply path_forall.
-    intro x.
-    cbn.
-    apply cp.
-    (*
-    apply path_pmap.
-    refine (Build_pHomotopy _ _ ).
-    - cbn.
-      refine (S1_ind _ _ _).
-      + exact idpath.
-      + refine (concat (transport_paths_FlFr _ _) _).
-        hott_simpl. (*Opaquely for now. . .*)
-        apply moveR_Vp.
-        rewrite concat_p1.
-
-        rewrite (ap_compose _ _ _) .
-        refine (concat _ (ap_compose (fun x : S1 => pm1_pm2 (m1, m2, x)) coeq loop)^) .
-        unfold p_m1m2.
-        unfold pm1_pm2.
-
-        rewrite S1_rec_beta_loop.
-        rewrite S1_rec_beta_loop.
-        unfold mon_loop1.
-        
-        admit.
-    - exact idpath. 
-
-        
-     *)      
-  Defined.
-
-  Definition mon_hom `{Funext} {M : Monoid} (m1 m2 : M) :
-    ((mon_loop2 m1) @ (mon_loop2 m2)) = (mon_loop2 (multM m1 m2)).
-  Proof.
-    refine (concat _ _). exact (ap (B1toB2 o (S1_to_B1_1 m1 m2)) loop).
-    { apply inverse.
-      apply comesFromS1_1. }
-    refine (concat _ _). exact (ap (B1toB2 o (S1_to_B1_2 m1 m2)) loop).
-    { change (fun x : pS1 => B1toB2 (S1_to_B1_1 m1 m2 x)) with (B1toB2 o (S1_to_B1_1 m1 m2)).
-      
-      refine (concat _
-                     (apD (fun (f : S1 -> B2 M) => ap f loop) (restriction_is_equal m1 m2))).
-      refine (concat _
-                     (transport_paths_FlFr
-                        (restriction_is_equal m1 m2)
-                        (ap (fun x : S1 => B1toB2 (S1_to_B1_1 m1 m2 x)) loop))^
-             ).
-      cbn.
-      rewrite ap_apply_l.
-      unfold restriction_is_equal.
-      rewrite ap10_path_forall.
-      
-      simpl.
-      
-
-
-                     refine (concat _ _).
-      exact (transport (fun (f : interval -> B2 M) => f Interval.zero = f Interval.one) (restriction_is_equal m1 m2) _).
-      
-          rewrite (restriction_is_equal m1 m2). (*Y U NO WORK*)
-      
-      apply (apD (fun (f : interval -> B2 M) => ap f seg)). } 
-    apply comesFromInt_2.
-    
-    
-    unfold mon_loop2.
-    refine (concat _ _). exact (ap B1toB2 ((mon_loop1 m1)@(mon_loop1 m2))).
-    { refine (ap_pp B1toB2 _ _)^ . }
-    (*Must use interval_rec_beta_seg. . .*)
-    refine (concat _ _). exact (ap B1toB2 (ap (intToB1_1 m1 m2) seg)).
-    { apply inverse.
-      apply ap.
-      apply interval_rec_beta_seg. }
-    refine (concat _ _). exact (ap B1toB2 (ap (intToB1_2 m1 m2) seg)).
-       { rewrite <- ap_compose.  }
-    apply ap.
-    apply interval_rec_beta_seg.
-*)     
-    
       
 Section Classifying_Space_Pushout.
   (*Define the classifying space of a monoid as a cell complex*)
@@ -402,7 +198,7 @@ Section Classifying_Space_Pushout.
         apply concat2.
         * refine (ap_pp _ _ _).
         * refine (ap_V _ _) .
-  Qed.
+CACpath  Qed.
   
 
   Definition B (M : Monoid) := Tr 1 (B2 M).
@@ -413,74 +209,14 @@ Section Classifying_Space_Pushout.
   Definition lBN_to_Z : loops (Build_pType BN _) -> Int.
 Abort.
 (*    Sn_trunctype:
-  Univalence -> forall n : trunc_index, IsTrunc n.+1 {x : _ & IsTrunc n x} *)
+  Univalence -> forall n : trunc_index, IsTrunc n.+1 {x : _ & IsTrunc n x}
+   path_sigma_uncurried
+   hprop_trunc 
+ *)
 
     refine (paths_rec (point (BN)) (fun _ => Int) Int.zero _). (*This is constant. P must be a bit more refined. loop => +1 : Z=Z*)
-        
-  
-  
-  
 
-(*
-(*For now, define classifying space in a naive (and wrong) way.*)
 
-Inductive B' (M : Monoid)  : Type := pt : B' M.
-Axiom monoid_loop : forall M : Monoid,
-               (monoid_set M) -> pt M = pt M.
-Axiom isHom_B : forall M : Monoid, 
-  forall a b : monoid_set M, monoid_loop M ((mult M) a b) = monoid_loop M a @ monoid_loop M b.
-Definition B (M : Monoid) : Type := Trunc 2 (B' M).
-*)
 
-(*First define a one-point space with one path for every element in M. This should be the 1-skeleton of B M.*)
-Definition B1 (M : Monoid) := Coeq (const (A:=monoid_set M) tt) (const (A:=monoid_set M) tt).
-(*The two-skeleton is the same as demanding that concat respects multiplication in M.*)
 
-(*TODO: Make this general for a map M*M -> M. It might also be that I am really showing that B is functorial. . .*)
-Definition loop_o_mult `{Funext} {M : Monoid} : B1 M *B1 M -> B1 M.
-  apply prod_rect.
-  refine (Coeq_rec (B1 M -> B1 M) _ _).
-  - (*First argument is pt *)
-    intros [].
-    refine (Coeq_rec (B1 M) _ _).
-    + (*Second argument is pt *)
-      exact coeq. (*This corresponds to (pt,pt) => pt*)
-    + (*Second argument is monoid_loop a *)
-      apply cp. (*This corresponds to (pt, loop) => loop*)
-  - (*First argument is monoid_loop a *)
-    intro a.
-    apply path_arrow.
-    refine (Coeq_ind _ _ _).
-    + (*Second argument is pt *)
-      intros [].
-      exact (cp a). (*This corresponds to (loop, pt) => loop*)
-    + (*Second argument is monoid_loop b*)
-      (*The solution here should correspond to loop(ab)*)
-      intro b.
-      simpl. (*Use transport_paths_FlFr, og Coeq_rec_beta_cp*)
-      path_via
-        (((ap (Coeq_rec (B1 M) coeq cp) (cp b))^ @ (cp a)) @ ap (Coeq_rec (B1 M) coeq cp) (cp b)).
-      { refine (transport_paths_FlFr _ _). }
-(*      rewrite Coeq_rec_beta_cp. (*Want to do this transparently.*)*)
-      path_via
-      (((cp b)^ @ cp (f:=(const (A:=monoid_set M) tt)) (g:=(const (A:=monoid_set M) tt)) a) @ cp b).
-      * apply concat2.
-        { apply whiskerR.
-          apply inverse2.
-          apply Coeq_rec_beta_cp.
-        }
-        refine (Coeq_rec_beta_cp _ _ _ _).
-      * 
-    
-    
-      
 
-Definition B_rec {M : Monoid}
-           (P : Type) (p : P)
-           (loop' : (monoid_set M) -> p = p)
-           (ishom : (forall a b : monoid_set M, loop' ((mult M) a b) = loop' a @ loop' b))
-            : B M -> P.
-  Coeq_rec P (unit_name p) loop. 
-
-  
-                          

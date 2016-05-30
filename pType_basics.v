@@ -1,9 +1,6 @@
 Require Import HoTT.
 Local Open Scope pointed_scope.
 
-(*Shorthand for making a pointed type from a type. (Assuming that an instance of IsPointed is made earlier)*)
-(*Notation "'p' A" := (Build_pType A _) (at level 0). (*TODO: What level to choose?*)*)
-
 Ltac pHomotopy_via mid := apply (phomotopy_compose (g := mid)).
 
 Ltac path_via mid := apply (concat (y:=mid)).

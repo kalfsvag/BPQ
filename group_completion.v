@@ -1,25 +1,5 @@
 Require Import HoTT.
 Load pType_basics.
-Local Open Scope nat_scope.
-
-Section Disc.
-  Fixpoint Disc (n:nat) : pType :=
-    match n with
-        | O => Build_pType Unit _
-        | S n => psusp (Disc n)
-    end.
-  
-  Definition Sphere_to_Disc (n : nat) : pSphere n ->* Disc n.+1.
-  Proof.
-    induction n.
-    - (*Map S0 to the boundary of the interval*)
-      rapply Build_pMap.
-      + apply (Susp_rec North South). apply Empty_rec.
-      + exact idpath.
-    - apply (psusp_functor IHn).
-  Defined.    
-End Disc.
-
 
 Section Monoid.
   (*Is it necessary to say that A is a set?*)
@@ -198,12 +178,12 @@ Section Classifying_Space_Pushout.
         apply concat2.
         * refine (ap_pp _ _ _).
         * refine (ap_V _ _) .
-CACpath  Qed.
+Qed.
   
 
   Definition B (M : Monoid) := Tr 1 (B2 M).
   (*TODO: Give names to loops and homotopies in B.*)
-
+End Classifying_Space_Pushout. 
   Definition BN := B (nat_monoid).
 
   Definition lBN_to_Z : loops (Build_pType BN _) -> Int.

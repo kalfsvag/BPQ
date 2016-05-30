@@ -1,11 +1,14 @@
-(*TODO: Read STYLE.md and put this into HoTT library*)
+(*TODO: Read STYLE.md and put this into HoTT library.*)
 Require Import HoTT. 
 Load pType_basics.
-
 (*The main result in this file is the fact that S^n->*A <~> loops n A.
 I also use this to construct a map between homotopy groups from a map between spheres.
 Lastly I (assuming the Hopf map) construct a map pi_(n+1) A ->* pi_n A. *)
 
+(*Setting some notation for the pointed type of pointed maps. Level is chosen arbitrarily. . .*)
+Notation "A '*->*' B" := (Build_pType (A ->* B) _) (at level 50).
+Notation sph := pSphere.
+  
 
 (*Show that precomposing with a pointed equivalence induces an equivalence. *)
 (*TODO: do also with postcompose. . .*)
@@ -91,7 +94,6 @@ Section Addpoint_forgetful_adjointness.
   Lemma isequiv_Map_to_pMap {A:Type } {B:pType} `{Funext} : IsEquiv (@Map_to_pMap A B).
   Proof.
     apply (@isequiv_adjointify (A->B) ( (add_pt A) ->* B  ) Map_to_pMap pMap_to_Map).
-
     -intros [pf pe].
      apply path_pmap.
      apply issig_phomotopy.
@@ -133,34 +135,37 @@ Section Two_points.
     
   Lemma isequiv_sph0_to_two_pts : IsEquiv sph0_to_two_pts.
     rapply (isequiv_adjointify sph0_to_two_pts two_pts_to_sph0).
-    - intros [ [] | [] ] ; repeat exact idpath.
+    - intros [ [] | [] ] ; exact idpath.
     - exact (Susp_ind _ idpath idpath (Empty_ind _)).
-  Defined. 
+  Defined.
+
+  (*TODO: Is pEquiv*)
 End Two_points.
 
 
 Section Loops.
-
+  (*TODO: Give new name? Regexp: "Omega \\((.+)\\|.\\) \\((.+)\\|.\\)"*)
   (*Define Omega n A as pointed maps from the n-sphere*)
-  Definition Omega (n:nat) (A:pType) : pType :=
-    Build_pType (pMap (pSphere n) A) _.
+
+(*  Definition Omega (n:nat) (A:pType) : pType :=
+    Build_pType (pMap (pSphere n) A) _. *)
   
-  Definition A_to_Omega0 {A:pType} : A -> Omega 0 A := 
+  Definition A_to_So2A {A:pType} : A -> (sph 0 ->* A) := 
     (pointed_precompose sph0_to_two_pts) o Map_to_pMap o (Unit_rec A).
   
   (*A_to_Omega0 is pointed:*)
-  Definition pointed_A_to_Omega0 `{Funext} {A:pType}  : A_to_Omega0 (point A) = point (Omega 0 A).
+  Definition pointed_A_to_So2A `{Funext} {A:pType}  : A_to_So2A (point A) = point (sph 0 ->* A).
     apply path_pmap.
-    apply issig_phomotopy.
-    refine (ex_intro _ _ idpath).
+    refine (Build_pHomotopy _ _).
     - refine (Susp_ind _ idpath idpath _).
       + intros [].
+    - exact idpath.    
   Defined.
 
-  Definition pA_to_Omega0 `{Funext} {A:pType}  := 
-    Build_pMap A (Omega 0 A)  A_to_Omega0 pointed_A_to_Omega0.
+  Definition pA_to_So2A `{Funext} {A:pType}  := 
+    Build_pMap A (sph 0 *->* A)  A_to_So2A pointed_A_to_So2A.
 
-  Lemma isequiv_A_to_Omega0 `{Funext} {A:pType} : IsEquiv (@A_to_Omega0 A).
+  Lemma isequiv_A_to_So2A `{Funext} {A:pType} : IsEquiv (@A_to_So2A A).
     Proof.
       refine isequiv_compose.
       refine isequiv_compose.
@@ -168,10 +173,11 @@ Section Loops.
       - exact (isequiv_pt_precompose sph0_to_two_pts (feq := isequiv_sph0_to_two_pts)).
   Defined.
   
-  Definition pEquiv_A_Omega0 `{Funext} {A:pType} : A <~>* Omega 0 A := 
-    Build_pEquiv _ _ pA_to_Omega0 isequiv_A_to_Omega0.
+  Definition pEquiv_A_So2A `{Funext} {A:pType} : A <~>* (sph 0 *->* A) := 
+    Build_pEquiv _ _ pA_to_So2A isequiv_A_to_So2A.
 
-  Fixpoint it_loop_susp_adj `{Funext} (n:nat) (A : pType) : Omega n A -> Omega 0 (iterated_loops n A) :=
+  Fixpoint it_loop_susp_adj `{Funext} (n:nat) (A : pType) :
+    (sph n ->* A) -> (sph 0 ->* (iterated_loops n A)) :=
     match n with
       | O => idmap
       | S n => (it_loop_susp_adj n (loops A)) o (loop_susp_adjoint _ _)
@@ -187,35 +193,30 @@ Section Loops.
   Defined.
 *)
   Lemma pointed_loop_susp_adjoint `{Funext} (A B:pType)  :
-    loop_susp_adjoint A B (pconst (psusp A) B) = pconst A (loops B).
+    loop_susp_adjoint A B (point (psusp A ->* B)) = point (A ->* (loops B)).
     Proof.
-      path_via ( (pconst (loops (psusp A)) (loops B)) o* loop_susp_unit A ).
-      - apply path_pmap.
-       apply pmap_prewhisker.
-       apply issig_phomotopy.
-       refine (ex_intro _ _ _).
-        + intro loop.
-          path_via (ap (const (point B)) loop @ 1).
-          { apply concat_1p. }
-          { path_via (ap (const (point B)) loop).
-            { apply concat_p1. }
-            apply ap_const. }
-        + hott_simpl.
-      - apply const_comp. (*Not sure if this is the best proof. . .*)
+      refine (concat _ (const_comp A _ (loops B) (loop_susp_unit A))).
+      apply path_pmap.
+      apply pmap_prewhisker.
+      refine (Build_pHomotopy _ _).
+      - intro loop.
+        refine (concat (concat_1p _) _).
+        refine (concat (concat_p1 _) _).
+        apply ap_const. 
+      - hott_simpl.
     Qed.
         
   Lemma pointed_it_loop_susp_adj `{Funext} (n:nat) : forall A:pType,
-    it_loop_susp_adj n A (point (Omega n A)) = point (Omega 0 (iterated_loops n A)).
+    it_loop_susp_adj n A (point (sph n ->* A)) = point (sph 0 ->* (iterated_loops n A)).
     Proof.
       induction n.
       - reflexivity.
       - intro A.
-        change (it_loop_susp_adj n.+1 A (point (Omega n.+1 A))) with
-        ( (it_loop_susp_adj n (loops A)) ((loop_susp_adjoint _ _) (point (Omega n.+1 A))) ).
+        change (it_loop_susp_adj n.+1 A (point (sph n.+1 ->* A))) with
+        ( (it_loop_susp_adj n (loops A)) ((loop_susp_adjoint _ _) (point (sph n.+1 ->* A))) ).
         rewrite (pointed_loop_susp_adjoint (pSphere n) A).
         exact (IHn (loops A)).
     Qed.
-
 
   Lemma isequiv_it_loop_susp_adj `{Funext} (n:nat) : 
     forall A:pType, IsEquiv (it_loop_susp_adj n A).
@@ -227,8 +228,8 @@ Section Loops.
      refine isequiv_compose.
   Defined.
 
-  Definition pEquiv_omegaN_omega0 `{Funext} (n:nat) (A:pType) :
-    Omega n A <~>* Omega 0 (iterated_loops n A).
+  Definition pEquiv_S2A_So2lA `{Funext} (n:nat) (A:pType) :
+    (sph n *->* A) <~>* (sph 0 *->* iterated_loops n A).
     refine (Build_pEquiv _ _ _ _).
     - refine (Build_pMap _ _ _ _).
       + apply it_loop_susp_adj.
@@ -236,27 +237,27 @@ Section Loops.
     - apply isequiv_it_loop_susp_adj.
   Defined.
 
-
   (*Now we can prove the main theorem of this section:
-    That Omega is pointed equivalent to iterated_loops.*)
-  Theorem pEquiv_omega_loops `{Funext} (n:nat) (A:pType) :
-    Omega n A <~>* iterated_loops n A.
+    Omega is pointed equivalent to iterated_loops.*)
+  Theorem pEquiv_S2A_loops `{Funext} (n:nat) (A:pType) :
+    (sph n *->* A) <~>* iterated_loops n A.
   Proof.
-    refine (Build_pEquiv _ _ _ _).
-    - exact ((pequiv_inverse pEquiv_A_Omega0)  o* (pEquiv_omegaN_omega0 n A)).
-    - apply isequiv_compose.
+    exact (Build_pEquiv _ _
+                        ((pequiv_inverse pEquiv_A_So2A)  o* (pEquiv_S2A_So2lA n A))
+                        isequiv_compose).
   Defined.
 End Loops.
 
 Section homotopy_groups.
-  Definition homotopy_group (n:nat) (A:pType) :pType :=
-    pTr 0 (Omega n A).
+
+  Definition homotopy_group (n:nat) (A:pType) : pType :=
+    pTr 0 (sph n *->* A).
 
   Notation "'HtGr'" := homotopy_group.
 
-  Definition SphereToOmega_functor {m n:nat} (f:pSphere m ->* pSphere n) (A:pType) :
-    Omega n A ->* Omega m A.
-    
+  Definition SphereToS2A_functor {m n:nat} (f:pSphere m ->* pSphere n) (A:pType) :
+    (sph n *->* A) ->* (sph m *->* A).
+  Proof.
     rapply Build_pMap. 
     (*Define the map*)
     * intro h. exact (h o* f).
@@ -264,7 +265,7 @@ Section homotopy_groups.
     * apply const_comp.
   Defined.
 
-  Definition OmegaToHtGr_functor {m n : nat} {A:pType} (f : Omega n A ->* Omega m A) :
+  Definition S2A_to_HtGr_functor {m n : nat} {A:pType} (f : (sph n *->* A) ->* (sph m *->* A)) :
     HtGr n A ->* HtGr m A.
     rapply Build_pMap.
     (*Construct map*)
@@ -276,11 +277,11 @@ Section homotopy_groups.
     *apply (ap tr).
      rewrite (point_eq f).
      reflexivity.
-  Defined.
+  Qed.
 
   Definition SphereToHtGr_functor {m n : nat} (f:pSphere m ->* pSphere n) (A:pType) :
     HtGr n A ->* HtGr m A :=
-    OmegaToHtGr_functor (SphereToOmega_functor f A).
+    S2A_to_HtGr_functor (SphereToS2A_functor f A).
   
 End homotopy_groups.
 
@@ -311,3 +312,4 @@ End Hopf.
                 apply isequiv_precompose. *)
         Abort.
  *)
+

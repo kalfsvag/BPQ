@@ -60,7 +60,7 @@ Proof.
 Defined.
 
       
-Section Classifying_Space_Pushout.
+Section Classifying_Space.
   (*Define the classifying space of a monoid as a cell complex*)
 
   (*The 1-skeleton of B.*)
@@ -70,14 +70,14 @@ Section Classifying_Space_Pushout.
   Global Instance ispointed_B1 {M : Monoid} : IsPointed (B1 M) := coeq tt.
   
   (*B1 has one loop for every m : M*)
-  Definition mon_loop1 {M : Monoid} : M -> point (B1 M) = point (B1 M) := cp.
+  Definition B_loop1 {M : Monoid} : M -> point (B1 M) = point (B1 M) := cp.
 
 
   
   Definition looptofill {M : Monoid} : M * M * S1 -> B1 M.
     intros [[m1 m2]].
     refine (S1_rec (B1 M) (point _) _).
-    exact ((mon_loop1 m1) @ (mon_loop1 m2) @ (mon_loop1 (multM m1 m2))^).
+    exact ((B_loop1 m1) @ (B_loop1 m2) @ (B_loop1 (multM m1 m2))^).
   Defined.
   
   Definition S1toB1 {M : Monoid} (m1 m2 : M) : S1 -> B1 M :=
@@ -97,11 +97,11 @@ Section Classifying_Space_Pushout.
 
   Definition B1toB2 {M : Monoid} : B1 M -> B2 M := (push o inl).
   (*TODO: Bruke transport i stedet?*)
-  Definition mon_loop2 {M : Monoid} (m : M) : point (B2 M) = point (B2 M).
+  Definition B_loop2 {M : Monoid} (m : M) : point (B2 M) = point (B2 M).
   Proof.
     refine (concat _ (pp (ispointed_MMS1))).
     refine (concat (pp (ispointed_MMS1))^ _).
-    exact (ap (push o inl) (mon_loop1 m)).
+    exact (ap (push o inl) (B_loop1 m)).
   Defined.
 
   Definition constant_S1toB2 `{Funext} {M : Monoid} (m1 m2 : M) :
@@ -127,8 +127,8 @@ Section Classifying_Space_Pushout.
     refine (pp (m1, m2, base) ).
   Defined.
 
-  (*TODO : pS1toB2 ==* const*)
-  Lemma const_S1toB2 `{Funext} (M : Monoid) (m1 m2 : M) :
+ 
+  Lemma pconst_S1toB2 `{Funext} (M : Monoid) (m1 m2 : M) :
     (pB1toB2 m1 m2) o* (pS1toB1 m1 m2) = pconst pS1 (pB2 M).
   Proof.
     apply path_pmap.
@@ -143,14 +143,14 @@ Section Classifying_Space_Pushout.
     (A ->* B) -> loops B :=
     fun f => (point_eq f)^ @ (ap f l) @ (point_eq f).
 
-  (*TODO: Use this to make the result below simpler*)
+  (*TODO: Use this to make the proof below simpler?*)
 
 
   
   Definition isHom_MtoB2 `{Funext} {M : Monoid} (m1 m2: M) :
-    (mon_loop2 (multM m1 m2)) = ((mon_loop2 m1) @ (mon_loop2 m2)).
+    (B_loop2 (multM m1 m2)) = ((B_loop2 m1) @ (B_loop2 m2)).
   Proof.
-    unfold mon_loop2. hott_simpl.
+    unfold B_loop2. hott_simpl.
     refine (whiskerR _ _).
     apply moveR_Vp.
     hott_simpl.
@@ -169,7 +169,7 @@ Section Classifying_Space_Pushout.
       rewrite ap_const.
       hott_simpl.
 
-    - path_via (ap B1toB2 ( (mon_loop1 m1) @ (mon_loop1 m2) @ (mon_loop1 (multM m1 m2))^)).
+    - path_via (ap B1toB2 ( (B_loop1 m1) @ (B_loop1 m2) @ (B_loop1 (multM m1 m2))^)).
       + apply ap.
         apply S1_rec_beta_loop.
       + 
@@ -178,20 +178,48 @@ Section Classifying_Space_Pushout.
         apply concat2.
         * refine (ap_pp _ _ _).
         * refine (ap_V _ _) .
-Qed.
-  
+  Qed.
+
+  Definition monid_to_idpath2 `{Funext} {M : Monoid} : B_loop2 (mon_id M) = idpath.
+    apply (cancelL (B_loop2 (mon_id M)) _ _).
+    refine (concat (isHom_MtoB2 _ _)^ _).
+    refine (concat _ (concat_p1 _)^).
+    apply (ap B_loop2).
+    apply mon_lid.
+  Defined.
 
   Definition B (M : Monoid) := Tr 1 (B2 M).
-  (*TODO: Give names to loops and homotopies in B.*)
-End Classifying_Space_Pushout. 
+
+  Definition B_loop {M : Monoid} (m : M) : point (B M) = point (B M) := ap tr (B_loop2 m).
+  Definition isHom_MtoB `{Funext} {M : Monoid} (m1 m2: M) :
+    (B_loop (multM m1 m2)) = ((B_loop m1) @ (B_loop m2)).
+    refine (concat _ (ap_pp tr _ _)).
+    apply (ap (ap tr)).
+    apply isHom_MtoB2.
+  Defined.
+
+  Definition monid_to_idpath `{Funext} {M : Monoid} : B_loop (mon_id M) = idpath.
+    unfold B_loop.
+    refine (concat _ (ap_1 _ tr)).
+    apply (ap (ap tr)).
+    apply monid_to_idpath2.
+  Defined.
+  
+End Classifying_Space.
+
+(*Prove that B nat <~> Int*)
+Section Classifying_Space_Nat.
   Definition BN := B (nat_monoid).
+
+  (*Bruke equiv_loopsS1_int ?*)
 
   Definition lBN_to_Z : loops (Build_pType BN _) -> Int.
 Abort.
 (*    Sn_trunctype:
   Univalence -> forall n : trunc_index, IsTrunc n.+1 {x : _ & IsTrunc n x}
    path_sigma_uncurried
-   hprop_trunc 
+   hprop_trunc
+   trunc_arrow
  *)
 
     refine (paths_rec (point (BN)) (fun _ => Int) Int.zero _). (*This is constant. P must be a bit more refined. loop => +1 : Z=Z*)

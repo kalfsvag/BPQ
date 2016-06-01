@@ -72,7 +72,15 @@ Section Classifying_Space.
   (*B1 has one loop for every m : M*)
   Definition B_loop1 {M : Monoid} : M -> point (B1 M) = point (B1 M) := cp.
 
-
+  Definition B1_ind {M : Monoid}
+             (P : B1 M -> Type) (bp : P (point (B1 M)))
+             (loop' : forall (m : M), transport P (B_loop1 m) bp = bp)
+             : forall a : B1 M, P a.
+  Proof.
+    refine (Coeq_ind _ _ _).
+    - intros []. exact bp.
+    - exact loop'.
+  Defined.
   
   Definition looptofill {M : Monoid} : M * M * S1 -> B1 M.
     intros [[m1 m2]].
@@ -190,6 +198,8 @@ Section Classifying_Space.
 
   Definition B (M : Monoid) := Tr 1 (B2 M).
 
+  Global Instance ispointed_B {M : Monoid} : IsPointed (B M) := tr (point (B2 M)).
+
   Definition B_loop {M : Monoid} (m : M) : point (B M) = point (B M) := ap tr (B_loop2 m).
   Definition isHom_MtoB `{Funext} {M : Monoid} (m1 m2: M) :
     (B_loop (multM m1 m2)) = ((B_loop m1) @ (B_loop m2)).
@@ -204,6 +214,92 @@ Section Classifying_Space.
     apply (ap (ap tr)).
     apply monid_to_idpath2.
   Defined.
+
+  Definition B_rec {M : Monoid}
+             (P : Type) (istrunc : IsTrunc 1 P)
+             (bp : P)
+             (loop' : forall m : M, bp = bp)
+             (ishom : forall m1 m2 : M, loop' (multM m1 m2) = loop' m1 @ loop' m2) : B M -> P.
+  Proof.
+    apply Trunc_rec.
+    refine (pushout_rec _ _ _).
+    - apply sum_rect.
+      + (*What B1 is mapped to*)
+        refine (Coeq_rec _ _ _).
+        * exact (unit_name bp).
+        * exact loop'.
+      + exact (unit_name bp). (*
+        apply Unit_rec.
+        exact bp.*)
+    - (*This corresponds to showing that we have a homomorphism*)
+      intros [[m1 m2]].
+      refine (S1_ind _ idpath _).
+      refine (concat (transport_paths_Fl loop idpath) _).
+      apply moveR_Vp.
+      refine (concat _ (concat_p1 _)^).
+      refine (concat _
+              (ap_compose
+               (S1_rec (B1 M) (point (B1 M)) ((B_loop1 m1 @ B_loop1 m2) @ (B_loop1 (multM m1 m2))^))
+               (Coeq_rec P (unit_name bp) loop')
+               loop )^
+             ).
+      refine (concat _
+                     (ap
+                        (ap (Coeq_rec P (unit_name bp) loop'))
+                        (S1_rec_beta_loop _ _ _)^
+                      )).
+      refine (concat _ (ap_pp _ _ _)^).
+      apply moveL_pM.
+      refine (concat (concat_1p _) _).
+      refine (concat (ap_V _ _)^ _).
+      refine (concat (ap
+                        (ap (Coeq_rec P (unit_name bp) loop'))
+                        (inv_V (B_loop1 (multM m1 m2)))
+                      ) _ ).      
+      refine (concat (Coeq_rec_beta_cp P (unit_name bp) loop' (multM m1 m2)) _).
+      refine (concat _ (ap_pp _ _ _)^).
+      refine (concat (ishom m1 m2) _).
+      apply concat2.
+      + exact (Coeq_rec_beta_cp P (unit_name bp) loop' m1)^.
+      + exact (Coeq_rec_beta_cp P (unit_name bp) loop' m2)^.
+  Defined.
+
+  Definition B_ind {M : Monoid}
+             (P : B M -> Type) (istrunc : forall (a : B M), IsTrunc 1 (P a))
+             (bp : P (point (B M)))
+             
+             
+             : forall a : B M, P a.
+    apply Trunc_ind.
+    exact istrunc.
+    refine (pushout_ind _ _ _ _ _).
+    - apply sum_ind.
+      + refine (B1_ind _ _ _).
+        * exact (transport (P o tr) (pp ispointed_MMS1)^ bp).
+        * intro m.
+          refine (concat
+                    (transport_compose (P o tr) (push o inl)
+                                       (B_loop1 m)
+                                       (transport (P o tr) (pp ispointed_MMS1)^ bp) )
+                    _
+                 ).
+          change (fun x : B1 M => push (inl x)) with (@B1toB2 M).
+          refine (concat (transport_pp _ _ _ _)^ _).
+          refine (transport2 _ _ _).
+          apply moveL_1V.
+          change (((pp ispointed_MMS1)^ @ ap B1toB2 (B_loop1 m)) @ pp ispointed_MMS1) with (B_loop2 m).
+          
+
+                    
+          
+          
+        admit.
+      + intros []. exact bp.
+    - 
+    
+    cbn.
+
+    
   
 End Classifying_Space.
 

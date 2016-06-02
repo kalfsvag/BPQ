@@ -121,6 +121,39 @@ Section Classifying_Space.
   Defined.
   (*Plan: apD this to get something. . .*)
 
+   Definition B2_ind {M : Monoid}
+             (P : B2 M -> Type)
+             (bp : P (point (B2 M)))
+             (loop' : forall (m : M), transport P (B_loop2 m) bp = bp)
+             
+             : forall a : B2 M, P a.
+    refine (pushout_ind _ _ _ _ _).
+    - apply sum_ind.
+      + refine (B1_ind _ _ _).
+        * exact (transport P (path_to_pt_B2 ispointed_MMS1)^ bp).
+        * intro m.
+          refine (concat
+                    (transport_compose P (push o inl)
+                                       (B_loop1 m)
+                                       (transport P (path_to_pt_B2 ispointed_MMS1)^ bp) ) (*TODO: Other point?*)
+                    _
+                 ).
+
+          refine (concat (transport_pp _ _ _ _)^ _).
+          refine (moveL_transport_V P _ _ _ _).
+          refine (concat (transport_pp _ _ _ _)^ _).
+          apply loop'.
+      + intros []. exact bp.
+    - simpl.
+      intros [[m1 m2]].
+      refine (S1_ind _ _ _).
+      + simpl.
+        refine (moveR_transport_p P _ _ _ _).
+        change (pp (m1, m2, base)) with (path_to_pt_B2 (m1, m2, base)).
+        admit.
+      + 
+ 
+
 (*TODO: Use ap11. ap_apply_FlFr ap_to_conjp transport2
 *)
 
@@ -267,7 +300,7 @@ Section Classifying_Space.
   Definition B_ind {M : Monoid}
              (P : B M -> Type) (istrunc : forall (a : B M), IsTrunc 1 (P a))
              (bp : P (point (B M)))
-             
+             (loop' : forall (m : M), transport P (B_loop m) bp = bp)
              
              : forall a : B M, P a.
     apply Trunc_ind.
@@ -283,21 +316,36 @@ Section Classifying_Space.
                                        (transport (P o tr) (pp ispointed_MMS1)^ bp) )
                     _
                  ).
-          change (fun x : B1 M => push (inl x)) with (@B1toB2 M).
-          refine (concat (transport_pp _ _ _ _)^ _).
-          refine (transport2 _ _ _).
-          apply moveL_1V.
-          change (((pp ispointed_MMS1)^ @ ap B1toB2 (B_loop1 m)) @ pp ispointed_MMS1) with (B_loop2 m).
-          
 
-                    
-          
-          
-        admit.
+          refine (concat (transport_pp _ _ _ _)^ _).
+          refine (moveL_transport_V (P o tr) _ _ _ _).
+          refine (concat (transport_pp _ _ _ _)^ _).
+          refine (concat
+                    (transport_compose P tr _ _)
+                    _ ).
+          apply loop'.
       + intros []. exact bp.
-    - 
-    
-    cbn.
+    - simpl.
+      intros [[m1 m2]].
+      refine (S1_ind _ _ _).
+      + simpl.
+        change (pushout looptofill (const tt)) with (B2 M).
+        refine (moveR_transport_p (P o tr) _ _ _ _).
+        refine (concat
+                  (transport_compose P tr _ _)
+                  _ ).
+        refine (concat
+                  _
+                  (transport_compose P tr _ _)^ ).
+        apply transport2.
+        apply (ap (ap tr)).
+
+        apply istrunc.
+        refine (concat (ap_pp tr _ _) _).
+        apply moveR_Mp.
+        hott_simpl.
+        
+        
 
     
   

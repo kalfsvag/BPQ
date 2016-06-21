@@ -54,6 +54,67 @@ End pType_prelim.
 
 Section Sphere_vs_pSphere.
   Local Open Scope trunc_scope.
+  Fixpoint plustwo (t : trunc_index) : nat :=
+    match t with
+      | -2 => O
+      | t.+1 => S (plustwo t)
+    end.   
+  
+  Definition truncind_to_twoplusnat (t : trunc_index) : Unit + Unit + nat :=
+    match t with
+      | -2 => (inl (inl tt))
+      | -1 => (inl (inr tt))
+      | t.+2 => (inr (plustwo t))
+    end.
+
+  Definition twoplusnat_to_truncind (x : Unit + Unit + nat) : trunc_index :=
+    match x with
+      | (inl (inl tt) ) => -2
+      | (inl (inr tt) ) => -1
+      | (inr n) => nat_to_trunc_index n
+    end.
+
+  Set Printing Coercions.
+
+  Lemma plustwo_commute1 : forall t : trunc_index,   nat_to_trunc_index (plustwo t) = t.+2.
+    apply trunc_index_rect.
+    - exact idpath.
+    - intros t IHt.
+      simpl.
+      exact (ap trunc_S IHt).
+  Defined.
+
+  Lemma plustwo_commute2 : forall n : nat, plustwo (nat_to_trunc_index n) = (n.+2)%nat.
+    induction n.
+    - exact idpath.
+    - simpl.
+      exact (ap S IHn).
+  Defined.
+      
+  Lemma equiv_twoplusnat_truncind : Equiv (Unit + Unit + nat) trunc_index.
+    apply (equiv_adjointify twoplusnat_to_truncind truncind_to_twoplusnat).
+    - intro t.
+      destruct t.
+      + exact idpath.
+      + destruct t.
+        exact idpath.
+        exact (plustwo_commute1 t).        
+    - intro x.
+      destruct x.
+      + destruct s.
+        * destruct u. exact idpath.
+        * destruct u. exact idpath.
+      + unfold truncind_to_twoplusnat.
+        unfold twoplusnat_to_truncind.
+        destruct n.
+        * exact idpath.
+        * destruct n.
+          exact idpath.
+          simpl.
+          apply (ap inr).
+          exact (plustwo_commute2 n).
+  Defined.  
+
   Lemma natisplustwo (n:nat) : exists t:trunc_index, nat_to_trunc_index n = t.+2.
     induction n.
     - exists minus_two. exact idpath.
@@ -70,7 +131,9 @@ Section Sphere_vs_pSphere.
     refine (Build_pMap _ _ _ _).
     - induction n.
       + exact idmap.
-      + induction n.
+      + refine (Susp_rec _ _ _).
+        unfold pSphere2.
+        induction n.
         * exact idmap.
         * refine (Susp_rec North South _). exact (merid o IHn).
     - induction n.
@@ -84,6 +147,7 @@ Section Sphere_vs_pSphere.
       induction n.
         exact idpath.
       simpl.
+      cbn.
       change ((natisplustwo n.+2).2) with 
 
       simpl.  unfold natisplustwo. simpl.

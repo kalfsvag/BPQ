@@ -125,7 +125,7 @@ Section Classifying_Space.
              (P : B2 M -> Type)
              (bp : P (point (B2 M)))
              (loop' : forall (m : M), transport P (B_loop2 m) bp = bp)
-             
+(*             (ishom : forall (m1 m2 : M), loop' ( *)
              : forall a : B2 M, P a.
     refine (pushout_ind _ _ _ _ _).
     - apply sum_ind.
@@ -151,7 +151,7 @@ Section Classifying_Space.
         refine (moveR_transport_p P _ _ _ _).
         change (pp (m1, m2, base)) with (path_to_pt_B2 (m1, m2, base)).
         admit.
-      + 
+      + Admitted.
  
 
 (*TODO: Use ap11. ap_apply_FlFr ap_to_conjp transport2
@@ -340,16 +340,59 @@ Section Classifying_Space.
         apply transport2.
         apply (ap (ap tr)).
 
-        apply istrunc.
-        refine (concat (ap_pp tr _ _) _).
-        apply moveR_Mp.
-        hott_simpl.
-        
+  Admitted.        
         
 
     
   
 End Classifying_Space.
+
+
+
+Section B2_coeq.
+  Definition l12 {M : Monoid} : M * M * S1 -> B1 M.
+    intros [[m1 m2]].
+    refine (S1_rec (B1 M) (point _) _).
+    exact (B_loop1 (multM m1 m2)).
+  Defined.
+
+  Definition l1l2 {M : Monoid} : M * M * S1 -> B1 M.
+    intros [[m1 m2]].
+    refine (S1_rec (B1 M) (point _) _).
+    exact ((B_loop1 m1) @ (B_loop1 m2)).
+  Defined.
+
+  Definition l12_beta {M : Monoid} (m1 m2 : M) :
+    ap (fun x : S1 => l12 (m1, m2, x)) loop = B_loop1 (multM m1 m2) := S1_rec_beta_loop _ _ _.
+
+  Definition l1l2_beta {M : Monoid} (m1 m2 : M) :
+    ap (fun x : S1 => l1l2 (m1, m2, x)) loop = ((B_loop1 m1) @ (B_loop1 m2)) := S1_rec_beta_loop _ _ _.
+  
+  Definition B2' (M : Monoid) := Coeq (@l12 M) l1l2.
+
+  Definition B1toB2' {M : Monoid} : B1 M -> B2' M := coeq.
+  Global Instance ispointed_B2' {M : Monoid} : IsPointed (B2' M) := B1toB2' (point (B1 M)).
+    
+  (*TODO: Bruke transport i stedet?*)
+  Definition B_loop2' {M : Monoid} (m : M) : point (B2' M) = point (B2' M) :=  ap B1toB2' (B_loop1 m).
+
+  Definition isHom_MtoB2' `{Funext} {M : Monoid} (m1 m2: M) :
+    (B_loop2' (multM m1 m2)) = ((B_loop2' m1) @ (B_loop2' m2)).
+  Proof.
+    unfold B_loop2'.
+    refine (concat _ (ap_pp B1toB2' _ _) ).
+    rewrite <- (l12_beta m1 m2).
+    rewrite <- (l1l2_beta m1 m2).
+    refine (concat (ap_compose (fun x : S1 => l12 (m1, m2, x)) B1toB2' loop)^ _ ).
+    refine (concat  _ (ap_compose (fun x : S1 => l1l2 (m1, m2, x)) B1toB2' loop)).
+    
+    change (B_loop1 (multM m1 m2)) with 
+    unfold B_loop1.
+    
+    unfold B1toB2'.
+    
+
+    
 
 (*Prove that B nat <~> Int*)
 Section Classifying_Space_Nat.

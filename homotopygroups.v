@@ -12,10 +12,10 @@ Notation sph := pSphere.
 
 (*Show that precomposing with a pointed equivalence induces an equivalence. *)
 (*TODO: do also with postcompose. . .*)
-Section Precompose_pointed_equivalence.
+Section Compose_pointed_equivalence.
   Definition pointed_precompose {A B C:pType} (f:A->*B) : (B->*C) -> (A->*C)
-    := fun g => g o* f.  
-  
+    := fun g => g o* f.
+
   Definition pt_precompose_inv {A B C:pType} (f : A->*B) {feq : IsEquiv f} :
     (A->*C) -> (B->*C)
     := pointed_precompose (pequiv_inv f).
@@ -74,9 +74,18 @@ Section Precompose_pointed_equivalence.
        apply pcompose_inverse.
       *apply pmap_precompose_idmap.
   Qed.
-End Precompose_pointed_equivalence.
+
+  Definition pointed_postcompose {A B C : pType} (g:B->*C) : (A->*B) -> (A->*C)
+    := fun f => g o* f.
+
+  Lemma isequiv_pt_postcompose `{Funext} {A B C:pType} (g : B->*C) {geq : IsEquiv g} :
+    IsEquiv (@pointed_postcompose A B C g).
+  Admitted. (*TODO*)
+  
+End Compose_pointed_equivalence.
 
 (*Prove that addpoint and the forgetful functor pType->Type are adjoint. This is lemma 6.5.3 in book.*)
+(*Move section to pointed.v*)
 Section Addpoint_forgetful_adjointness.
   Definition pMap_to_Map {A:Type } {B:pType} : 
     ( (add_pt A) ->* B  ) -> ( A -> (pointed_type B) ) :=
@@ -116,6 +125,7 @@ End Addpoint_forgetful_adjointness.
 
 
 (*Show that my two-pointed types are equivalent*)
+(*Move to HOT/Sphere*)
 Section Two_points.
   Definition two_pts := add_pt Unit. 
 
@@ -144,6 +154,7 @@ End Two_points.
 
 
 Section Loops.
+  (*Move to HIT/Sphere*)
   (*TODO: Give new name? Regexp: "Omega \\((.+)\\|.\\) \\((.+)\\|.\\)"*)
   (*Define Omega n A as pointed maps from the n-sphere*)
 
@@ -195,7 +206,7 @@ Section Loops.
   Lemma pointed_loop_susp_adjoint `{Funext} (A B:pType)  :
     loop_susp_adjoint A B (point (psusp A ->* B)) = point (A ->* (loops B)).
     Proof.
-      refine (concat _ (const_comp A _ (loops B) (loop_susp_unit A))).
+      refine (concat _ (pmap_postcompose_const A _ (loops B) (loop_susp_unit A))).
       apply path_pmap.
       apply pmap_prewhisker.
       refine (Build_pHomotopy _ _).
@@ -262,7 +273,7 @@ Section homotopy_groups.
     (*Define the map*)
     * intro h. exact (h o* f).
     (*Prove that it is pointed map.*)
-    * apply const_comp.
+    * apply pmap_postcompose_const.
   Defined.
 
   Definition S2A_to_HtGr_functor {m n : nat} {A:pType} (f : (sph n *->* A) ->* (sph m *->* A)) :

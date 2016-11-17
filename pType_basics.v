@@ -9,32 +9,44 @@ Ltac path_via mid := apply (concat (y:=mid)).
 Section pType_prelim.
   
   (*Make pointed variant of equiv_inv.*)
+  (*Move to pointed.v*)
   Definition pequiv_inv {A B : pType} (f: A->*B) {feq : IsEquiv f} :=
     pequiv_inverse (Build_pEquiv _ _ f feq).
 
   (*The constant map between ptypes.*)
+  (*Mt pointed.v*)
   Definition pconst (A B: pType) : pMap A B := 
 	Build_pMap A B (const (point B)) idpath.
 
   (*The constant map is base point for the type pMap A B*)
+  (*Mt pointed.v*)
   Global Instance ispointed_pmap {A B:pType} : IsPointed (pMap A B) := 	pconst A B.
   
   (*Define the pointed sphere. 
 	The basepoint is North.
     Should be able to define instance of ispointed_sphere instead, but that is not true for n=-1,-2*)
+  (*Move to HIT/Sphere*)
   Fixpoint pSphere (n:nat) : pType := 
 	match n with
 	  |O => Build_pType (Sphere O) _
 	  |S n => psusp (pSphere n)
 	end.
-  
+
+  (*TODO*)
+  (*Move to HIT/Sphere*)
+  Lemma pointed_Sphere : forall n : nat, IsPointed (Sphere n).
+    Abort.
 
   (*The functor from Type to pType*)
+  (*Mt pointed.v?*)
   Definition add_pt (A:Type) :  pType := Build_pType (A+Unit) (inr tt).
-  
+
+  (*Is this needed?*)
   Global Instance ispointed_unit : IsPointed Unit := tt.
-  
-  Lemma const_comp (A B C: pType) (f:A->*B) : 
+
+  (*Postcomposing with pconst is pconst.*)
+  (*Mt pointed.v*)
+  Lemma pmap_postcompose_const (A B C: pType) (f:A->*B) : 
 	pconst B C o* f = pconst A C.
   Proof.
     unfold pconst.
@@ -43,7 +55,9 @@ Section pType_prelim.
 	rewrite ap_const; simpl.
 	reflexivity.
   Qed.
-  
+
+  (*Sphere as a functor nat -> Type is natural*)
+  (*Mt HIT/Sphere*)
   Definition natural_sphere {m n:nat} (k:nat) (f:pSphere m->*pSphere n) :
 	pSphere (k+m) ->* pSphere (k+n).
 	induction k.
@@ -52,13 +66,15 @@ Section pType_prelim.
   Defined.
 End pType_prelim.
 
-Section Sphere_vs_pSphere.
+Section Nat_and_truncindex.
   Local Open Scope trunc_scope.
+  Set Printing Coercions.
+
   Fixpoint plustwo (t : trunc_index) : nat :=
     match t with
       | -2 => O
       | t.+1 => S (plustwo t)
-    end.   
+    end.
   
   Definition truncind_to_twoplusnat (t : trunc_index) : Unit + Unit + nat :=
     match t with
@@ -73,8 +89,6 @@ Section Sphere_vs_pSphere.
       | (inl (inr tt) ) => -1
       | (inr n) => nat_to_trunc_index n
     end.
-
-  Set Printing Coercions.
 
   Lemma plustwo_commute1 : forall t : trunc_index,   nat_to_trunc_index (plustwo t) = t.+2.
     apply trunc_index_rect.
@@ -113,7 +127,7 @@ Section Sphere_vs_pSphere.
           simpl.
           apply (ap inr).
           exact (plustwo_commute2 n).
-  Defined.  
+  Defined.
 
   Lemma natisplustwo (n:nat) : exists t:trunc_index, nat_to_trunc_index n = t.+2.
     induction n.
@@ -121,12 +135,18 @@ Section Sphere_vs_pSphere.
     - exists (pr1 IHn).+1.
              exact (ap trunc_S (pr2 IHn)).
   Defined.
-
-  Global Instance ispointed_sphere (n:nat) : IsPointed (Sphere n) := 
+  
+  Lemma ispointed_sphere (n : nat) : IsPointed (Sphere n).
+    unfold IsPointed.
+    rewrite (natisplustwo n).2.
+    exact North.
+  Qed.
+  
+  (*Global Instance ispointed_sphere (n:nat) : IsPointed (Sphere n) := 
     transport Sphere (pr2 (natisplustwo n))^ North.
-
-  Definition pSphere2 (n:nat) := Build_pType (Sphere n) _.
-
+*)
+  Definition pSphere2 (n:nat) := Build_pType (Sphere n) (ispointed_sphere n).
+(*
   Definition sph_to_sph2 (n:nat) : pSphere n ->* pSphere2 n.
     refine (Build_pMap _ _ _ _).
     - induction n.
@@ -156,3 +176,4 @@ Section Sphere_vs_pSphere.
   Admitted.
   
 
+*) 

@@ -133,10 +133,8 @@ Section Classifying_Space.
     exact ((B_loop1 m1) @ (B_loop1 m2) @ (B_loop1 (multM m1 m2))^).
   Defined.
 
-  Definition looptofill' (M : Monoid) : M*M*S1 -> B1 M.
-    intros [[m1 m2]].
-    exact (looptofill M m1 m2).
-  Defined.
+  Definition looptofill_curried (M : Monoid) : M*M*S1 -> B1 M :=
+    prod_curry (prod_curry (looptofill M)).  
   
   Definition S1toB1 {M : Monoid} (m1 m2 : M) : S1 -> B1 M :=
     looptofill M m1 m2.
@@ -148,7 +146,7 @@ Section Classifying_Space.
 
   (*Construct 2-cells*)
   Definition B2 (M : Monoid) := pushout
-                                  (looptofill' M)
+                                  (looptofill_curried M)
                                   (collapseS1 M).
 
   Definition ispointed_MMS1 {M : Monoid} : IsPointed (M * M * S1) := (mon_id M, mon_id M, base).
@@ -234,9 +232,12 @@ Section Classifying_Space.
         (*The map on M*M*S1 is the constant map (it gives the loops that will be killed)*)
       + exact (const bp).
     - (*Show that the map is well-defined, e.g. m1@m2=m1*m2 *)
-      simpl.      
+      simpl.
       intros [[m1 m2]].
       unfold const.      
+      unfold looptofill_curried.
+      unfold prod_curry.
+      simpl.
       unfold looptofill.
       refine (S1_ind _ _ _ ).
       + exact idpath.

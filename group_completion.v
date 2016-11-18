@@ -128,14 +128,18 @@ Section Classifying_Space.
     - exact loop'.
   Defined.
   
-  Definition looptofill (M : Monoid) : M * M * S1 -> B1 M.
-    intros [[m1 m2]].
+  Definition looptofill (M : Monoid) (m1 m2 : M) : S1 -> B1 M.
     refine (S1_rec (B1 M) (point (B1 M)) _).
     exact ((B_loop1 m1) @ (B_loop1 m2) @ (B_loop1 (multM m1 m2))^).
   Defined.
+
+  Definition looptofill' (M : Monoid) : M*M*S1 -> B1 M.
+    intros [[m1 m2]].
+    exact (looptofill M m1 m2).
+  Defined.
   
   Definition S1toB1 {M : Monoid} (m1 m2 : M) : S1 -> B1 M :=
-    fun x : S1 => looptofill M (m1, m2, x).
+    looptofill M m1 m2.
 
   Definition collapseS1 (M : Monoid) : M*M*S1 -> M*M.
     intros [[m1 m2] x].
@@ -144,7 +148,7 @@ Section Classifying_Space.
 
   (*Construct 2-cells*)
   Definition B2 (M : Monoid) := pushout
-                                  (looptofill M)
+                                  (looptofill' M)
                                   (collapseS1 M).
 
   Definition ispointed_MMS1 {M : Monoid} : IsPointed (M * M * S1) := (mon_id M, mon_id M, base).
@@ -201,37 +205,16 @@ Section Classifying_Space.
         refine (S1_rec_beta_loop _ _ _)^. 
     - refine (concat (ap_compose _ _ _)^ _).
       refine (concat _ (ap_const loop _)). 
-      (*ap12 somehow. . .*)
       refine (concat _ (ap12 loop (const_S1toB2 m1 m2))).
-      (*TODO continue. . .*)
       rewrite ap_compose.
       rewrite concat_pp_p.
       apply moveL_Vp.
       unfold S1toB1.
-      (*TODO: looptofill m1 m2 is S1_rec. Probably wise to define looptofill otherwise. . .*)
       unfold looptofill.
-      
-      rewrite <- ap_apply_l. simpl.
-      rewrite ap_const.
-      
-      unfold B1toB2.
-      unfold S1toB1.
-      unfold looptofill.
-      path_via (ap (fun _ : S1 => (otherpt_B2 m1 m2)) loop).
-
-        (ap (fun _ : S1 => (otherpt_B2 m1 m2) ) loop) .
-      refine (concat _ (ap12 loop (const_S1toB2 m1 m2))).
-      
-      Definition ap_loop {M : Monoid} (f : S1 -> B2 M) : f base = f base := ap f loop.
-      refine (concat _
-                     (apD ap_loop (const_S1toB2 m1 m2)^)).
-      refine (concat _
-                     (transport_paths_FlFr
-                     (const_S1toB2 m1 m2)^ (ap_loop (const (otherpt_B2 m1 m2))))^).
-      unfold const.
-      unfold ap_loop.
-      rewrite ap_const.
-      rewrite ap_const.
+      rewrite S1_rec_beta_loop.      
+      unfold const_S1toB2.
+      rewrite (path_forall _ _ (ap10_path_forall _ _ _)).
+      unfold nullhom_S1toB2.
       hott_simpl.
   Qed.
                           

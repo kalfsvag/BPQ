@@ -1,28 +1,6 @@
 Require Import HoTT.
 Load pType_basics.
 
-Section Fin.
-  (* Definition Fin (n : nat) : Type := *)
-  (*   match n with *)
-  (*     |O => Empty *)
-  (*     |S n => Unit + (Fin n) *)
-  (* end. *)
-
-  (* Definition Fin_to_nat {m: nat} : Fin m -> nat. *)
-  (*   induction m. *)
-  (*   - intros []. *)
-  (*   - apply sum_rect. *)
-  (*     + exact IHm. *)
-  (*     + intros []. *)
-  (*       exact m. *)
-(*nat_fin*)      
-    
-(* Coercion nat_fin (n : nat) : Type. >-> Sortclass. (*???*) *)
-  
-(*   Definition pres_order {m n : nat} : (Fin n -> Fin m) -> Type. *)
-(*     intro f. *)
-End Fin.
-
 (*This section should be elsewhere *)
 Section ap12.
   Lemma ap12 {A B : Type} (*Correct name?*)
@@ -33,6 +11,17 @@ Section ap12.
     exact (transport_paths_FlFr _ _)^.
   Defined.
 End ap12.
+
+(*Defining the monoidal type of finite sets and isomorphisms*)
+Section FinIso.
+  Require Import UnivalenceAxiom.
+  Record FinIso : Type := Build_FinIso { A : Type ; ca : nat ; isfinite : Trunc -1 (Equiv A (Fin ca)) }.
+
+  Definition paths_finiso {A B : FinIso}
+             (same_ca : ca A = ca B) (f : Fin (ca A) <~> Fin (ca A) )
+  : A = B.
+    
+  
 
 
 Section Monoid.

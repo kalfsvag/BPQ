@@ -18,6 +18,7 @@ Section FinIso.
   Definition FinIso : Type :=
     sig (fun n:nat=> sig (fun A : Type => Trunc -1 (Equiv A (Fin n)))).
 
+
   (*Cardinality of the finite type*)
   Definition ca : FinIso -> nat :=
     fun A => A.1.
@@ -28,10 +29,9 @@ Section FinIso.
     refine (path_sigma _ _ _ _ _).
     - exact same_ca.
     - refine (path_sigma _ _ _ _ _).
-    + (*Show that they are equal as types, using f.*)
+    + (*Show that they are equal as types.*)
       apply path_universe_uncurried.
-      rewrite hset_nat.
-      (*hset_nat*)
+
       
       admit.
       + apply (istrunc_truncation -1 ((B.2).1 <~> Fin B.1)).

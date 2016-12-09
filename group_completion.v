@@ -15,28 +15,31 @@ End ap12.
 (*Defining the monoidal type of finite sets and isomorphisms*)
 Section FinIso.
   Require Import UnivalenceAxiom.
-  Definition FinIso : Type :=
-    sig (fun n:nat=> sig (fun A : Type => Trunc -1 (Equiv A (Fin n)))).
+  (*This type corresponds to the category of finite sets and isomorphisms*)
+  Record iFin :=
+    { fType : Type;
+      isFin : Finite fType
+      }.
+  (*ishprop_finite*)
 
+  Definition cardinal (A : iFin) : nat.
+    refine (fcard (fType A) ).
+    exact (isFin A).
+  Defined.
 
-  (*Cardinality of the finite type*)
-  Definition ca : FinIso -> nat :=
-    fun A => A.1.
+  (*Canonical objects in iFin*)
+  Definition fin (n : nat) : iFin :=
+    Build_iFin (Fin n) _.
 
-  Definition paths_finiso {A B : FinIso}
-             (same_ca : ca A = ca B) (f : Fin (ca A) <~> Fin (ca A) )
-  : A = B.
-    refine (path_sigma _ _ _ _ _).
-    - exact same_ca.
-    - refine (path_sigma _ _ _ _ _).
-    + (*Show that they are equal as types.*)
-      apply path_universe_uncurried.
-
-      
-      admit.
-      + apply (istrunc_truncation -1 ((B.2).1 <~> Fin B.1)).
+  (*Every object is canonical*)
+  Definition canonical_iFin (A : iFin) : A = fin (cardinal A).
+    (*TODO*)
   Admitted.
+  
+  
+  
 
+End Section.
     
   
 

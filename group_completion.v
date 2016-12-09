@@ -22,11 +22,6 @@ Section FinIso.
   Definition ca : FinIso -> nat :=
     fun A => A.1.
 
-  (*The underlying type*)
-  Definition typeOfFinType : FinIso -> Type :=
-    fun A => (A.2).1.
-  
-
   Definition paths_finiso {A B : FinIso}
              (same_ca : ca A = ca B) (f : Fin (ca A) <~> Fin (ca A) )
   : A = B.

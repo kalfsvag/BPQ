@@ -16,26 +16,33 @@ End ap12.
 Section FinIso.
   Require Import UnivalenceAxiom.
   (*This type corresponds to the category of finite sets and isomorphisms*)
-  Record iFin :=
-    { fType : Type;
-      isFin : Finite fType
-      }.
+  Definition iFin := { S : Type & Finite S }.
   (*ishprop_finite*)
 
-  Definition cardinal (A : iFin) : nat.
-    refine (fcard (fType A) ).
-    exact (isFin A).
-  Defined.
+  (*The cardinal of the finite set*)
+  Definition cardinal (S : iFin) : nat := @fcard S.1 S.2.
 
   (*Canonical objects in iFin*)
-  Definition fin (n : nat) : iFin :=
-    Build_iFin (Fin n) _.
+  Definition fin (n : nat) : iFin := ( Fin n ; finite_fin n ).
 
   (*Every object is canonical*)
-  Definition canonical_iFin (A : iFin) : A = fin (cardinal A).
-    (*TODO*)
-  Admitted.
-  
+  Definition canonical_iFin (S : iFin) : merely (S = fin (cardinal S)).
+  Proof.
+    refine (Trunc_rec (n:=-1) (A := (S.1 <~> Fin (fcard S.1))) _ _).
+    - exact S.2.
+    - intro e.
+      apply tr.
+      refine (path_sigma _ _ _ _ _).
+      + refine (path_universe _).
+        * apply e.
+        * exact _.
+      + apply ishprop_finite.
+    - apply merely_equiv_fin.
+  Defined.
+
+  (*Can also prove using finite_choice?*)
+
+  (*Should be possible to choose an isomorphism *)
   
   
 

@@ -24,6 +24,7 @@ Section Monoid.
 Definition IsMonoid (A : Type) {isset : IsHSet A} (m : A->A->A) (e : A) :=
   (associative m) * (left_identity m e) * (right_identity m e). *)
   (*TODO: isGroup *)
+  Definition symmetric {A : Type} (m : A->A->A) := forall a b : A, m a b = m b a.
 
   Record Monoid : Type := { mon_set : Type;
                             mon_isset : IsHSet mon_set;
@@ -41,8 +42,21 @@ Definition IsMonoid (A : Type) {isset : IsHSet A} (m : A->A->A) (e : A) :=
   Coercion mon_set : Monoid >-> Sortclass.
   Definition multM {M:Monoid} : M->M->M := mon_mult M.
 
+  
+
   Global Instance ispointed_M {M : Monoid} : IsPointed M := (mon_id M).
 
+  (* (*Symmetric monoid*) *)
+  (* Definition Symm_Monoid : Type := {S : Monoid & symmetric (mon_mult S)}. *)
+  (* (*Might be cleaner to define this as a new record, I don't know. . .*) *)
+  (* Definition sym_mon_set (S : Symm_Monoid) : Type := mon_set (S.1). *)
+  (* Coercion sym_mon_set : Symm_Monoid >-> Sortclass. *)
+
+  (*Formulate the cancellation law for a monoid*)
+  Definition left_cancellation_law (M : Monoid) :=
+    forall s a b : M, multM s a = multM s b -> a = b.
+
+  
   (*Strangely, I cannot find any proofs of nat being associative*)
   Local Open Scope nat_scope.
   Definition plus_assoc : associative Peano.plus.
@@ -66,6 +80,62 @@ Definition IsMonoid (A : Type) {isset : IsHSet A} (m : A->A->A) (e : A) :=
 
 End Monoid.
 
+Section Group.
+  Definition left_inverse {M : Monoid} (inv : M->M) :=
+    forall m : M, multM (inv m) m = mon_id M.
+
+  Definition right_inverse {M : Monoid} (inv : M->M) :=
+    forall m : M, multM m (inv m) = mon_id M.
+
+  Record Group : Type := {grp_mon : Monoid;
+                          grp_inv : grp_mon -> grp_mon;
+                          grp_linv : left_inverse (grp_inv);
+                          grp_rinv : right_inverse (grp_inv)
+                         }.
+  (*Rename maps that come from monoid structure*)
+  Definition grp_set (G : Group) := mon_set (grp_mon G).
+  Coercion grp_set : Group >-> Sortclass.
+  Definition multG {G : Group} : G->G->G := mon_mult (grp_mon G).
+
+  (*The Grothendieck group completion*)
+  (*The group completion of a symmetric monoid M is M*M/~ where m~s+m *)
+  (*Assume S is a symmetric monoid with cancellation. (Group completion is nicer then.)*)
+  Variable S : Monoid.
+  Variable mon_sym : symmetric (mon_mult S).
+  Variable lc : left_cancellation_law S.
+
+  (*Take a triple (a, b ,s) to (s*a, s*b)*)
+  Definition sa_sb : S*S*S -> S*S.
+    intros [[a b] s].
+    exact (multM s a, multM s b).
+  Defined.
+
+  
+  
+  Definition grp_compl_set := Coeq sa_sb fst.
+  
+  
+  
+  Definition group_completion
+             (S : Monoid)
+             (mon_sym : symmetric (mon_mult S))
+             (lc : left_cancellation_law (S)) : Group.
+    refine (Build_Group _ _ _ _).
+    
+             
+  
+  
+  Definition grp_compl_rel {S : Symm_Monoid} : relation (S*S).
+    unfold relation.
+    intros [a b] [c d].
+    
+  
+  Definition group_completion (S : Symm_Monoid) : Group.
+    
+    
+  
+End Group.
+
 
 (*Defining the monoidal type of finite sets and isomorphisms*)
 Section FinIso.
@@ -81,7 +151,7 @@ Section FinIso.
   Definition fin (n : nat) : iFin := ( Fin n ; finite_fin n ).
 
   (*Every object is canonical*)
-  Definition canonical_iFin (S : iFin) : merely (S = fin (cardinal S)).
+  Lemma canonical_iFin (S : iFin) : merely (S = fin (cardinal S)).
   Proof.
     refine (Trunc_rec (n:=-1) (A := (S.1 <~> Fin (fcard S.1))) _ _).
     - exact S.2.
@@ -92,7 +162,7 @@ Section FinIso.
         apply e. exact _.
     - apply merely_equiv_fin.
   Defined.
-  (*Should be possible to choose an isomorphism *)
+  (*Should be possible to choose an isomorphism? *)
 
   (*The monoidal structure on iFin*)
   Definition FinPlus : iFin-> iFin -> iFin.
@@ -124,7 +194,7 @@ Section FinIso.
     exact (path_universe (sum_empty_r S)).
   Defined.
 
-  Definition FinPlus_symmetric : forall S1 S2 : iFin, FinPlus S1 S2 = FinPlus S2 S1.
+  Definition FinPlus_symmetric : symmetric FinPlus. 
   Proof.
     intros [S1 fin_S1] [S2 fin_S2].
     refine (path_sigma_hprop _ _ _).

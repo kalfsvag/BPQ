@@ -1,4 +1,5 @@
 Require Import HoTT.
+Require Import UnivalenceAxiom.
 Load pType_basics.
 
 (*This section should be elsewhere *)
@@ -42,7 +43,6 @@ Definition IsMonoid (A : Type) {isset : IsHSet A} (m : A->A->A) (e : A) :=
   Coercion mon_set : Monoid >-> Sortclass.
   Definition multM {M:Monoid} : M->M->M := mon_mult M.
 
-  
 
   Global Instance ispointed_M {M : Monoid} : IsPointed M := (mon_id M).
 
@@ -56,6 +56,7 @@ Definition IsMonoid (A : Type) {isset : IsHSet A} (m : A->A->A) (e : A) :=
   Definition left_cancellation_law (M : Monoid) :=
     forall s a b : M, multM s a = multM s b -> a = b.
 
+  
   
   (*Strangely, I cannot find any proofs of nat being associative*)
   Local Open Scope nat_scope.
@@ -81,6 +82,7 @@ Definition IsMonoid (A : Type) {isset : IsHSet A} (m : A->A->A) (e : A) :=
 End Monoid.
 
 Section Group.
+
   Definition left_inverse {M : Monoid} (inv : M->M) :=
     forall m : M, multM (inv m) m = mon_id M.
 
@@ -104,15 +106,71 @@ Section Group.
   Variable mon_sym : symmetric (mon_mult S).
   Variable lc : left_cancellation_law S.
 
+  Notation "a + b" := (multM a b) : monoid_scope.
+  Open Scope monoid_scope . 
+
+
   (*Take a triple (a, b ,s) to (s*a, s*b)*)
   Definition sa_sb : S*S*S -> S*S.
     intros [[a b] s].
-    exact (multM s a, multM s b).
+    exact (s + a, s + b).
   Defined.
 
-  
-  
-  Definition grp_compl_set := Coeq sa_sb fst.
+  Definition grp_compl_set := Trunc 0 (Coeq sa_sb fst).
+  Definition grp_compl_mult : grp_compl_set -> grp_compl_set -> grp_compl_set.
+    refine (Trunc_rec _).
+    intro g1.
+    refine (Trunc_rec _).
+    intro g2.
+    revert g2.
+    revert g1.
+    refine (Coeq_rec _ _ _).
+    - intro g1.
+      refine (Coeq_rec _ _ _).
+      + intro g2.
+        apply tr.
+        apply coeq.
+        destruct g1 as [m1 m2].
+        destruct g2 as [n1 n2].
+        exact (m1 + n1, m2 + n2).
+      + intros [[a b] s].
+        destruct g1 as [m1 m2].
+        apply (ap tr).
+        refine (concat (y:= coeq (s + (m1 + a), s + (m2 + b))) _ _).
+        { apply (ap coeq).
+          refine (concat (y:= ((m1 + s) + a, (m2 + s) + b)) _ _).
+          { apply path_prod.
+            { exact (mon_assoc S m1 s a). }
+            { exact (mon_assoc S m2 s b). }
+          }
+          refine (concat (y:= ((s + m1) + a, (s + m2) + b)) _ _).
+          { apply path_prod.
+            { apply (ap (fun m : mon_set S => m + a)).
+              apply mon_sym.
+            } 
+            apply (ap (fun m : mon_set S => m + b)).
+            apply mon_sym.
+          }          
+          apply path_prod.
+          { exact (mon_assoc S s m1 a)^. }
+          exact (mon_assoc S s m2 b)^. }
+        refine (cp (m1+a,m2+b,s)).
+    - intros [[a b] s].
+      simpl.
+      cbn.
+      
+            
+          
+        
+          
+          
+           
+           
+           
+        
+    
+    
+    
   
   
   
@@ -139,7 +197,6 @@ End Group.
 
 (*Defining the monoidal type of finite sets and isomorphisms*)
 Section FinIso.
-  Require Import UnivalenceAxiom.
   (*This type corresponds to the category of finite sets and isomorphisms*)
   Definition iFin := { S : Type & Finite S }.
   (*ishprop_finite*)

@@ -1,6 +1,7 @@
 Require Import HoTT.
 Require Import UnivalenceAxiom.
 Load pType_basics.
+Load Coequalizer.
 
 (*This section should be elsewhere *)
 Section ap12.
@@ -13,7 +14,7 @@ Section ap12.
   Defined.
 End ap12.
 
-  
+
 
 
 Section Monoid.
@@ -53,8 +54,8 @@ Definition IsMonoid (A : Type) {isset : IsHSet A} (m : A->A->A) (e : A) :=
   (* Coercion sym_mon_set : Symm_Monoid >-> Sortclass. *)
 
   (*Formulate the cancellation law for a monoid*)
-  Definition left_cancellation_law (M : Monoid) :=
-    forall s a b : M, multM s a = multM s b -> a = b.
+  Definition right_cancellation_law (M : Monoid) :=
+    forall a b s : M, multM a s = multM b s -> a = b.
 
   
   
@@ -104,64 +105,162 @@ Section Group.
   (*Assume S is a symmetric monoid with cancellation. (Group completion is nicer then.)*)
   Variable S : Monoid.
   Variable mon_sym : symmetric (mon_mult S).
-  Variable lc : left_cancellation_law S.
+  Variable rc : right_cancellation_law S.
 
   Notation "a + b" := (multM a b) : monoid_scope.
   Open Scope monoid_scope . 
 
 
   (*Take a triple (a, b ,s) to (s*a, s*b)*)
-  Definition sa_sb : S*S*S -> S*S.
+  Definition as_bs : S*S*S -> S*S.
     intros [[a b] s].
-    exact (s + a, s + b).
+    exact (a+s, b+s).
   Defined.
 
-  Definition grp_compl_set := Trunc 0 (Coeq sa_sb fst).
-  Definition grp_compl_mult : grp_compl_set -> grp_compl_set -> grp_compl_set.
+  Definition grp_compl_set (S:Monoid) := Trunc 0 (Coeq as_bs fst).
+  Definition grp_compl_mult : grp_compl_set S -> grp_compl_set S -> grp_compl_set S.
     refine (Trunc_rec _).
     intro g1.
     refine (Trunc_rec _).
     intro g2.
-    revert g2.
-    revert g1.
+    revert g2. 
+    revert g1. (*Started from here.*)
+
+
+
+    
     refine (Coeq_rec _ _ _).
-    - intro g1.
+    - intros [m1 m2].
       refine (Coeq_rec _ _ _).
-      + intro g2.
+      + intros [n1 n2].
         apply tr.
         apply coeq.
-        destruct g1 as [m1 m2].
-        destruct g2 as [n1 n2].
         exact (m1 + n1, m2 + n2).
       + intros [[a b] s].
-        destruct g1 as [m1 m2].
         apply (ap tr).
-        refine (concat (y:= coeq (s + (m1 + a), s + (m2 + b))) _ _).
-        { apply (ap coeq).
-          refine (concat (y:= ((m1 + s) + a, (m2 + s) + b)) _ _).
-          { apply path_prod.
-            { exact (mon_assoc S m1 s a). }
-            { exact (mon_assoc S m2 s b). }
-          }
-          refine (concat (y:= ((s + m1) + a, (s + m2) + b)) _ _).
-          { apply path_prod.
-            { apply (ap (fun m : mon_set S => m + a)).
-              apply mon_sym.
-            } 
-            apply (ap (fun m : mon_set S => m + b)).
-            apply mon_sym.
-          }          
-          apply path_prod.
-          { exact (mon_assoc S s m1 a)^. }
-          exact (mon_assoc S s m2 b)^. }
-        refine (cp (m1+a,m2+b,s)).
+        refine (_ @ (cp (m1+a,m2+b,s))).
+        apply (ap coeq). simpl. unfold as_bs.
+        apply path_prod.
+        * exact (mon_assoc S m1 a s).
+        * exact (mon_assoc S m2 b s).
     - intros [[a b] s].
-      simpl.
-      cbn.
-      
-            
+      apply path_forall.
+      refine (Coeq_ind _ _ _).
+      + intros [m1 m2].
+        simpl.
+        apply (ap tr).
+        refine (_ @ (cp (a+m1, b+m2, s))).
+        apply (ap coeq).
+        apply path_prod.
+        * simpl.
+          refine ((mon_assoc S a s m1)^ @ _).
+          refine (_ @ (mon_assoc S a m1 s)).
+          apply (ap (fun c : S => a + c)).
+          apply mon_sym.
+        * simpl.
+          refine ((mon_assoc S b s m2)^ @ _).
+          refine (_ @ (mon_assoc S b m2 s)).
+          apply (ap (fun c : S => b + c)).
+          apply mon_sym.
+      + intro.
+        (*Exploit our truncation*)
+        apply (istrunc_truncation 0).
+  Defined.
+  
+(*  Unset Printing Notations.
+  Set Printing Implicit. *)
+  Definition grp_compl_assoc : associative grp_compl_mult.
+    Proof.
+      unfold associative.
+      refine (Trunc_ind _ _).
+      intro a.
+      refine (Trunc_ind _ _).
+      intro b.
+      refine (Trunc_ind _ _).
+      intro c.
+      revert a b c.
+      + refine (Coeq_ind _ _ _).
+        intro l1l2.
+        refine (Coeq_ind _ _ _).
+        * intro m1m2.
+          refine (Coeq_ind _ _ _).
+          { intro n1n2.
+            simpl.
+            apply (ap tr).
+            apply (ap coeq).
+            apply path_prod.
+              apply mon_assoc. apply mon_assoc.
+          }
+          intro.
+          apply (istrunc_truncation 0).
+        * intro abs.
+          apply path_forall.
+          refine (Coeq_ind _ _ _).
+          {intro m1m2. apply (istrunc_truncation 0). }
+          intro abs'.
+          assert (istr1 : IsTrunc 1 (grp_compl_set S)).
+            apply trunc_succ.
+          apply istr1. 
+        * intros [[a b] s]. simpl.
+          Unset Printing Notations.
+  Set Printing Implicit.
           
+            
+            
+              
+            
+                
+          
+          
+            
+      
+      
+
+    Admitted. (*TODO*)
+  
+  Definition grp_compl_id : grp_compl_set S := tr (coeq (mon_id S, mon_id S)).
+  
+  Definition grp_compl_lid : left_identity grp_compl_mult grp_compl_id.
+  Proof.
+    unfold left_identity.
+    apply Trunc_ind.
+    - (*This is trivial*) exact (fun _ => _).
+    - refine (Coeq_ind _ _ _).
+      + intros [m1 m2].
+        simpl.
+        apply (ap tr).
+        apply (ap coeq).
+        apply path_prod.
+        * apply mon_lid.
+        * apply mon_lid.
+      + intro x.
+        apply (istrunc_truncation 0).
+  Defined.
+  
+  Definition grp_compl_rid : right_identity grp_compl_mult grp_compl_id.
+  Proof.
+    unfold right_identity.
+    apply Trunc_ind.
+    - (*This is trivial*) exact (fun _ => _).
+    - refine (Coeq_ind _ _ _).
+      + intros [m1 m2].
+        simpl.
+        apply (ap tr).
+        apply (ap coeq).
+        apply path_prod.
+        * apply mon_rid.
+        * apply mon_rid.
+      + intro x.
+        apply (istrunc_truncation 0).
+  Defined.
+
+  
+
+  
         
+        
+    
+  
           
           
            
@@ -268,14 +367,6 @@ Section FinIso.
 End FinIso.
     
 
-(*A simple result on coequalizers*)
-Lemma Coeq_precompose `{Funext} {B A : Type} {f : B -> A} {g : B -> A} :
-  (@coeq B A f g) o f = coeq o g.
-Proof.
-  apply path_forall.
-  intro b.
-  apply cp.
-Defined.
 
       
 Section Classifying_Space.

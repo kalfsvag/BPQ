@@ -4,7 +4,7 @@ Load pType_basics.
 Load Coequalizer.
 
 (*This section should be elsewhere *)
-Section ap12.
+Section Misc.
   Lemma ap12 {A B : Type} (*Correct name?*)
         {a b : A} (p : a = b) {f g : A->B} (h : f=g)  :
     (ap10 h a)^ @ ap f p @ ap10 h b= ap g p.
@@ -12,7 +12,21 @@ Section ap12.
     refine (concat _ (apD (fun f : A -> B => ap f p) h)).
     exact (transport_paths_FlFr _ _)^.
   Defined.
-End ap12.
+
+  Definition prod_uncurryD {A B : Type} {P : A -> B -> Type} :
+    (forall p : A*B, P (fst p) (snd p)) -> forall a : A, forall b : B, P a b :=
+    (equiv_prod_ind _)^-1 .
+(*
+  Definition precomposeD {A B : Type} {P : B -> Type} (f : A->B) :
+    (forall a : A, P (f a)) -> forall b : B, P b.
+  Proof.
+    intro g.
+    intro b.
+    exact 
+  *)  
+    
+  
+End Misc.
 
 
 
@@ -124,49 +138,37 @@ Section Group.
     refine (Trunc_rec _).
     intro g2.
     revert g2. 
-    revert g1. (*Started from here.*)
-
-
-
-    
+    revert g1.    
+    apply (equiv_uncurry _ _ _)^-1.
+    refine (_ o (prod_coeq_to_coeq_prod _ _)).
+    - refine (tr o _).
     refine (Coeq_rec _ _ _).
-    - intros [m1 m2].
-      refine (Coeq_rec _ _ _).
-      + intros [n1 n2].
-        apply tr.
-        apply coeq.
-        exact (m1 + n1, m2 + n2).
-      + intros [[a b] s].
-        apply (ap tr).
-        refine (_ @ (cp (m1+a,m2+b,s))).
-        apply (ap coeq). simpl. unfold as_bs.
-        apply path_prod.
-        * exact (mon_assoc S m1 a s).
-        * exact (mon_assoc S m2 b s).
-    - intros [[a b] s].
-      apply path_forall.
-      refine (Coeq_ind _ _ _).
-      + intros [m1 m2].
-        simpl.
-        apply (ap tr).
-        refine (_ @ (cp (a+m1, b+m2, s))).
-        apply (ap coeq).
-        apply path_prod.
-        * simpl.
-          refine ((mon_assoc S a s m1)^ @ _).
-          refine (_ @ (mon_assoc S a m1 s)).
-          apply (ap (fun c : S => a + c)).
-          apply mon_sym.
-        * simpl.
-          refine ((mon_assoc S b s m2)^ @ _).
-          refine (_ @ (mon_assoc S b m2 s)).
-          apply (ap (fun c : S => b + c)).
-          apply mon_sym.
-      + intro.
-        (*Exploit our truncation*)
-        apply (istrunc_truncation 0).
-  Defined.
-  
+    + intros [[m1 m2] [n1 n2]].
+      (*The product of (m1,m2) with (n1 n2) should be (m1 + n1, m2 + n2)*)
+      exact (coeq (m1+n1, m2 + n2)).
+    + intros [ [[a b ] s]  [[a' b' ] s']].
+      simpl.
+      refine (_ @ cp (a+a',b+b',s+s')). unfold as_bs.
+      apply (ap coeq).
+      apply path_prod.
+      * simpl.
+        refine ((mon_assoc S (a + s) a' s') @ _ @ (mon_assoc S (a+a') s s')^).
+        apply (ap (fun x => x + s')).
+        refine ((mon_assoc S a s a')^ @ _ @ (mon_assoc S a a' s)).
+        apply (ap (fun x => a + x)).
+        apply mon_sym.
+      * simpl.
+        refine ((mon_assoc S (b + s) b' s') @ _ @ (mon_assoc S (b + b') s s')^).
+        apply (ap (fun x => x + s')).
+        refine ((mon_assoc S b s b')^ @ _ @ (mon_assoc S b b' s)).
+        apply (ap (fun x => b + x)).
+        apply mon_sym.
+    - apply path_prod.
+      + simpl.
+        apply mon_lid.
+      + apply mon_lid.
+  Defined. (*This was much easier*)
+    
 (*  Unset Printing Notations.
   Set Printing Implicit. *)
   Definition grp_compl_assoc : associative grp_compl_mult.
@@ -178,7 +180,22 @@ Section Group.
       intro b.
       refine (Trunc_ind _ _).
       intro c.
-      revert a b c.
+      revert a b c. (*Change from here. . .*)
+      refine (prod_uncurryD _). refine (prod_uncurryD _).
+      
+      intro p.        
+      refine ((_ o (prod_coeq_to_coeq_prod  _ _) ) p).
+      revert p.
+      - refine (prod_uncurryD _).
+        
+        refine ((_ o (prod_coeq_to_coeq_prod  _ _) ) p).
+
+      refine (prod_uncurryD _).
+      
+      
+
+      
+      
       + refine (Coeq_ind _ _ _).
         intro l1l2.
         refine (Coeq_ind _ _ _).

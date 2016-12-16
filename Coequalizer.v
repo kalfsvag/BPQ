@@ -16,12 +16,40 @@ Defined.
    Coeq f g * Coeq f' g' <~> Coeq (functor_prod f f') (functor_prod g g')
    Then, using equiv_prod_ind, iterated Coequalizers will perhaps be easier to define.
  *)
+Section Coeq_prod_commute.
+  Open Scope pointed_scope.
+  Variables A B A' B' : pType.
+
+  Definition prod_coeq_to_coeq_prod (f g : A ->* B) (f' g' : A'->* B') :
+    Coeq f g * Coeq f' g' -> Coeq (functor_prod f f') (functor_prod g g').
+  Proof.
+    apply prod_curry.
+    refine (Coeq_rec _ _ _).
+    - intro b.
+      refine (functor_coeq _ _ _ _).
+      + exact (fun a' => (point A, a')).
+      + exact (fun b' => (point B , b')).
+      + intro a'.
+        apply path_prod.
+        * exact (point_eq f)^ .
+        * exact idpath.
+      + 
+              
+        
+      
+      refine (Coeq_rec _ _ _).
+      + intro b'.
+        apply coeq.
+        exact (b,b').
+      + intro a'.
+        simpl.
+        
+      
 
 
-(*Assume it first to see if things get easier*)
 
-Lemma Coeq_prod_commute {A B A' B' : Type} (f g : A->B) (f' g' : A'->B'):
-   Coeq f g * Coeq f' g' <~> Coeq (functor_prod f f') (functor_prod g g').
+  Lemma Coeq_prod_commute  (f g : A->B) (f' g' : A'->B'):
+    Coeq f g * Coeq f' g' <~> Coeq (functor_prod f f') (functor_prod g g').
   Admitted.
 
 

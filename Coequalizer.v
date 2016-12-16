@@ -30,10 +30,15 @@ Section Coeq_prod_commute.
       + exact (fun a' => (point A, a')).
       + exact (fun b' => (point B , b')).
       + intro a'.
-        apply path_prod.
-        * exact (point_eq f)^ .
-        * exact idpath.
-      + 
+        apply (ap (fun b => (b, f' a'))).
+        exact (point_eq f)^ .
+      + intro a'.
+        apply (ap (fun b => (b, g' a'))).
+        exact (point_eq g)^ .
+    - intro a.
+      exact idpath.
+  Defined.
+        
               
         
       

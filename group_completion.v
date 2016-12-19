@@ -188,112 +188,36 @@ Section Group.
       refine (Trunc_ind _ _).
       intro b.
       refine (Trunc_ind _ _).
-      intro c.
-      revert b c. (*Change from here. . .*)
-
-
-      refine (changebase _ _ _). (*This is not actually proved yet. . .*)
-      - apply path_prod. apply mon_lid. apply mon_lid.
-      - revert a.
-        refine (changebase _ _ _).
-        + apply path_prod. apply mon_lid. apply mon_lid.
-        + refine (Coeq_ind _ _ _).
-        * intros [[l1 l2] [[m1 m2] [n1 n2]]].
-          simpl.
-          apply (ap tr).
-          apply (ap coeq).
-          (*Easy right now, at least. . .*)
-          unfold point. unfold ispointed_M.
-          apply path_prod.
-          simpl.
-          
-          rewrite (mon_lid S (n1)).
-          
-          refine (Coeq_ind _ _ _).
-          * intros [n1 n2].
-            apply (ap tr).
-            apply (ap coeq).
-            simpl.
-            apply (path_prod).
-              simpl. unfold point. unfold ispointed_M.
-              apply (ap (fun x => mon_id S + mon_id S + x)).
-              refine (_ @ mon_lid S n1).
-              apply (ap (fun x => x + n1)).
-              apply (mon_lid S).
-
-              simpl. unfold point. unfold ispointed_M.
-              apply (ap (fun x => mon_id S + mon_id S + x)).
-              refine (_ @ mon_lid S n2).
-              apply (ap (fun x => x + n2)).
-              apply (mon_lid S).
-          * intro.
-            apply (istrunc_truncation 0).            
-        + intro b.
-          destruct b as [[[a b] s][[a' b'] s']].
-          refine (transport_compose _ _ _ _ @ _).
-          
-          
-
-              
-            
-        
-        intro.
-        apply path_universe.
-        refine (univalence_axiom _).
-        refine (_ @ cp ).
-        unfold pullback_pc_to_cp.
-      
-(*      refine (prod_uncurryD _). refine (prod_uncurryD _).
-      refine (functor_forall (prod_coeq_to_coeq_prod2  _ _ _ _) _ _).
-      
-      intro p.        
-      refine ((_ o (prod_coeq_to_coeq_prod2  _ _ _ _) ) p). (*Should be possible to generalize this. . . composeD?*)
-      - (*Have reduced it to a map from a single coequalizer*)
-        refine (Coeq_rec _ _ _).
-        + (*Proce associativity on the underlying set*)
-          intros [[[l1 l2] [m1 m2]] [n1 n2]].
-          
-      
-      
-      + refine (Coeq_ind _ _ _).
-        intro l1l2.
+      intro c. revert a b c.
+      refine (Coeq_ind _ _ _).
+      - (*Fix first variable*)
+        intros [l1 l2].
         refine (Coeq_ind _ _ _).
-        * intro m1m2.
+        + (*Fix second variable*)
+          intros [m1 m2].
           refine (Coeq_ind _ _ _).
-          { intro n1n2.
+          * (*Fix third variable*)
+            intros [n1 n2].
             simpl.
-            apply (ap tr).
-            apply (ap coeq).
+            apply (ap tr); apply (ap coeq).
             apply path_prod.
-              apply mon_assoc. apply mon_assoc.
-          }
-          intro.
-          apply (istrunc_truncation 0).
-        * intro abs.
+            apply mon_assoc. apply mon_assoc.
+          * (*Third variable runs along cp*)
+            intro abs.
+            apply (istrunc_truncation 0).
+        + (*Second variable runs along cp*)
+          intro abs.
           apply path_forall.
-          refine (Coeq_ind _ _ _).
-          {intro m1m2. apply (istrunc_truncation 0). }
-          intro abs'.
-          assert (istr1 : IsTrunc 1 (grp_compl_set S)).
-            apply trunc_succ.
-          apply istr1. 
-        * intros [[a b] s]. simpl.
-          Unset Printing Notations.
-  Set Printing Implicit.
-  *)        
-            
-            
-              
-            
-                
+          intro w. apply (istrunc_truncation 0).
+      - (*First variable runs along cp*)
+        intro abs.
+        apply path_forall.
+        intro w1.
+        apply path_forall.
+        intro w2.
+        apply (istrunc_truncation 0).
+    Defined.
           
-          
-            
-      
-      
-
-    Admitted. (*TODO*)
-  
   Definition grp_compl_id : grp_compl_set S := tr (coeq (mon_id S, mon_id S)).
   
   Definition grp_compl_lid : left_identity grp_compl_mult grp_compl_id.

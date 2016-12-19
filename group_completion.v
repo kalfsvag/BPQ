@@ -13,9 +13,9 @@ Section Misc.
     exact (transport_paths_FlFr _ _)^.
   Defined.
 
-  Definition prod_uncurryD {A B : Type} {P : A -> B -> Type} :
+(*  Definition prod_uncurryD {A B : Type} {P : A -> B -> Type} :
     (forall p : A*B, P (fst p) (snd p)) -> forall a : A, forall b : B, P a b :=
-    (equiv_prod_ind _)^-1 .
+    (equiv_prod_ind _)^-1 . *)
 (*
   Definition precomposeD {A B : Type} {P : B -> Type} (f : A->B) :
     (forall a : A, P (f a)) -> forall b : B, P b.
@@ -138,37 +138,46 @@ Section Group.
     refine (Trunc_rec _).
     intro g2.
     revert g2. 
-    revert g1.    
-    apply (equiv_uncurry _ _ _)^-1.
-    refine (_ o (prod_coeq_to_coeq_prod _ _)).
-    - refine (tr o _).
+    revert g1.
     refine (Coeq_rec _ _ _).
-    + intros [[m1 m2] [n1 n2]].
-      (*The product of (m1,m2) with (n1 n2) should be (m1 + n1, m2 + n2)*)
-      exact (coeq (m1+n1, m2 + n2)).
-    + intros [ [[a b ] s]  [[a' b' ] s']].
-      simpl.
-      refine (_ @ cp (a+a',b+b',s+s')). unfold as_bs.
-      apply (ap coeq).
-      apply path_prod.
-      * simpl.
-        refine ((mon_assoc S (a + s) a' s') @ _ @ (mon_assoc S (a+a') s s')^).
-        apply (ap (fun x => x + s')).
-        refine ((mon_assoc S a s a')^ @ _ @ (mon_assoc S a a' s)).
-        apply (ap (fun x => a + x)).
-        apply mon_sym.
-      * simpl.
-        refine ((mon_assoc S (b + s) b' s') @ _ @ (mon_assoc S (b + b') s s')^).
-        apply (ap (fun x => x + s')).
-        refine ((mon_assoc S b s b')^ @ _ @ (mon_assoc S b b' s)).
-        apply (ap (fun x => b + x)).
-        apply mon_sym.
-    - apply path_prod.
-      + simpl.
-        apply mon_lid.
-      + apply mon_lid.
-  Defined. (*This was much easier*)
-    
+    - (*Fix first variable*)
+      intros [m1 m2].
+      refine (Coeq_rec _ _ _).
+      + (*Fix second variable*)
+        intros [n1 n2].
+        exact (tr (coeq (m1 + n1, m2 + n2))).
+      + (*Second variable runs along cp*)
+        intros [[a b] s].
+        apply (ap (tr)).
+        simpl.
+        refine (_ @ cp (m1+a,m2+b,s)).
+        apply (ap coeq). unfold as_bs.
+        apply path_prod.
+        apply mon_assoc. apply mon_assoc.
+    - (*First variable runst along cp*)
+      intros [[a b] s].
+      apply path_forall.
+      refine (Coeq_ind _ _ _).
+      + (*Fix second variable*)
+        intros [m1 m2].
+        simpl.
+        apply (ap tr).
+        refine (_ @ cp (a+m1,b+m2,s)).
+        apply (ap coeq). unfold as_bs.
+        apply path_prod.
+        { simpl.
+          refine ((mon_assoc S a s m1)^ @ _ @ (mon_assoc S a m1 s)).
+          apply (ap (mon_mult S a)).
+          apply mon_sym. }
+        { refine ((mon_assoc S b s m2)^ @ _ @ (mon_assoc S b m2 s)).
+          apply (ap (mon_mult S b)).
+          apply mon_sym. }
+      + (*Both variables runs along cp*)
+        (*This is a 2-path so we just kill it*)
+        intro abs'.
+        apply (istrunc_truncation 0).
+  Defined.
+        
 (*  Unset Printing Notations.
   Set Printing Implicit. *)
   Definition grp_compl_assoc : associative grp_compl_mult.
@@ -180,20 +189,70 @@ Section Group.
       intro b.
       refine (Trunc_ind _ _).
       intro c.
-      revert a b c. (*Change from here. . .*)
-      refine (prod_uncurryD _). refine (prod_uncurryD _).
+      revert b c. (*Change from here. . .*)
+
+
+      refine (changebase _ _ _). (*This is not actually proved yet. . .*)
+      - apply path_prod. apply mon_lid. apply mon_lid.
+      - revert a.
+        refine (changebase _ _ _).
+        + apply path_prod. apply mon_lid. apply mon_lid.
+        + refine (Coeq_ind _ _ _).
+        * intros [[l1 l2] [[m1 m2] [n1 n2]]].
+          simpl.
+          apply (ap tr).
+          apply (ap coeq).
+          (*Easy right now, at least. . .*)
+          unfold point. unfold ispointed_M.
+          apply path_prod.
+          simpl.
+          
+          rewrite (mon_lid S (n1)).
+          
+          refine (Coeq_ind _ _ _).
+          * intros [n1 n2].
+            apply (ap tr).
+            apply (ap coeq).
+            simpl.
+            apply (path_prod).
+              simpl. unfold point. unfold ispointed_M.
+              apply (ap (fun x => mon_id S + mon_id S + x)).
+              refine (_ @ mon_lid S n1).
+              apply (ap (fun x => x + n1)).
+              apply (mon_lid S).
+
+              simpl. unfold point. unfold ispointed_M.
+              apply (ap (fun x => mon_id S + mon_id S + x)).
+              refine (_ @ mon_lid S n2).
+              apply (ap (fun x => x + n2)).
+              apply (mon_lid S).
+          * intro.
+            apply (istrunc_truncation 0).            
+        + intro b.
+          destruct b as [[[a b] s][[a' b'] s']].
+          refine (transport_compose _ _ _ _ @ _).
+          
+          
+
+              
+            
+        
+        intro.
+        apply path_universe.
+        refine (univalence_axiom _).
+        refine (_ @ cp ).
+        unfold pullback_pc_to_cp.
+      
+(*      refine (prod_uncurryD _). refine (prod_uncurryD _).
+      refine (functor_forall (prod_coeq_to_coeq_prod2  _ _ _ _) _ _).
       
       intro p.        
-      refine ((_ o (prod_coeq_to_coeq_prod  _ _) ) p).
-      revert p.
-      - refine (prod_uncurryD _).
-        
-        refine ((_ o (prod_coeq_to_coeq_prod  _ _) ) p).
-
-      refine (prod_uncurryD _).
-      
-      
-
+      refine ((_ o (prod_coeq_to_coeq_prod2  _ _ _ _) ) p). (*Should be possible to generalize this. . . composeD?*)
+      - (*Have reduced it to a map from a single coequalizer*)
+        refine (Coeq_rec _ _ _).
+        + (*Proce associativity on the underlying set*)
+          intros [[[l1 l2] [m1 m2]] [n1 n2]].
+          
       
       
       + refine (Coeq_ind _ _ _).
@@ -221,7 +280,7 @@ Section Group.
         * intros [[a b] s]. simpl.
           Unset Printing Notations.
   Set Printing Implicit.
-          
+  *)        
             
             
               

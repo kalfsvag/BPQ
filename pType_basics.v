@@ -34,6 +34,31 @@ Section pType_prelim.
 
   (*TODO*)
   (*Move to HIT/Sphere*)
+  Open Scope trunc_scope.
+  Notation "a + b" := (trunc_index_add a b) : trunc_scope.
+  Definition trunc_add_sym : forall a b : trunc_index, a + b = b + a.
+    apply (trunc_index_ind (fun a => forall b : trunc_index, a + b = b + a)).
+    apply trunc_index_ind.
+    - exact idpath.
+    - intro t.
+      intro p.
+      simpl. (*Whut?*)
+    intros a b. induction a.
+  
+  Lemma minustwo_plus_two : forall n : nat, -2 + n + 2 = n.
+  Proof.
+    intro n.
+    refine (concat (y := n - 2 + 2) _ _).
+    - apply (ap (fun m => m + 2)).
+      induction n.
+      + exact idpath.
+      + 
+    
+    
+    
+    induction n.
+    - refine (concat (y := -2 + 2)
+    (*Todo*)
   Lemma pointed_Sphere : forall n : nat, IsPointed (Sphere n).
     Abort.
 

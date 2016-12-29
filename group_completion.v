@@ -276,14 +276,11 @@ End Group_lemmas.
 
 Section Homomorphism.
   Open Scope monoid_scope.
-(*  Definition Homomorphism (M N : Monoid) :=
-    {f : M -> N & f (mon_id M) = mon_id N & forall m1 m2 : M, f (m1 + m2) = f m1 + f m2}. *)
   
   Record Homomorphism (M N : Monoid) :=
     {mon_map : M -> N ;
      preserve_id : mon_map (mon_id M) = mon_id N ;
      preserve_mult : forall m1 m2 : M, mon_map (m1 + m2) = (mon_map m1) + (mon_map m2)}. 
-(*  Definition mon_map {M N : Monoid} (f : Homomorphism M N) := *)
 
   Global Arguments mon_map {M N} h _.
   Global Arguments preserve_id {M N} h.
@@ -702,27 +699,6 @@ Section Adjointness.
       apply (mon_isset A).
   Defined.
 
-(*  (*The next two definitions are just because Trunc_ind runs sloooooowly unless all arguments are specified directly . . .*)
-  Definition Trunc_ind2 (n : trunc_index) (A : Type) (P : Trunc n A -> Trunc n A -> Type)
-             (Pt : forall aa aa' : Trunc n A, IsTrunc n (P aa aa')) :
-             (forall a a': A, P (tr a) (tr a')) -> forall aa aa' : Trunc n A, P aa aa'.
-    intro f.
-    refine (@Trunc_ind n A
-                       (fun aa => (forall aa', P aa aa'))
-                       (fun aa =>
-                          trunc_forall
-                            (A := Trunc n A)
-                            (P:= (fun aa' => P aa aa'))
-                            (n := n)
-                            (H0 := fun aa' => Pt aa aa'))
-                       _ ).
-    intro a.
-    refine (Trunc_ind _ _). exact (f a).
-  Defined.
-
- *)
-    
-
   Theorem grp_compl_adjoint (S : Symmetric_Monoid) (A: Abelian_Group) :
     Homomorphism S A <~> Homomorphism (group_completion S) A.
   Proof.
@@ -760,6 +736,8 @@ Section Adjointness.
       apply (ap (fun a : A => mon_map f m + a)).
       exact (preserve_id f)^.
   Defined.
+
+  (*TODO: Define naturality*)
 
 End Adjointness.
     

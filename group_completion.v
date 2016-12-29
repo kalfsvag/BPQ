@@ -50,7 +50,7 @@ Section Monoids_and_Groups.
                             mon_lid : left_identity mon_mult mon_id ;
                             mon_rid : right_identity mon_mult mon_id
                           }.
-
+  
 
   Record Symmetric_Monoid : Type := {mon : Monoid;
                                      mon_sym : symmetric (mon_mult mon) }.
@@ -289,6 +289,62 @@ Section Homomorphism.
   Global Arguments preserve_id {M N} h.
   Global Arguments preserve_mult {M N} h m1 m2.
 
+  (*This should be elsewhere. . .*)
+  Lemma sig_const (A B : Type) :
+    sig (fun _ : A => B) <~> A * B.
+  Proof.
+    refine (equiv_adjointify _ _ _ _).
+    - intros [a b]. exact (a, b).
+    - intros [a b]. exact (a ; b).
+    - intros [a b]. exact idpath.
+    - intros [a b]. exact idpath.
+  Defined.
+
+  Definition ishom {M N : Monoid} (f : M -> N) :=
+    (f (mon_id M) = mon_id N) * (forall m1 m2 : M, f (m1 + m2) = f m1 + f m2).
+      
+
+  Definition issig_hom (M N : Monoid) :
+    {f : M -> N &  ishom f} <~> Homomorphism M N.
+  Proof.
+    equiv_via {f : M -> N &
+                          sig (fun _ : (f (mon_id M) = mon_id N) =>
+                                 (forall m1 m2 : M, f (m1 + m2) = f m1 + f m2) )}.
+    - refine (equiv_functor_sigma_id _).
+      intro f.
+      apply equiv_inverse.
+      exact (sig_const _ _).
+    - issig (Build_Homomorphism M N) (@mon_map M N) (@preserve_id M N) (@preserve_mult M N).
+  Defined.
+
+  Definition prop_ishom {M N : Monoid} :
+    forall f : M->N, IsHProp (ishom f).
+  Proof.
+    intro f.
+    set (A := (f (mon_id M) = mon_id N)).
+    set (B := (forall m1 m2 : mon_set M, f (m1 + m2) = f m1 + f m2)).
+    refine (@trunc_prod -1 A (mon_isset _ _ _) B _).
+    unfold B; clear A; clear B.
+    set (P := fun m1 : mon_set M => forall m2, f (m1 + m2) = f m1 + f m2).
+    refine (@trunc_forall _ (mon_set M) P -1 _).
+    intro m1.
+    unfold P; clear P.
+    set (P := fun m2 : mon_set M =>
+                f (m1 + m2) = f m1 + f m2).
+    refine (@trunc_forall _ _ P -1 _).
+    intro m2; unfold P; clear P.
+    exact (mon_isset _ _ _).
+  Defined.
+
+  Definition path_hom {M N : Monoid} (f g : Homomorphism M N) :    
+    (mon_map f = mon_map g) -> f = g.
+  Proof.
+    intro h.
+    apply (equiv_ap (issig_hom M N)^-1 _ _)^-1.
+    refine (@path_sigma_hprop _ _ prop_ishom _ _ _).
+    exact h.
+  Defined.    
+  
   Definition compose_hom {L M N: Monoid} :
     Homomorphism L M -> Homomorphism M N -> Homomorphism L N.
   Proof.
@@ -314,6 +370,9 @@ Section Homomorphism.
   Defined.    
 End Homomorphism.
 
+Notation "a = b :> A" := (@paths A a b) : my_scope. (*Want it to print this. . .*)
+
+
   
 Section Group_completion.
   (*The Grothendieck group completion*)
@@ -329,6 +388,8 @@ Section Group_completion.
     intros [[a b] s].
     exact (a+s, b+s).
   Defined.
+
+  Open Scope my_scope. (*Doesn't work . . .*)
 
   Definition grp_compl_set (S:Monoid) := Trunc 0 (Coeq as_bs fst).
   Definition grp_compl_mult : grp_compl_set S -> grp_compl_set S -> grp_compl_set S.
@@ -569,11 +630,8 @@ End Group_completion.
 Section Adjointness.
   (*Prove that group completion is left adjoint to the forgetful functor from abelian groups to symmetric monoids*)
   Open Scope monoid_scope.
-  Definition istrunc_P (X Y : Type) (isset_Y : IsHSet Y)  (a b : X -> Y) :
-    IsHSet (forall x : X, a x = b x) := trunc_forall.
-
   
-  Definition extend_to_inv {S : Symmetric_Monoid} {A : Abelian_Group} :
+  Definition mon_map_extend_to_inv {S : Symmetric_Monoid} {A : Abelian_Group} :
     Homomorphism S A -> ((group_completion S) -> A).
   Proof.
     intro f.
@@ -592,8 +650,59 @@ Section Adjointness.
       exact (preserve_mult f b s)^ .
   Defined.
 
+  Definition extend_to_inv {S : Symmetric_Monoid} {A : Abelian_Group} :
+    Homomorphism S A -> Homomorphism (group_completion S) A.
+  Proof.
+    intro f.
+    refine (Build_Homomorphism _ _ (mon_map_extend_to_inv f) (grp_rinv _) _).
+    (*Preserves multiplication*)
+    (*First we need to use Trunc_ind
+         This is made difficult by Trunc_ind behaving weirdly. . .*)
+    intro m1.
+    set (P := fun m2 =>
+                mon_map_extend_to_inv f (m1 + m2) =
+                mon_map_extend_to_inv f m1 + mon_map_extend_to_inv f m2).
+    refine (@Trunc_ind 0 (Coeq (as_bs S) fst) P _ _ ); unfold P; clear P.
+    intro aa.
+    exact (@trunc_succ -1 _ (mon_isset _ _ _)).
+    intro b.
+    revert m1.
+    set (m2 := tr b : (group_completion S)).
+    set (P := fun m1 =>
+                mon_map_extend_to_inv f (m1 + m2) =
+                mon_map_extend_to_inv f m1 + mon_map_extend_to_inv f m2).
+    refine (@Trunc_ind 0 (Coeq (as_bs S) fst) P _ _); unfold P; clear P.
+    intro aa.
+    exact (@trunc_succ -1 _ (mon_isset _ _ _)).
+    unfold m2; clear m2.
+    intro a.
+    revert a b.
+    (*Now the truncations are done with. . .*)
+    refine (Coeq_ind _ _ _).
+    - (*First variable fixed*)
+      intros [m1 m2].
+      refine (Coeq_ind _ _ _).
+      (*Second variable fixed.*)
+      intros [n1 n2].
+      simpl.
+      refine ((ap (fun c => c + grp_inv (mon_map f (m2 + n2))) (preserve_mult f m1 n1)) @ _).
+      refine ((mon_assoc _ _ _)^ @ _ @ mon_assoc _ _ _).
+      apply (ap (mon_mult (mon_map f m1))).
+      refine (ap (fun c => mon_map f n1 + (grp_inv c)) (preserve_mult f m2 n2) @ _).
+      refine (ap (fun c => mon_map f n1 + c) (grp_inv_distr _ _)  @ _).
+      refine (_ @ grp_sym _ _ _).
+      refine (mon_assoc _ _ _).
+      (*Second variable runs along cp*)
+      intro abs.
+      apply (mon_isset A).
+    - (*First variable runs along cp*)
+      intro abs.
+      apply path_forall.
+      intro w.
+      apply (mon_isset A).
+  Defined.
 
-  (*The next two definitions are just because Trunc_ind runs sloooooowly unless all arguments are specified directly . . .*)
+(*  (*The next two definitions are just because Trunc_ind runs sloooooowly unless all arguments are specified directly . . .*)
   Definition Trunc_ind2 (n : trunc_index) (A : Type) (P : Trunc n A -> Trunc n A -> Type)
              (Pt : forall aa aa' : Trunc n A, IsTrunc n (P aa aa')) :
              (forall a a': A, P (tr a) (tr a')) -> forall aa aa' : Trunc n A, P aa aa'.
@@ -611,59 +720,48 @@ Section Adjointness.
     refine (Trunc_ind _ _). exact (f a).
   Defined.
 
-  Definition Pt {S : Symmetric_Monoid} {A : Abelian_Group} (f : Homomorphism S A) :
-    forall m1 m2 : group_completion S, IsHSet (
-                                           extend_to_inv f (m1 + m2) =
-                                           extend_to_inv f m1 + extend_to_inv f m2
-                                         ).
-  Proof.
-    intros m1 m2.
-    refine trunc_succ.
-    apply (mon_isset A _ _).
-  Defined.
+ *)
     
 
   Theorem grp_compl_adjoint (S : Symmetric_Monoid) (A: Abelian_Group) :
     Homomorphism S A <~> Homomorphism (group_completion S) A.
   Proof.
-    refine (equiv_adjointify _ _ _ _).
-    - (*Build a group homomorphism from a monoid homomorphism*)
-      intro f.
-      refine (Build_Homomorphism _ _ _ _ _).
-      + apply extend_to_inv. exact f.
-      + (*Preserves identity*)
-        exact (grp_rinv _).
-      + (*Preserves multiplication*)
-        refine (Trunc_ind2 0 (Coeq (as_bs S) fst) _ (Pt _) _).
-        refine (Coeq_ind _ _ _).
-        * (*First variable fixed*)
+    refine (equiv_adjointify extend_to_inv (compose_hom (S_to_grpcmplS S)) _ _).
+    (*Prove that the maps are inverses*)
+    - intro f.
+      refine (path_hom _ _ _) ; simpl.
+      apply path_forall.
+      intro m.
+      (*Somehow Trunc_ind works much faster this way. . .*)
+      set (P := fun m =>  mon_map_extend_to_inv (compose_hom (S_to_grpcmplS S) f) m = mon_map f m).
+      refine (Trunc_ind P _ _); unfold P; clear P.
+      + intro aa.
+        exact (@trunc_succ -1 _ (mon_isset _ _ _)).
+      + refine (Coeq_ind _ _ _).
+        * (*Variable fixed*)
           intros [m1 m2].
-          refine (Coeq_ind _ _ _).
-            (*Second variable fixed.*)
-            intros [n1 n2].
-            simpl.
-            refine ((ap (fun c => c + grp_inv (mon_map f (m2 + n2))) (preserve_mult f m1 n1)) @ _).
-            refine ((mon_assoc _ _ _)^ @ _ @ mon_assoc _ _ _).
-            apply (ap (mon_mult (mon_map f m1))).
-            refine (ap (fun c => mon_map f n1 + (grp_inv c)) (preserve_mult f m2 n2) @ _).
-            refine (ap (fun c => mon_map f n1 + c) (grp_inv_distr _ _)  @ _).
-            refine (_ @ grp_sym _ _ _).
-            refine (mon_assoc _ _ _).
-            (*Second variable runs along cp*)
-            intro abs.
-            apply (mon_isset A).
-        * (*First variable runs along cp*)
+          simpl.
+          apply grp_moveR_gV.
+          refine (_ @ preserve_mult f _ _).
+          apply (ap (mon_map f)); apply (ap tr).
+          refine ((cp (m1, mon_id S, m2))^ @ _); unfold as_bs.
+          apply (ap coeq).
+          apply (ap (fun s : S => (m1 + m2, s))).
+          exact (mon_lid m2 @ (mon_rid m2)^).
+        * (*Variable runs along cp*)
           intro abs.
-          apply path_forall.
-          intro w.
           apply (mon_isset A).
-    - exact (compose_hom (S_to_grpcmplS S)).
-    - (*TODO : Define homomorphism as sigma-type and use path_sigma . . .*)
-      intro.
-      refine (path_sigma.
-      
-    
+    - intro f.
+      refine (path_hom _ _ _) ; simpl.
+      apply path_forall.
+      intro m.
+      apply grp_moveR_gV.
+      refine ((mon_rid _)^ @ _).
+      apply (ap (fun a : A => mon_map f m + a)).
+      exact (preserve_id f)^.
+  Defined.
 
+End Adjointness.
     
 
 

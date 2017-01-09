@@ -430,9 +430,9 @@ Section Homomorphism.
   Defined.    
   
   Definition compose_hom {L M N: Monoid} :
-    Homomorphism L M -> Homomorphism M N -> Homomorphism L N.
+    Homomorphism M N -> Homomorphism L M -> Homomorphism L N.
   Proof.
-    intros f g.
+    intros g f.
     refine (Build_Homomorphism _ _ ((hom_map g) o (hom_map f)) _ _).
     - exact (ap (hom_map g) (preserve_id f) @ (preserve_id g)).
     - intros m1 m2.
@@ -452,6 +452,7 @@ Section Homomorphism.
   Defined.    
 End Homomorphism.
 
+Notation "'Hom'" := Homomorphism : monoid_scope.
 
 Section Group_completion.
   (*The Grothendieck group completion*)
@@ -679,7 +680,7 @@ Section Group_completion.
          grp_compl_inv grp_compl_linv grp_compl_rinv)
       grp_compl_sym.
 
-
+  
   (*Defining the (monoid) homomorphism from a monoid to its group completion*)
    Definition S_to_grpcmplS : Homomorphism S group_completion.
      srapply @Build_Homomorphism.
@@ -695,11 +696,67 @@ Section Group_completion.
         exact idpath.
         exact (mon_lid (mon_id S))^.
   Defined.
-      
-  
 
 End Group_completion.
 
+Section Functoriality.
+  Open Scope monoid_scope.
+  Definition functor_group_completion {S S' : Symmetric_Monoid} :
+    Hom S S' -> Hom (group_completion S) (group_completion S').
+  Proof.
+    intro f.
+    srapply Build_Homomorphism.
+    - (*Construct the map.*)
+      apply Trunc_rec.
+      srapply @Coeq_rec.
+      + (* (a,b) => (f a, f b) *)
+        intros [m n].
+        exact (tr (coeq (hom_map f m, hom_map f n))).
+      + (*The map is well defined.*)
+        intros [[a b] s].
+        apply (ap tr).
+        refine (_ @ cp (hom_map f a, hom_map f b, hom_map f s)).
+        apply (ap coeq).
+        apply path_prod; apply preserve_mult.
+    - (*Preserves identity*)
+      apply (ap tr). apply (ap coeq).
+      apply path_prod; apply preserve_id.
+    - (*Preserves multiplication.*)
+      intro a.
+      srapply @Trunc_ind.
+      revert a.
+      srapply @Trunc_ind.
+      srapply @Coeq_ind.
+      + (*Fix first variable.*)
+        intros [m1 m2].
+        srapply @Coeq_ind.
+        * (*Fix second variable. *)
+          intros [n1 n2].
+          simpl.
+          apply (ap tr); apply (ap coeq); apply path_prod; apply preserve_mult.
+        * (*Second variable runs along cp*)
+          intro abs.
+          apply (istrunc_truncation 0).
+      + (*First variable runs along cp*)
+        intro abs.
+        apply path_forall.
+        intro w.
+        apply (istrunc_truncation 0).
+  Defined.
+        
+        
+  Definition natural_S_to_grpcmplS {S S' : Symmetric_Monoid} (h : Hom S' S):
+    compose_hom (S_to_grpcmplS S) h = compose_hom (functor_group_completion h) (S_to_grpcmplS S').
+  Proof.
+    apply path_hom.
+    apply path_forall.
+    intro m.
+    apply (ap tr) ; apply (ap coeq); apply path_prod.
+      exact idpath.
+      exact (preserve_id h)^.
+  Defined.      
+  
+End Functoriality.
 
 
                                              
@@ -782,14 +839,14 @@ Section Adjointness.
   Theorem grp_compl_adjoint (S : Symmetric_Monoid) (A: Abelian_Group) :
     Homomorphism S A <~> Homomorphism (group_completion S) A.
   Proof.
-    refine (equiv_adjointify extend_to_inv (compose_hom (S_to_grpcmplS S)) _ _).
+    refine (equiv_adjointify extend_to_inv (fun f => compose_hom f (S_to_grpcmplS S)) _ _).
     (*Prove that the maps are inverses*)
     - intro f.
       refine (path_hom _ _ _) ; simpl.
       apply path_forall.
       intro m.
       (*Somehow Trunc_ind works much faster this way. . .*)
-      set (P := fun m =>  hom_map_extend_to_inv (compose_hom (S_to_grpcmplS S) f) m = hom_map f m).
+      set (P := fun m =>  hom_map_extend_to_inv (compose_hom f (S_to_grpcmplS S)) m = hom_map f m).
       refine (Trunc_ind P _ _); unfold P; clear P.
       + intro aa.
         exact (@trunc_succ -1 _ (mon_isset _ _ _)).
@@ -817,7 +874,7 @@ Section Adjointness.
       exact (preserve_id f)^.
   Defined.
 
-  (*TODO: Define naturality*)
+  (*Naturality follows from [natural_S_to_grpcmplS], since the map [Hom (group_completion S) A -> Hom S A is exactly precomposing with [S_to_grpcmplS].*)
 
 End Adjointness.
     
@@ -844,12 +901,10 @@ Section FinIso.
   Lemma canonical_iFin (S : iFin) : merely (S = fin (cardinal S)).
   Proof.
     refine (Trunc_rec (n:=-1) (A := (S.1 <~> Fin (fcard S.1))) _ _).
-    - exact S.2.
     - intro e.
       apply tr.
       refine (path_sigma_hprop _ _ _).
-      refine (path_universe _).
-        apply e. exact _.
+      exact (path_universe e). 
     - apply merely_equiv_fin.
   Defined.
   (*Should be possible to choose an isomorphism? *)
@@ -866,7 +921,7 @@ Section FinIso.
   Proof.
     intros [S1 fin_S1] [S2 fin_S2] [S3 fin_S3].
     refine (path_sigma_hprop _ _ _).
-    refine (path_universe _).
+    srapply @path_universe.
     apply equiv_sum_assoc. exact _.
   Defined.
   

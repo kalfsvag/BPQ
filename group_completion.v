@@ -65,6 +65,7 @@ Section Monoids_and_Groups.
 
   Record Symmetric_Monoid : Type := {mon : Monoid;
                                      mon_sym : symmetric (mon_mult mon) }.
+  Global Arguments mon_sym {s} {a} {b}.
 
   (*Makes mon_isset an implicit argument*)
   Global Arguments Build_Monoid mon_set {mon_isset} mon_mult mon_id mon_assoc mon_lid mon_rid.
@@ -73,7 +74,7 @@ Section Monoids_and_Groups.
   Coercion mon_set : Monoid >-> Sortclass.
   Coercion mon : Symmetric_Monoid >-> Monoid.
   Global Arguments mon_mult {m} m1 m2.
-  Global Arguments mon_assoc {m} a b c.
+  Global Arguments mon_assoc {m} {a} {b} {c}.
   Global Arguments mon_lid {m} a.
   Global Arguments mon_rid {m} a.
 
@@ -100,6 +101,7 @@ Section Monoids_and_Groups.
      grp_sym : symmetric (@mon_mult (grp_mon grp))}.
 
   Coercion grp : Abelian_Group >-> Group.
+  Global Arguments grp_sym {A} {a} {b} : rename.
 
 End Monoids_and_Groups.
   
@@ -136,241 +138,203 @@ Notation "'grp_set' G" := (mon_set (grp_mon G)) (at level 0) : monoid_scope.
 Notation "'grp_isset' G" := (mon_isset (grp_mon G)) (at level 0) : monoid_scope.
 Notation "'grp_id' G" := (mon_id (grp_mon G)) (at level 0) : monoid_scope.
 Notation "'grp_mult'" := (@mon_mult (grp_mon _)) (at level 0, only parsing) : monoid_scope.
-Notation "'grp_assoc'" := (@mon_assoc (grp_mon _)) (at level 0) : monoid_scope.
+Notation "'grp_assoc'" := (mon_assoc ( m := grp_mon _)) (at level 0) : monoid_scope.
 Notation "'grp_lid'" := (@mon_lid (grp_mon _)) (at level 0) : monoid_scope.
 Notation "'grp_rid'" := (@mon_rid (grp_mon _)) (at level 0) : monoid_scope.
 Notation "'grp_rid'" := (@mon_rid (grp_mon _)) (at level 0) : monoid_scope.
 (*TODO: Use this notation*)
-  
+
+
 
 
 Section Group_lemmas.
   Open Scope monoid_scope.
+  Definition grp_whiskerL {G : Group} {a b c : G} : b = c -> a + b = a + c
+    := ap (fun g => a + g).
+
+  Definition grp_whiskerR {G : Group} {a b c : G} : a = b -> a + c = b + c
+    := ap (fun g => g + c).
+  
   Definition grp_cancelR {G : Group} {a b : G} (s : G) :
     a + s = b + s -> a = b.
   Proof.
-    intro p.
-    refine (_ @ (ap (fun c => (c - s)) p) @ _).
-    - refine ((grp_rid a)^ @ _).
-      refine ((ap (grp_mult a) (grp_rinv s))^ @ _) .
-      exact (grp_assoc _ _ _).
-    - refine (_ @ grp_rid b).
-      refine (_ @ (ap (grp_mult b) (grp_rinv s))).
-      exact (grp_assoc _ _ _)^.
+    intro p.      
+    refine ((grp_rid a)^ @ _ @ grp_rid b).
+    refine ((grp_whiskerL (grp_rinv s))^ @ _ @ grp_whiskerL (grp_rinv s)).
+    refine (grp_assoc @ _ @ grp_assoc^).
+    exact (grp_whiskerR p).
   Defined.
-
+  
   Definition grp_cancelL {G : Group} {a b} (s : G) :
     s + a = s + b -> a = b.
   Proof.
     intro p.
-    refine (_ @ (ap (fun c => (- s + c)) p) @ _).
-    - refine (_ @ (grp_assoc _ _ _)^).
-      refine ((grp_lid a)^ @ _).
-      exact (ap (fun c => c + a) (grp_linv s)^).
-    - refine (grp_assoc _ _ _ @ _).
-      refine ( _ @ grp_lid b ).
-      exact (ap (fun c => c + b) (grp_linv s)).
+    refine ((grp_lid a)^ @ _ @ grp_lid b).
+    refine ((grp_whiskerR (grp_linv s))^ @ _ @ grp_whiskerR (grp_linv s)).
+    refine (grp_assoc^ @ _ @ grp_assoc).
+    exact (grp_whiskerL p).
   Defined.
 
   Definition grp_moveR_Mg {G : Group} {a b c : G} :
     b = -a + c -> a + b = c.
     Proof.
       intro p.
-      apply (grp_cancelL (-a)).
-      refine (_ @ p).
-      refine (grp_assoc _ _ _ @ _).
-      refine ( _ @ (grp_lid b)).
-      apply (ap (fun c => c + b)).
-      exact (grp_linv a).
+      refine (grp_whiskerL p @ _).
+      refine (grp_assoc @ _).
+      refine (grp_whiskerR (grp_rinv a) @ _).
+      exact (grp_lid c).
     Defined.
-
 
   Definition grp_moveR_gM {G : Group} {a b c : G} :
     a = c - b -> a + b = c.
     Proof.
       intro p.
-      apply (grp_cancelR (- b)).
-      refine (_ @ p).
-      refine (_ @ (grp_rid a)).
-      refine ((grp_assoc _ _ _)^ @ _).
-      apply (ap (grp_mult a)).
-      exact (grp_rinv b).
-    Defined.
-      
+      refine (grp_whiskerR p @ _).
+      refine (grp_assoc^ @ _).
+      refine (grp_whiskerL (grp_linv b) @ _).
+      exact (grp_rid c).
+    Defined.      
 
   Definition grp_moveR_Vg {G : Group} {a b c : G} :
     b = a + c -> - a + b = c.
   Proof.
     intro p.
-    apply (grp_cancelL a).
-    refine (_ @ p).
-    refine (grp_assoc _ _ _ @ _).
-    refine (_ @ grp_lid b).
-    apply (ap (fun g => g + b)).
-    exact (grp_rinv a).
+    refine (grp_whiskerL p @ _).
+    refine (grp_assoc @ _).
+    refine (grp_whiskerR (grp_linv a) @ _).
+    exact (grp_lid c).
   Defined.
 
   Definition grp_moveR_gV {G : Group} {a b c : G} :
     a = c + b -> a - b = c.
   Proof.
     intro p.
-    apply (grp_cancelR b).
-    refine (_ @ p).
-    refine (_ @ (grp_rid a)).
-    refine ((grp_assoc _ _ _)^ @ _).
-    apply (ap (grp_mult a)).
-    exact (grp_linv b).
+    refine (grp_whiskerR p @ _).
+    refine (grp_assoc^ @ _).
+    refine (grp_whiskerL (grp_rinv b) @ _).
+    exact (grp_rid c).
   Defined.
 
   Definition grp_moveL_Mg {G : Group} {a b c : G} :
     -b + a = c -> a = b + c.
   Proof.
     intro p.
-    apply (grp_cancelL (- b)).
-    refine (p @ _).
-    refine ((grp_lid c)^ @ _).
-    refine (_ @ (grp_assoc _ _ _)^).
-    apply (ap (fun g => g + c)).
-    exact (grp_linv b)^.
+    refine (_ @ grp_whiskerL p).
+    refine (_ @ grp_assoc^).
+    refine (_ @ grp_whiskerR (grp_rinv b)^).
+    exact (grp_lid a)^.
   Defined.    
     
   Definition grp_moveL_gM {G : Group} {a b c : G} :
     a - c = b-> a = b + c.
   Proof.
     intro p.
-    apply (grp_cancelR (- c)).
-    refine (p @ _).
-    refine ((grp_rid b)^ @ _).
-    refine (_ @ grp_assoc _ _ _).
-    apply (ap (grp_mult b)).
-    exact (grp_rinv c)^.
+    refine (_ @ grp_whiskerR p).
+    refine (_ @ grp_assoc).
+    refine (_ @ grp_whiskerL (grp_linv c)^).
+    exact (grp_rid a)^.
   Defined.
 
   Definition grp_moveL_Vg {G : Group} {a b c : G} :
     b + a = c -> a = -b + c.
   Proof.
     intro p.
-    apply (grp_cancelL b).
-    refine (p @ _).
-    refine ((grp_lid c)^ @ _).
-    refine (_ @ (grp_assoc _ _ _)^).
-    apply (ap (fun g => g + c)).
-    exact (grp_rinv b)^ .
+    refine (_ @ grp_whiskerL p).
+    refine (_ @ grp_assoc^ ).
+    refine (_ @ grp_whiskerR (grp_linv b)^).
+    exact (grp_lid a)^.
   Defined.    
 
   Definition grp_moveL_gV {G : Group} {a b c : G} :
     a + c = b -> a = b - c.
   Proof.
     intro p.
-    apply (grp_cancelR c).
-    refine (p @ _).
-    refine ((grp_rid b)^ @ _).
-    refine (_ @ grp_assoc _ _ _).
-    apply (ap (grp_mult b)).
-    exact (grp_linv c)^ .
+    refine (_ @ grp_whiskerR p).
+    refine (_ @ grp_assoc ).
+    refine (_ @ grp_whiskerL (grp_rinv c)^).
+    exact (grp_rid a)^.
   Defined.
 
   Definition grp_moveL_1M {G : Group} {a b : G} :
     a - b = grp_id G -> a = b.
   Proof.
     intro p.
-    apply (grp_cancelR (- b)).
-    refine (p @ _).
-    exact (grp_rinv b)^ .
+    refine (grp_moveL_gM  p @ _).
+    exact (grp_lid b).
   Defined.
 
   Definition grp_moveL_M1 {G : Group} {a b : G} :
     - a + b = grp_id G -> a = b.
   Proof.
     intro p.
-    apply (grp_cancelL (- a)).
-    refine (_ @ p^).
-    exact (grp_linv a).
+    refine (_ @ (grp_moveL_Mg p)^).
+    exact (grp_rid a)^ .
   Defined.
 
   Definition grp_moveL_1V {G : Group} {a b : G} :
     a + b = grp_id G -> a = - b.
   Proof.
     intro p.
-    apply (grp_cancelR b).
-    refine (p @ _).
-    exact (grp_linv b)^ .
-  Defined.    
+    refine (grp_moveL_gV p @ _).
+    exact (grp_lid (- b)).
+  Defined.
 
   Definition grp_moveL_V1 {G : Group} {a b : G} :
     a + b = grp_id G -> b = - a.
   Proof.
     intro p.
-    apply (grp_cancelL a).
-    refine (p @ _).
-    exact (grp_rinv a)^ .
+    refine (grp_moveL_Vg p @ _).
+    exact (grp_rid (-a)).
   Defined.
   
   Definition grp_moveR_M1 {G : Group} {a b : G} :
     grp_id G = -a + b -> a = b.
   Proof.
     intro p.
-    apply (grp_cancelL (- a)).
-    refine (_ @ p).
-    exact (grp_linv a).
+    refine (_ @ grp_moveR_Mg p).
+    exact (grp_rid a)^ .
   Defined.
 
   Definition grp_moveR_1M {G : Group} {a b : G} :
     grp_id G = b -a -> a = b.
   Proof.
     intro p.
-    apply (grp_cancelR (- a)).
-    refine (_ @ p).
-    exact (grp_rinv a).
+    refine (_ @ grp_moveR_gM p).
+    exact (grp_lid a)^ .
   Defined.
 
   Definition grp_moveR_1V {G : Group} {a b : G} :
     grp_id G = b + a -> -a = b.
   Proof.
     intro p.
-    apply (grp_cancelR a).
-    refine (_ @ p).
-    exact (grp_linv a).
+    refine (_ @ grp_moveR_gV p).
+    exact (grp_lid (-a))^ .
   Defined.
 
   Definition grp_moveR_V1 {G : Group} {a b : G} :
     grp_id G = a + b -> -a = b.
   Proof.
     intro p.
-    apply (grp_cancelL a).
-    refine (_ @ p).
-    exact (grp_rinv a).
+    refine (_ @ grp_moveR_Vg p).
+    exact (grp_rid (-a))^ .
   Defined.
 
+  Definition inv_id {G : Group} : - (grp_id G) = grp_id G
+    := grp_moveR_1V (grp_rid _)^ .
 
-  Definition inv_id {G : Group} :
-    - (grp_id G) = grp_id G.
-  Proof.
-    apply (grp_cancelL (grp_id G)).
-    refine (_ @ (grp_lid _)^).
-    exact (grp_rinv _).
-  Defined.
-
-
-
-  Definition grp_inv_distr {G : Group} (a b: G) :
+  Definition grp_inv_distr {G : Group} {a b: G} :
     - (a + b) = - b - a.
   Proof.
-    apply (grp_cancelL (a + b)).
-    refine (grp_rinv _ @ _).    
-    refine ((grp_rinv a)^ @ _).
-    refine (_ @ grp_assoc _ _ _).
-    apply (ap (grp_mult a)).
-    refine (_ @ (grp_assoc _ _ _)^).
-    apply (grp_moveL_gV).
-    exact (grp_linv a @ (grp_rinv b)^ ).
+    apply grp_moveL_Vg.
+    apply grp_moveR_gV.
+    refine (_ @ grp_assoc^).
+    refine ( _ @ (grp_whiskerR (grp_linv a)^ ) ).
+    exact (grp_lid b)^ .
   Defined.
-    
- 
-End Group_lemmas.
 
-  
-  
+  Definition path_group2 {G : Group} {a b c d : G} : a = c -> b = d -> a + b = c + d
+    := fun p q => grp_whiskerL q @ grp_whiskerR p. 
+End Group_lemmas.
 
 Section Homomorphism.
   Open Scope monoid_scope.
@@ -382,7 +346,7 @@ Section Homomorphism.
 
   Global Arguments hom_map {M N} h _.
   Global Arguments preserve_id {M N} h.
-  Global Arguments preserve_mult {M N} h m1 m2.
+  Global Arguments preserve_mult {M N} h {m1} {m2}.
 
   Definition ishom {M N : Monoid} (f : M -> N) :=
     (f (mon_id M) = mon_id N) * (forall m1 m2 : M, f (m1 + m2) = f m1 + f m2).
@@ -436,19 +400,18 @@ Section Homomorphism.
     refine (Build_Homomorphism _ _ ((hom_map g) o (hom_map f)) _ _).
     - exact (ap (hom_map g) (preserve_id f) @ (preserve_id g)).
     - intros m1 m2.
-      refine ((ap (hom_map g) (preserve_mult f m1 m2)) @ _).
-      exact (preserve_mult g (hom_map f m1) (hom_map f m2)).
+      refine ((ap (hom_map g) (preserve_mult f)) @ _).
+      exact (preserve_mult g ).
   Defined.
 
   (*A homomorphism of groups preserve inverses*)
   Definition preserve_inv (G H : Group) (f : Homomorphism G H) (a : G) :
     hom_map f (- a) = - (hom_map f a).
   Proof.
-    apply (grp_cancelL (hom_map f a)).
-    refine ((preserve_mult f _ _)^ @ _).
-    refine (ap (hom_map f) (grp_rinv a) @ _).
-    refine (preserve_id f @ _).
-    exact (grp_rinv _)^.
+    apply grp_moveL_V1.
+    refine ((preserve_mult f)^ @ _).
+    refine (_ @ preserve_id f).
+    exact (ap (hom_map f) (grp_rinv a)).
   Defined.    
 End Homomorphism.
 
@@ -475,85 +438,67 @@ Section Group_completion.
     intro g1.
     refine (Trunc_rec _).
     intro g2.
-    revert g2. 
-    revert g1.
+    revert g2.
     srapply @Coeq_rec.
-    - (*Fix first variable*)
-      intros [m1 m2].
+    - (*Fix second variable*)
+      intros [n1 n2].
+      revert g1.
       srapply @Coeq_rec.
-      + (*Fix second variable*)
-        intros [n1 n2].
+      + (*Fix first variable*)
+        intros [m1 m2].
         exact (tr (coeq (m1 + n1, m2 + n2))).
-      + (*Second variable runs along cp*)
+      + (*First variable runs along cp*)
         intros [[a b] s].
+        apply (ap (tr)).
+        simpl.
+        refine (_ @ cp (a + n1 ,b + n2,s)).
+        apply (ap coeq). unfold as_bs.
+        apply path_prod;
+             refine ((mon_assoc)^ @ _ @ (mon_assoc));
+             apply (ap (mon_mult _));
+             apply mon_sym.
+    - (*Second variable runs along cp*)
+      intros [[a b] s].
+      revert g1.
+      srapply @Coeq_ind.
+      + (*First variable is fixed*)
+        intros [m1 m2].
         apply (ap (tr)).
         simpl.
         refine (_ @ cp (m1+a,m2+b,s)).
         apply (ap coeq). unfold as_bs.
-        apply path_prod.
-        apply mon_assoc. apply mon_assoc.
-    - (*First variable runst along cp*)
-      intros [[a b] s].
-      apply path_forall.
-      srapply @Coeq_ind.
-      + (*Fix second variable*)
-        intros [m1 m2].
-        simpl.
-        apply (ap tr).
-        refine (_ @ cp (a+m1,b+m2,s)).
-        apply (ap coeq). unfold as_bs.
-        apply path_prod.
-        { simpl.
-          refine ((mon_assoc a s m1)^ @ _ @ (mon_assoc a m1 s)).
-          apply (ap (mon_mult a)).
-          apply mon_sym. }
-        { refine ((mon_assoc b s m2)^ @ _ @ (mon_assoc b m2 s)).
-          apply (ap (mon_mult b)).
-          apply mon_sym. }
-      + (*Both variables runs along cp*)
-        (*This is a 2-path so we just kill it*)
+        apply path_prod; apply mon_assoc.
+      + (*First variable runs along cp*)
         intro abs'.
         apply (istrunc_truncation 0).
   Defined.
-        
+  
 (*  Unset Printing Notations.
   Set Printing Implicit. *)
   Definition grp_compl_assoc : associative grp_compl_mult.
     Proof.
       unfold associative.
+      srapply @Trunc_ind. intro a.
+      srapply @Trunc_ind. intro b.
       srapply @Trunc_ind.
-      intro a.
-      srapply @Trunc_ind.
-      intro b.
-      srapply @Trunc_ind.
-      intro c. revert a b c.
       srapply @Coeq_ind.
-      - (*Fix first variable*)
-        intros [l1 l2].
+      - (*Fix third variable*)
+        intros [n1 n2]; revert b.
         srapply @Coeq_ind.
         + (*Fix second variable*)
-          intros [m1 m2].
+          intros [m1 m2]; revert a.
           srapply @Coeq_ind.
-          * (*Fix third variable*)
-            intros [n1 n2].
-            simpl.
-            apply (ap tr); apply (ap coeq).
-            apply path_prod.
-            apply mon_assoc. apply mon_assoc.
-          * (*Third variable runs along cp*)
-            intro abs.
-            apply (istrunc_truncation 0).
+          * (*Fix first variable*)
+            intros [l1 l2].
+            apply (ap tr). apply (ap coeq).
+            apply path_prod; apply mon_assoc.
+          * (*First variable runs along cp*)
+            intro abs. apply (istrunc_truncation 0).
         + (*Second variable runs along cp*)
           intro abs.
-          apply path_forall.
-          intro w. apply (istrunc_truncation 0).
-      - (*First variable runs along cp*)
-        intro abs.
-        apply path_forall.
-        intro w1.
-        apply path_forall.
-        intro w2.
-        apply (istrunc_truncation 0).
+          apply (istrunc_truncation 0).
+      - (*Third variable runs along cp*)
+        intro abs. apply (istrunc_truncation 0).
     Defined.
           
   Definition grp_compl_id : grp_compl_set S := tr (coeq (mon_id S, mon_id S)).
@@ -567,9 +512,7 @@ Section Group_completion.
       simpl.
       apply (ap tr).
       apply (ap coeq).
-      apply path_prod.
-      + apply mon_lid.
-      + apply mon_lid.
+      apply path_prod; apply mon_lid.
     - (*Variable runs along cp*)
       intro x.
       apply (istrunc_truncation 0).
@@ -584,9 +527,7 @@ Section Group_completion.
       simpl.
       apply (ap tr).
       apply (ap coeq).
-      apply path_prod.
-      + apply mon_rid.
-      + apply mon_rid.
+      apply path_prod; apply mon_rid.
     - (*Variable runs along cp*)
       intro x.
       apply (istrunc_truncation 0).
@@ -594,26 +535,20 @@ Section Group_completion.
 
   Definition grp_compl_sym : symmetric grp_compl_mult.
   Proof.
-    srapply @Trunc_ind.
-    intro a.
+    srapply @Trunc_ind. intro a.
     srapply @ Trunc_ind.
-    revert a.
     srapply @Coeq_ind.
-    - (*Fix first variable*)
-      intros [m1 m2].
+    - (*Fix second variable*)
+      intros [n1 n2]. revert a.
       srapply @Coeq_ind.
-      + (*Fix second variable*)
-        intros [n1 n2].
-        apply (ap tr).
-        apply (ap coeq).
-        apply path_prod.
-        apply mon_sym. apply mon_sym.
-      + intro abs.
-        apply (istrunc_truncation 0).
-    - intro abs.
-      apply path_forall.
-      intro abs'.
-      apply (istrunc_truncation 0).
+      + (*Fix first variable*)
+        intros [m1 m2].
+        apply (ap tr). apply (ap coeq).
+        apply path_prod; apply mon_sym.
+      + (*First variable runs along cp*)
+        intro abs. apply (istrunc_truncation 0).
+    - (*Second variable runs along cp*)
+      intro abs. apply (istrunc_truncation 0).
   Defined.    
 
   Definition grp_compl_inv : grp_compl_set S -> grp_compl_set S.
@@ -640,11 +575,8 @@ Section Group_completion.
       apply (ap coeq).
       unfold as_bs.
       apply path_prod.
-      + simpl.
-        refine (_ @ (mon_lid (m1+m2))^).
-        apply mon_sym.
-      + simpl.
-        exact (mon_lid (m1+m2))^ .
+      + refine (_ @ (mon_lid (m1 + m2))^ ). apply mon_sym.
+      + exact (mon_lid (m1+m2))^ .
     - intro abs.
       apply (istrunc_truncation 0).
   Defined.
@@ -722,28 +654,21 @@ Section Functoriality.
       apply (ap tr). apply (ap coeq).
       apply path_prod; apply preserve_id.
     - (*Preserves multiplication.*)
-      intro a.
-      srapply @Trunc_ind.
-      revert a.
+      srapply @Trunc_ind. intro a.
       srapply @Trunc_ind.
       srapply @Coeq_ind.
-      + (*Fix first variable.*)
-        intros [m1 m2].
+      + (*Second variable is fixed*)
+        intros [n1 n2]. revert a.
         srapply @Coeq_ind.
-        * (*Fix second variable. *)
-          intros [n1 n2].
-          simpl.
-          apply (ap tr); apply (ap coeq); apply path_prod; apply preserve_mult.
-        * (*Second variable runs along cp*)
-          intro abs.
-          apply (istrunc_truncation 0).
-      + (*First variable runs along cp*)
-        intro abs.
-        apply path_forall.
-        intro w.
-        apply (istrunc_truncation 0).
-  Defined.
-        
+        * (*First variable is fixed*)
+          intros [m1 m2].
+          apply (ap tr). apply (ap coeq).
+          apply path_prod; apply preserve_mult.
+        * (*First variable runs along cp*)
+          intro abs. apply (istrunc_truncation 0).
+      + (*Second variable runs along cp*)
+        intro abs. apply (istrunc_truncation 0).
+  Defined.        
         
   Definition natural_S_to_grpcmplS {S S' : Symmetric_Monoid} (h : Hom S' S):
     compose_hom (S_to_grpcmplS S) h = compose_hom (functor_group_completion h) (S_to_grpcmplS S').
@@ -751,15 +676,13 @@ Section Functoriality.
     apply path_hom.
     apply path_forall.
     intro m.
-    apply (ap tr) ; apply (ap coeq); apply path_prod.
+    apply (ap tr). apply (ap coeq).
+    apply path_prod.
       exact idpath.
       exact (preserve_id h)^.
   Defined.      
   
-End Functoriality.
-
-
-                                             
+End Functoriality.                                             
 
 Section Adjointness.
   (*Prove that group completion is left adjoint to the forgetful functor from abelian groups to symmetric monoids*)
@@ -774,14 +697,15 @@ Section Adjointness.
     + (*The variable is fixed*)
       intro m12.
       exact ((hom_map f (fst m12)) - (hom_map f (snd m12))).
-    + (*The variable runs along cp*)
+    + (*The variable runs along cp (i.e. map is well defined)*)
       intros [[a b] s]. simpl.
-      refine (ap (fun c => c - (hom_map f (b + s))) (preserve_mult f a s) @ _).
-      refine ((mon_assoc _ _ _)^ @ _).
-      apply (ap (mon_mult (hom_map f a))).
+      refine (path_group2 (preserve_mult f) (ap grp_inv (preserve_mult f)) @ _).
+      refine (grp_assoc^ @ _ ).
+      apply grp_whiskerL.
       apply grp_moveR_gV.
-      apply grp_moveL_Vg.
-      exact (preserve_mult f b s)^ .
+      refine (_ @ grp_assoc^ ).
+      refine (_ @ grp_whiskerR (grp_linv _)^ ).
+      exact (grp_lid _)^ .
   Defined.
 
   Definition extend_to_inv {S : Symmetric_Monoid} {A : Abelian_Group} :
@@ -792,48 +716,37 @@ Section Adjointness.
     (*Preserves multiplication*)
     (*First we need to use Trunc_ind
          This is made difficult by Trunc_ind behaving weirdly. . .*)
+
+    (*Trunc_ind uses about 5 minutes to find a proof of this, faster to prove it manually.*)
+    assert (Pt : forall m1 m2 : (group_completion S),
+                   IsTrunc 0
+                           (hom_map_extend_to_inv f (m1 + m2) =
+                            hom_map_extend_to_inv f m1 + hom_map_extend_to_inv f m2) ). (*Can also use [enough]. . .*)
+    { intros m1 m2.  exact (@trunc_succ -1 _ (mon_isset _ _ _)). }
     intro m1.
-    set (P := fun m2 =>
-                hom_map_extend_to_inv f (m1 + m2) =
-                hom_map_extend_to_inv f m1 + hom_map_extend_to_inv f m2).
-    refine (@Trunc_ind 0 (Coeq (as_bs S) fst) P _ _ ); unfold P; clear P.
-    intro aa.
-    exact (@trunc_succ -1 _ (mon_isset _ _ _)).
-    intro b.
-    revert m1.
+    refine (@Trunc_ind 0 (Coeq (as_bs S) fst) _ (Pt m1) _ ).
+    intro b. revert m1.
     set (m2 := tr b : (group_completion S)).
-    set (P := fun m1 =>
-                hom_map_extend_to_inv f (m1 + m2) =
-                hom_map_extend_to_inv f m1 + hom_map_extend_to_inv f m2).
-    refine (@Trunc_ind 0 (Coeq (as_bs S) fst) P _ _); unfold P; clear P.
-    intro aa.
-    exact (@trunc_succ -1 _ (mon_isset _ _ _)).
-    unfold m2; clear m2.
-    intro a.
-    revert a b.
+    refine (@Trunc_ind 0 (Coeq (as_bs S) fst) _ (fun m1 => Pt m1 m2) _); unfold m2; clear m2.
+    intro a. revert b.
     (*Now the truncations are done with. . .*)
     srapply @Coeq_ind.
-    - (*First variable fixed*)
-      intros [m1 m2].
+    - (*Second variable fixed*)
+      intros [n1 n2]. revert a.
       srapply @Coeq_ind.
-      (*Second variable fixed.*)
-      intros [n1 n2].
-      simpl.
-      refine ((ap (fun c => c - (hom_map f (m2 + n2))) (preserve_mult f m1 n1)) @ _).
-      refine ((mon_assoc _ _ _)^ @ _ @ mon_assoc _ _ _).
-      apply (ap (mon_mult (hom_map f m1))).
-      refine (ap (fun c => hom_map f n1 -  c) (preserve_mult f m2 n2) @ _).
-      refine (ap (fun c => hom_map f n1 + c) (grp_inv_distr _ _)  @ _).
-      refine (_ @ grp_sym _ _ _).
-      refine (grp_assoc _ _ _).
-      (*Second variable runs along cp*)
-      intro abs.
-      apply (grp_isset A).
-    - (*First variable runs along cp*)
-      intro abs.
-      apply path_forall.
-      intro w.
-      apply (grp_isset A).
+      + (*First variable fixed*)
+        intros [m1 m2]. simpl.
+        refine (grp_whiskerR (preserve_mult f) @ _).
+        refine (grp_assoc^ @ _ @ grp_assoc).
+        apply grp_whiskerL.
+        refine (grp_whiskerL (ap grp_inv (preserve_mult f)) @ _).
+        refine (grp_whiskerL grp_inv_distr @ _).
+        refine (_ @ grp_sym).
+        exact grp_assoc.
+      + (*First variable runs along cp*)
+        intro abs. apply (grp_isset A).
+    - (*Second variable runs along cp*)
+      intro abs. apply (grp_isset A).
   Defined.
 
   Theorem grp_compl_adjoint (S : Symmetric_Monoid) (A: Abelian_Group) :
@@ -844,34 +757,33 @@ Section Adjointness.
     - intro f.
       refine (path_hom _ _ _) ; simpl.
       apply path_forall.
-      intro m.
-      (*Somehow Trunc_ind works much faster this way. . .*)
-      set (P := fun m =>  hom_map_extend_to_inv (compose_hom f (S_to_grpcmplS S)) m = hom_map f m).
-      refine (Trunc_ind P _ _); unfold P; clear P.
-      + intro aa.
-        exact (@trunc_succ -1 _ (mon_isset _ _ _)).
-      + srapply @Coeq_ind. 
-        * (*Variable fixed*)
-          intros [m1 m2].
-          simpl.
-          apply grp_moveR_gV.
-          refine (_ @ preserve_mult f _ _).
-          apply (ap (hom_map f)); apply (ap tr).
-          refine ((cp (m1, mon_id S, m2))^ @ _); unfold as_bs.
-          apply (ap coeq).
-          apply (ap (fun s : S => (m1 + m2, s))).
-          exact (mon_lid m2 @ (mon_rid m2)^).
-        * (*Variable runs along cp*)
-          intro abs.
-          apply (grp_isset A).
+      (*Trunc_ind uses about 5 minutes to find a proof of this, faster to prove it manually.*)
+      assert (Pt : forall m : (group_completion S),
+                   IsTrunc 0
+                           (hom_map_extend_to_inv (compose_hom f (S_to_grpcmplS S)) m = hom_map f m)).
+      { intro m. exact (@trunc_succ -1 _ (mon_isset _ _ _)). }
+      refine (@Trunc_ind 0 (Coeq (as_bs S) fst) _ Pt _ ).
+      srapply @Coeq_ind. 
+      + (*Variable fixed*)
+        intros [m1 m2].
+        simpl.
+        apply grp_moveR_gV.
+        refine (_ @ preserve_mult f).
+        apply (ap (hom_map f)); apply (ap tr).
+        refine ((cp (m1, mon_id S, m2))^ @ _); unfold as_bs.
+        apply (ap coeq).
+        apply (ap (fun s : S => (m1 + m2, s))).
+        exact (mon_lid m2 @ (mon_rid m2)^).
+      + (*Variable runs along cp*)
+        intro abs.
+        apply (grp_isset A).
     - intro f.
       refine (path_hom _ _ _) ; simpl.
       apply path_forall.
       intro m.
       apply grp_moveR_gV.
       refine ((grp_rid _)^ @ _).
-      apply (ap (fun a : A => hom_map f m + a)).
-      exact (preserve_id f)^.
+      exact (grp_whiskerL (preserve_id f)^ ).
   Defined.
 
   (*Naturality follows from [natural_S_to_grpcmplS], since the map [Hom (group_completion S) A -> Hom S A is exactly precomposing with [S_to_grpcmplS].*)
@@ -903,7 +815,7 @@ Section FinIso.
     refine (Trunc_rec (n:=-1) (A := (S.1 <~> Fin (fcard S.1))) _ _).
     - intro e.
       apply tr.
-      refine (path_sigma_hprop _ _ _).
+      apply path_sigma_hprop.
       exact (path_universe e). 
     - apply merely_equiv_fin.
   Defined.

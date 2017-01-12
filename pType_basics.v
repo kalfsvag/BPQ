@@ -34,7 +34,7 @@ Section pType_prelim.
 
   (*TODO*)
   (*Move to HIT/Sphere*)
-  Open Scope trunc_scope.
+(*  Open Scope trunc_scope.
   Notation "a + b" := (trunc_index_add a b) : trunc_scope.
   Definition trunc_add_sym : forall a b : trunc_index, a + b = b + a.
     apply (trunc_index_ind (fun a => forall b : trunc_index, a + b = b + a)).
@@ -61,7 +61,7 @@ Section pType_prelim.
     (*Todo*)
   Lemma pointed_Sphere : forall n : nat, IsPointed (Sphere n).
     Abort.
-
+*)
   (*The functor from Type to pType*)
   (*Mt pointed.v?*)
   Definition add_pt (A:Type) :  pType := Build_pType (A+Unit) (inr tt).
@@ -154,11 +154,10 @@ Section Nat_and_truncindex.
           exact (plustwo_commute2 n).
   Defined.
 
-  Lemma natisplustwo (n:nat) : exists t:trunc_index, nat_to_trunc_index n = t.+2.
+  Lemma natisplustwo (n:nat) : { t:trunc_index |  nat_to_trunc_index n = t.+2}.
     induction n.
-    - exists minus_two. exact idpath.
-    - exists (pr1 IHn).+1.
-             exact (ap trunc_S (pr2 IHn)).
+    - exact (minus_two; idpath). 
+    - exact ((pr1 IHn).+1; ap trunc_S (pr2 IHn)). 
   Defined.
   
   Lemma ispointed_sphere (n : nat) : IsPointed (Sphere n).

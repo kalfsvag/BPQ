@@ -8,11 +8,10 @@ Section Misc.
   (** The map [ap f] can be viewed as a map between path spaces {x y | x=y }
 The lemma [ap12] says that [f=g] implies [ap f == ap g] as maps of path spaces. *)
   (*Is this correctly placed and named?*)
-  Definition ap12 {A B : Type} {a b : A} (p : a = b) {f g : A->B} (h : f=g)  :
-    (ap10 h a)^ @ ap f p @ ap10 h b= ap g p.
+  Definition ap12 {A B : Type} {a b : A} (p : a = b) {f g : A->B} (q : f=g)  :
+    (ap10 q a)^ @ (ap f p) @ (ap10 q b) = ap g p.
   Proof.
-    destruct p, h.
-    exact (concat_p1 _ @ concat_1p _).
+    destruct p, q. reflexivity.
   Defined.
 
   Definition sig_const (A B : Type) :
@@ -790,6 +789,7 @@ Section Adjointness.
 End Adjointness.
       
 Section Classifying_Space.
+  Open Scope monoid_scope.
   (*Define the classifying space of a monoid as a cell complex*)
 
   (*The 1-skeleton of B.*)
@@ -806,7 +806,7 @@ Section Classifying_Space.
              (bp : P)
              (l : forall m : M, bp = bp) :
     B1 M -> P.
-    refine (Coeq_rec P _ _).
+    srapply @Coeq_rec.
     - exact (const bp). (*intros []. exact bp.*)
     - exact l.
   Defined.
@@ -816,14 +816,14 @@ Section Classifying_Space.
              (loop' : forall (m : M), transport P (B_loop1 m) bp = bp)
              : forall a : B1 M, P a.
   Proof.
-    refine (Coeq_ind _ _ _).
+    srapply @Coeq_ind.
     - intros []. exact bp.
     - exact loop'.
   Defined.
   
   Definition looptofill (M : Monoid) (m1 m2 : M) : S1 -> B1 M.
     refine (S1_rec (B1 M) (point (B1 M)) _).
-    exact ((B_loop1 m1) @ (B_loop1 m2) @ (B_loop1 (multM m1 m2))^).
+    exact ((B_loop1 m1) @ (B_loop1 m2) @ (B_loop1 (m1 + m2))^).
   Defined.
 
   Definition looptofill_curried (M : Monoid) : M*M*S1 -> B1 M :=
@@ -879,49 +879,42 @@ Section Classifying_Space.
 
   
 
-  Definition isHom_MtoB2 `{Funext} {M : Monoid} (m1 m2: M) :
-     B_loop2 m1 @ B_loop2 m2 = B_loop2 (multM m1 m2).
+  Definition ishom_MtoB2 `{Funext} {M : Monoid} (m1 m2: M) :
+     B_loop2 m1 @ B_loop2 m2 = B_loop2 (m1 + m2).
   Proof.
     unfold B_loop2.
     apply moveL_1M.
-    path_via (ap B1toB2 (ap (S1toB1 m1 m2) loop)).
-    - path_via (ap B1toB2 ( (B_loop1 m1) @ (B_loop1 m2) @ (B_loop1 (multM m1 m2))^)).
-      + refine (concat _ (ap_pp _ _ _)^).
-        apply concat2.
-        * refine (ap_pp _ _ _)^.
-        * refine (ap_V B1toB2 _)^ .
-      + 
-        apply ap.
-        unfold S1toB1.
-        refine (S1_rec_beta_loop _ _ _)^. 
-    - refine (concat (ap_compose _ _ _)^ _).
-      refine (concat _ (ap_const loop _)). 
-      refine (concat _ (ap12 loop (const_S1toB2 m1 m2))).
-      rewrite ap_compose.
-      rewrite concat_pp_p.
-      apply moveL_Vp.
-      unfold S1toB1.
-      unfold looptofill.
-      rewrite S1_rec_beta_loop.      
-      unfold const_S1toB2.
-      rewrite (path_forall _ _ (ap10_path_forall _ _ _)).
-      unfold nullhom_S1toB2.
-      hott_simpl.
-  Qed.
-                          
+    refine (whiskerR (ap_pp B1toB2 _ _)^ _ @ _).
+    refine (whiskerL _ (ap_V B1toB2 _)^ @ _).
+    refine ((ap_pp B1toB2 _ _)^ @ _).
+    refine (ap02 _ (S1_rec_beta_loop _ _ _)^ @ _).
+    refine ((ap_compose _ _ _)^ @ _).
+    refine (_ @ ap_const loop (B1toB2 (S1toB1 m1 m2 base))) .
+    refine (_ @ ap12 loop (const_S1toB2 m1 m2)).
+    change
+      (S1_rec (Coeq (const tt) (const tt)) (coeq tt)
+              ((B_loop1 m1 @ B_loop1 m2) @ (B_loop1 (m1 + m2))^)) with
+    (S1toB1 m1 m2).
+    assert (p : (ap10 (const_S1toB2 m1 m2) base) = idpath).
+    { refine ((ap10_path_forall _ _ (nullhom_S1toB2 m1 m2) _) @ _).
+      apply concat_pV. }
+    refine (_ @ whiskerL _ p^).
+    refine (_ @ (concat_p1 _ )^).
+    refine (_ @ whiskerR (inverse2 p)^  _).
+    exact (concat_1p _)^.
+  Defined.                          
 
   Definition B2_rec {M : Monoid}
              (P : Type)
              (bp : P)
              (l : M -> bp = bp)
-             (h : forall m1 m2 : M, l m1 @ l m2 = l (multM m1 m2) ) :
+             (h : forall m1 m2 : M, l m1 @ l m2 = l (m1 + m2) ) :
     B2 M -> P.
     (*B2 is the pushout of B1 M and M*M*S1*)
-    refine (pushout_rec P _ _).
+    srapply @pushout_rec.
     - apply sum_rect.      
       + (*The map defined on B1 is given by l*)
-        refine (B1_rec _ bp _).
-        exact l.
+        exact (B1_rec _ bp l).
         (*The map on M*M*S1 is the constant map (it gives the loops that will be killed)*)
       + exact (const bp).
     - (*Show that the map is well-defined, e.g. m1@m2=m1*m2 *)
@@ -932,44 +925,38 @@ Section Classifying_Space.
       unfold prod_curry.
       simpl.
       unfold looptofill.
-      refine (S1_ind _ _ _ ).
+      srapply @S1_ind.
       + exact idpath.
       + refine (concat (transport_paths_Fl loop idpath) _).
-        hott_simpl.        (*TODO: Make this transparent?*)
+        refine (concat_p1 _ @ _).
         unfold B1_rec.
-        rewrite ap_compose.
-        rewrite S1_rec_beta_loop.
-        rewrite <- (inv_V idpath).
-        apply inverse2.
-        rewrite ap_pp.
-        rewrite ap_pp.
-        unfold B_loop1.
-        (*Somehow, rewrite Coeq_rec_beta_cp doesn't work here. . .*)
-        rewrite ap_V.
+        refine (concat (y := 1^) (inverse2 _) idpath). (*This feels stupid. . .*)
+        refine (ap_compose _ _ _ @ _).
+        refine (concat (y:= ap (Coeq_rec P (const bp) l)
+                               ((B_loop1 m1 @ B_loop1 m2) @ (B_loop1 (m1 + m2))^) ) _ _).
+        { apply (ap (ap _)). apply S1_rec_beta_loop. }
+        refine (ap_pp _ _ _ @ _).
+        refine (whiskerR (ap_pp _ _ _) _ @ _).
+        refine (whiskerL _ (ap_V _ _) @ _).
         apply moveR_pV.
-        refine (concat (y := l (multM m1 m2)) _ _).
-        refine (concat (y := l m1 @ l m2) _ _).
-        apply concat2.
-        exact (Coeq_rec_beta_cp P (const bp) l m1).
-        exact (Coeq_rec_beta_cp P (const bp) l m2).
-        exact (h m1 m2).        
-        hott_simpl.
-        exact (Coeq_rec_beta_cp P (const bp) l (multM m1 m2))^.
-  Qed.
-        
-        
-      
+        refine (_ @ (concat_1p _)^).
+        unfold B_loop1.
+        refine (_ @ (Coeq_rec_beta_cp P (const bp) l (m1 + m2))^).
+        refine (_ @ h m1 m2).
+        apply concat2; refine (Coeq_rec_beta_cp P (const bp) l _).
+  Defined.
 
-   
-  
-   Definition B2_ind {M : Monoid}
+  Definition B2_ind {M : Monoid}
              (P : B2 M -> Type)
              (bp : P (point (B2 M)))
              (l : forall (m : M), transport P (B_loop2 m) bp = bp)
              (h : forall (m1 m2 : M),
-                    ap (transport P (B_loop2 m2)) (l m1) @ (l m2) = l (multM m1 m2) )
-                        (* transport P (B_loop2 m1) (transport P (B_loop2 m2) bp) *)
-                        (* = transport P (B_loop2 (multM m1 m2)) bp ) (*Not right*) *)
+                    transport
+                      (fun pth => transport P pth bp = bp)
+                      (ishom_MtoB2 m1 m2)
+                      (transport_pp P (B_loop2 m1) (B_loop2 m2) bp @
+                                    ap (transport P (B_loop2 m2)) (l m1) @ (l m2))
+                    = l (m1 + m2))
              : forall a : B2 M, P a.
     refine (pushout_ind _ _ _ _ _).
     - apply sum_ind.

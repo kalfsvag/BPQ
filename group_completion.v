@@ -909,30 +909,6 @@ Section Classifying_Space.
         apply concat2; refine (Coeq_rec_beta_cp P (const bp) l _).
   Defined.
 
-
-  (* (*Move this lemma*) *)
-  (* Lemma apD_compose : *)
-  (*   apD (f o g) p =  *)
-
-
-  (* Lemma something *)
-  (*       (M : Monoid) *)
-  (*       (P : B2 M -> Type) *)
-  (*       (bp : P (point _)) *)
-  (*       (l : forall (m : M), transport P (B_loop2 m) bp = bp) *)
-  (*       : forall (m1 m2 : M), *)
-  (*              transport *)
-  (*                (fun pth => transport P pth bp = bp) *)
-  (*                (ishom_MtoB2 m1 m2) *)
-  (*                (transport_pp P (B_loop2 m1) (B_loop2 m2) bp @ *)
-  (*                              ap (transport P (B_loop2 m2)) (l m1) @ (l m2)) *)
-  (*              = l (m1 + m2). *)
-  (*   intros m1 m2. *)
-  (*   refine (transport_paths_Fl (ishom_MtoB2 m1 m2) _ @ _). *)
-  (*   apply moveR_Vp. *)
-    
-    
-        
   (*Should probably switch to lean or implement pathovers here. . .*)
   Definition B2_ind {M : Monoid}
              (P : B2 M -> Type)
@@ -963,116 +939,9 @@ Section Classifying_Space.
       + reflexivity.
       + (*Variable runs along ishom (I think. . . )*)
         cbn.
-        (* set (Pl := fun a : B1 M => P (push (inl a))). *)
-        (* set (f := *)
-        (*        (fun x : S1 => *)
-        (*           transport *)
-        (*             P (pp (m1, m2, x)) *)
-        (*             (B1_ind *)
-        (*                Pl bp *)
-        (*                (fun m : M => *)
-        (*                   transport_compose P (fun x0 : B1 M => push (inl x0))  *)
-        (*                                     (B_loop1 m) bp @ l m) (looptofill_curried M (m1, m2, x))))). *)
-
-               
-        (* refine (transport_PequivQ *)
-        (*           (fun x : S1 => *)
-        (*              equiv_ap *)
-        (*                (transport P (pp (m1, m2, base))^) (f x) (transport P (pp (m1, m2, base)) bp))  *)
-        (*           loop idpath @ _). *)
-        
-
-        (* simpl. *)
-        (* refine (concat_pp_p _ _ _ @ _). *)
-        (* apply moveR_Vp. *)
-        (* refine (_ @ (concat_p1 _)^). *)
-        (* apply moveR_pM. hott_simpl. (*How do I do this transparently?*) *)
-        
-
-
 
         (* dpath_path_FlFr *)
         (* transport_paths_FlFr_D *)
-
-
-        (* Check ((h m1 m2) ^ @ transport_paths_Fl _ _). *)
-        (* set (P_S1 := (fun x : S1 => P (push (inl (looptofill_curried M (m1, m2, x)))))). *)
-        (* set (f := (fun x : S1 => B1_ind (fun a : B1 M => P (push (inl a))) bp *)
-        (*                                    (fun m : M => *)
-        (*                                       transport_compose P (fun x0 : B1 M => push (inl x0))  *)
-        (*                                                         (B_loop1 m) bp @ l m) *)
-        (*                                    (looptofill_curried M (m1, m2, x)))). *)
-
-        
-        (* refine ((transport_apD_transportD *)
-        (*            P_S1 f _ _ _)^ @ _). *)
-        (* Unshelve. *)
-        
-        (* Focus 2. unfold P_S1. *)
-          
-        (* Focus 2. *)
-        (*   srapply @S1_ind. *)
-        (*   intro x. *)
-        (*   unfold B1toB2. *)
-        (*   unfold S1toB1. unfold looptofill. *)
-        (* unfold looptofill_curried. unfold prod_curry. simpl. *)
-        (* (* transport_to_ap. *) *)
-        
-        (* set *)
-        (*   (C := *)
-        (*      fun x : S1 => *)
-        (*        fun b : B1 M => *)
-        (*          transport P (pp (m1, m2, x)) *)
-        (*                    (B1_ind (fun a : B1 M => P (push (inl a))) bp *)
-        (*                            (fun m : M => *)
-        (*                               transport_compose P (fun x0 : B1 M => push (inl x0)) *)
-        (*                                                 (B_loop1 m) bp @ l m) (looptofill M m1 m2 x)) = *)
-        (*   transport P (pp (m1, m2, base)) bp). *)
-
-        (* (*TODO: Skriv C om saa den kun avhenger av b? b skal vaere looptofill M m1 m2 x*) *)
-        (* apply inverse. *)
-        (* refine (_ @ transport_apD_transportD _ (looptofill M m1 m2) C _ _). *)
-        
-        (* (* refine (transport_compose_mine C (looptofill M m1 m2) loop _ @ _). *) *)
-        (* (* refine (ap (transport (fun a : S1 => C a (looptofill M m1 m2 base)) loop) *) *)
-        (* (*            (transport_const _ _) *) *)
-        (* (*            @ _). *) *)
-        (* (* unfold C; clear C. *) *)
-        (* (* refine (transport_paths_Fl loop idpath @ _). *) *)
-        (* (* apply moveR_Vp. *) *)
-        (* (* refine (_ @ (concat_p1 _)^). *) *)
-        (* (* apply inverse. *) *)
-
-
-        
-        
-        (* (*Should be possible to get this without transportD, but. . .*) *)
-        (* apply inverse. *)
-        (* transitivity *)
-        (*   (transport (C base) (apD (looptofill M m1 m2) loop) *)
-        (*              (transportD (fun _ : S1 => B1 M) C loop (looptofill M m1 m2 base) 1) *)
-        
-        (* unfold C; clear C. *)
-        
-
-                                 
-        (* refine (transport_paths_FlFr_D loop _ @ _). *)
-        (* apply moveR_pM. *)
-        (* refine (_ @ (concat_1p _)^). *)
-        (* apply moveR_Vp. *)
-        (* apply moveL_pV. *)
-        (* refine (whiskerR (ap_1 _ _) _ @ _). *)
-        (* refine (concat_1p _ @ _). *)
-        (* refine (apD_const _ _ @ _). *)
-        (* refine (whiskerL _ (ap_const _ _) @ _). *)
-        (* refine (concat_p1 _ @ _). *)
-        (* unfold looptofill_curried. unfold prod_curry. simpl. *)
-        (* apply inverse. *)
-        (* refine (apD_compose loop (looptofill M m1 m2) _ @ _).  *)
-        (*apD_const*)
-        (*Maa formulere og bevise en apD_compose?
-         før det: pathover og konkatinering av slike. . .*)
-
         refine (transport_paths_Fl loop idpath  @ _).
         (*apD_const?*)
         apply moveR_Vp.
@@ -1104,6 +973,15 @@ Section Classifying_Space.
         refine (_ @ apD_const f loop).
         apply inverse.
         
+        
+
+
+
+
+
+
+
+
         
         
         Eval compute in (f base).

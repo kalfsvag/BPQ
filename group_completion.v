@@ -1,43 +1,6 @@
 Require Import HoTT.
 Require Import UnivalenceAxiom.
-
-
-(*This section should be elsewhere *)
-Section Misc.
-
-  (** The map [ap f] can be viewed as a map between path spaces {x y | x=y }
-The lemma [ap12] says that [f=g] implies [ap f == ap g] as maps of path spaces. *)
-  (*Is this correctly placed and named?*)
-  Definition ap12 {A B : Type} {a b : A} (p : a = b) {f g : A->B} (q : f=g)  :
-    (ap10 q a)^ @ (ap f p) @ (ap10 q b) = ap g p.
-  Proof.
-    destruct p, q. reflexivity.
-  Defined.
-
-  Definition sig_const (A B : Type) :
-    sig (fun _ : A => B) <~> A * B :=
-    (@equiv_adjointify
-       (sig (fun _ : A => B)) (A * B)
-       (fun ab => match ab with (a ; b) => (a, b) end)
-       (fun ab => match ab with (a, b) => (a ;b) end)
-       (fun _ => idpath) (fun _ => idpath)).
-
-(*  Definition prod_uncurryD {A B : Type} {P : A -> B -> Type} :
-    (forall p : A*B, P (fst p) (snd p)) -> forall a : A, forall b : B, P a b :=
-    (equiv_prod_ind _)^-1 . *)
-(*
-  Definition precomposeD {A B : Type} {P : B -> Type} (f : A->B) :
-    (forall a : A, P (f a)) -> forall b : B, P b.
-  Proof.
-    intro g.
-    intro b.
-    exact 
-  *)  
-  
-  
-End Misc.
-
-
+Load stuff.
 
 
 Section Monoids_and_Groups.
@@ -946,6 +909,31 @@ Section Classifying_Space.
         apply concat2; refine (Coeq_rec_beta_cp P (const bp) l _).
   Defined.
 
+
+  (* (*Move this lemma*) *)
+  (* Lemma apD_compose : *)
+  (*   apD (f o g) p =  *)
+
+
+  (* Lemma something *)
+  (*       (M : Monoid) *)
+  (*       (P : B2 M -> Type) *)
+  (*       (bp : P (point _)) *)
+  (*       (l : forall (m : M), transport P (B_loop2 m) bp = bp) *)
+  (*       : forall (m1 m2 : M), *)
+  (*              transport *)
+  (*                (fun pth => transport P pth bp = bp) *)
+  (*                (ishom_MtoB2 m1 m2) *)
+  (*                (transport_pp P (B_loop2 m1) (B_loop2 m2) bp @ *)
+  (*                              ap (transport P (B_loop2 m2)) (l m1) @ (l m2)) *)
+  (*              = l (m1 + m2). *)
+  (*   intros m1 m2. *)
+  (*   refine (transport_paths_Fl (ishom_MtoB2 m1 m2) _ @ _). *)
+  (*   apply moveR_Vp. *)
+    
+    
+        
+  (*Should probably switch to lean or implement pathovers here. . .*)
   Definition B2_ind {M : Monoid}
              (P : B2 M -> Type)
              (bp : P (point (B2 M)))
@@ -958,6 +946,276 @@ Section Classifying_Space.
                                     ap (transport P (B_loop2 m2)) (l m1) @ (l m2))
                     = l (m1 + m2))
              : forall a : B2 M, P a.
+    srapply @pushout_ind.
+    - apply sum_ind.
+      + srapply @B1_ind.
+        * (*Variable is basepoint*)
+          exact bp.
+        * (*Variable runs along B_loop2*)
+          intro m.
+          refine (transport_compose P (push o inl) (B_loop1 m) bp @ _).
+          exact (l m).
+      + (*Variable is hub point*)
+        intros [m1 m2].
+        exact (transport P (pp (m1, m2, base)) bp).
+    - intros [[m1 m2]].
+      srapply @S1_ind.
+      + reflexivity.
+      + (*Variable runs along ishom (I think. . . )*)
+        cbn.
+        (* set (Pl := fun a : B1 M => P (push (inl a))). *)
+        (* set (f := *)
+        (*        (fun x : S1 => *)
+        (*           transport *)
+        (*             P (pp (m1, m2, x)) *)
+        (*             (B1_ind *)
+        (*                Pl bp *)
+        (*                (fun m : M => *)
+        (*                   transport_compose P (fun x0 : B1 M => push (inl x0))  *)
+        (*                                     (B_loop1 m) bp @ l m) (looptofill_curried M (m1, m2, x))))). *)
+
+               
+        (* refine (transport_PequivQ *)
+        (*           (fun x : S1 => *)
+        (*              equiv_ap *)
+        (*                (transport P (pp (m1, m2, base))^) (f x) (transport P (pp (m1, m2, base)) bp))  *)
+        (*           loop idpath @ _). *)
+        
+
+        (* simpl. *)
+        (* refine (concat_pp_p _ _ _ @ _). *)
+        (* apply moveR_Vp. *)
+        (* refine (_ @ (concat_p1 _)^). *)
+        (* apply moveR_pM. hott_simpl. (*How do I do this transparently?*) *)
+        
+
+
+
+        (* dpath_path_FlFr *)
+        (* transport_paths_FlFr_D *)
+
+
+        (* Check ((h m1 m2) ^ @ transport_paths_Fl _ _). *)
+        (* set (P_S1 := (fun x : S1 => P (push (inl (looptofill_curried M (m1, m2, x)))))). *)
+        (* set (f := (fun x : S1 => B1_ind (fun a : B1 M => P (push (inl a))) bp *)
+        (*                                    (fun m : M => *)
+        (*                                       transport_compose P (fun x0 : B1 M => push (inl x0))  *)
+        (*                                                         (B_loop1 m) bp @ l m) *)
+        (*                                    (looptofill_curried M (m1, m2, x)))). *)
+
+        
+        (* refine ((transport_apD_transportD *)
+        (*            P_S1 f _ _ _)^ @ _). *)
+        (* Unshelve. *)
+        
+        (* Focus 2. unfold P_S1. *)
+          
+        (* Focus 2. *)
+        (*   srapply @S1_ind. *)
+        (*   intro x. *)
+        (*   unfold B1toB2. *)
+        (*   unfold S1toB1. unfold looptofill. *)
+        (* unfold looptofill_curried. unfold prod_curry. simpl. *)
+        (* (* transport_to_ap. *) *)
+        
+        (* set *)
+        (*   (C := *)
+        (*      fun x : S1 => *)
+        (*        fun b : B1 M => *)
+        (*          transport P (pp (m1, m2, x)) *)
+        (*                    (B1_ind (fun a : B1 M => P (push (inl a))) bp *)
+        (*                            (fun m : M => *)
+        (*                               transport_compose P (fun x0 : B1 M => push (inl x0)) *)
+        (*                                                 (B_loop1 m) bp @ l m) (looptofill M m1 m2 x)) = *)
+        (*   transport P (pp (m1, m2, base)) bp). *)
+
+        (* (*TODO: Skriv C om saa den kun avhenger av b? b skal vaere looptofill M m1 m2 x*) *)
+        (* apply inverse. *)
+        (* refine (_ @ transport_apD_transportD _ (looptofill M m1 m2) C _ _). *)
+        
+        (* (* refine (transport_compose_mine C (looptofill M m1 m2) loop _ @ _). *) *)
+        (* (* refine (ap (transport (fun a : S1 => C a (looptofill M m1 m2 base)) loop) *) *)
+        (* (*            (transport_const _ _) *) *)
+        (* (*            @ _). *) *)
+        (* (* unfold C; clear C. *) *)
+        (* (* refine (transport_paths_Fl loop idpath @ _). *) *)
+        (* (* apply moveR_Vp. *) *)
+        (* (* refine (_ @ (concat_p1 _)^). *) *)
+        (* (* apply inverse. *) *)
+
+
+        
+        
+        (* (*Should be possible to get this without transportD, but. . .*) *)
+        (* apply inverse. *)
+        (* transitivity *)
+        (*   (transport (C base) (apD (looptofill M m1 m2) loop) *)
+        (*              (transportD (fun _ : S1 => B1 M) C loop (looptofill M m1 m2 base) 1) *)
+        
+        (* unfold C; clear C. *)
+        
+
+                                 
+        (* refine (transport_paths_FlFr_D loop _ @ _). *)
+        (* apply moveR_pM. *)
+        (* refine (_ @ (concat_1p _)^). *)
+        (* apply moveR_Vp. *)
+        (* apply moveL_pV. *)
+        (* refine (whiskerR (ap_1 _ _) _ @ _). *)
+        (* refine (concat_1p _ @ _). *)
+        (* refine (apD_const _ _ @ _). *)
+        (* refine (whiskerL _ (ap_const _ _) @ _). *)
+        (* refine (concat_p1 _ @ _). *)
+        (* unfold looptofill_curried. unfold prod_curry. simpl. *)
+        (* apply inverse. *)
+        (* refine (apD_compose loop (looptofill M m1 m2) _ @ _).  *)
+        (*apD_const*)
+        (*Maa formulere og bevise en apD_compose?
+         før det: pathover og konkatinering av slike. . .*)
+
+        refine (transport_paths_Fl loop idpath  @ _).
+        (*apD_const?*)
+        apply moveR_Vp.
+        refine (_ @ (concat_p1 _)^).
+        
+        set (Pl := fun a : B1 M => P (push (inl a))).
+
+        set (f :=
+               (fun x : S1 =>
+                  transport
+                    P (pp (m1, m2, x))
+                    (B1_ind
+                       Pl bp
+                       (fun m : M =>
+                          transport_compose P (fun x0 : B1 M => push (inl x0)) 
+                                            (B_loop1 m) bp @ l m) (looptofill_curried M (m1, m2, x))))).
+        change (fun x : S1 =>
+                  transport
+                    P (pp (m1, m2, x))
+                    (B1_ind
+                       Pl bp
+                       (fun m : M =>
+                          transport_compose P (fun x0 : B1 M => push (inl x0)) 
+                                            (B_loop1 m) bp @ l m) (looptofill_curried M (m1, m2, x))))
+               with f.
+        unfold pushr in f. unfold collapseS1 in f.
+        apply (cancelL (transport_const loop (f base)) _ _).
+        refine (concat_p1 _ @ _).
+        refine (_ @ apD_const f loop).
+        apply inverse.
+        
+        
+        
+        Eval compute in (f base).
+        
+
+        
+
+        assert (forall x : S1, P (pushr (m1, m2, x)) -> P (pushl (m1, m2, base))).
+        { intro x. refine (_ o transport P (pp (m1, m2, x))^ ).
+          revert x.
+          srapply @S1_ind.
+            exact idmap.
+            apply path_forall. intro.
+            refine ((transport_arrow
+                       (B := fun x => P (pushl (m1, m2, x)))
+                       (C := fun _ => P (pushl (m1, m2, base))) loop idmap _ )@ _).
+            
+        
+        
+        unfold pushr in f. unfold collapseS1 in f.
+        enough
+          (ap (transport P (pp (m1, m2, base))^) 1 = ap (transport P (pp (m1, m2, base))^) (ap f loop)).
+        apply ((ap (transport P (pp (m1, m2, base))^))^-1 X).
+        
+        refine ((ap (transport P (pp (m1, m2, base))^))^-1 _).
+        
+
+
+        assert ((fun x : S1 => transport P (pp (m1, m2, x))^ (f x)) ==
+               B1_ind (fun a : B1 M => P (push (inl a))) bp
+                        (fun m : M =>
+                           transport_compose P (fun x0 : B1 M => push (inl x0)) 
+                                             (B_loop1 m) bp @ l m) o (looptofill M m1 m2)).
+          { intro x.
+            unfold f. refine ((transport_pp P _ _ _)^ @ _).
+            refine (transport2 P (q := idpath) (concat_pV _) _ @ _).
+            exact (transport_1 P _ ). }
+          
+        
+        
+          
+        transitivity ((transport_const _ _)^ @ (apD f loop)).
+        * apply moveL_Vp.
+          refine (concat_p1 _ @ _).
+          apply inverse.
+          unfold looptofill_curried in f. unfold prod_curry in f. simpl in f.
+          refine ((concat_1p _)^ @ _).
+          refine (whiskerR  (concat_Vp (transport_compose _ _ _ _))^ (apD f loop) @ _). Unshelve.
+
+          @ (concat_1p _)).
+          
+
+          
+          
+          
+          enough (transporttoright : forall x : S1, P (pushl (m1, m2, x)) -> P (pushr (m1, m2, x))).
+
+          apD_compose
+          (*rewrite B1_beta?*)
+          enought (forall x : S1, P (pushr (m1, m2, x))
+
+                                    
+          
+          
+          admit.
+            intro x. exact (transport P (pp (m1, m2, x))).
+          unfold pushr in f. unfold collapseS1 in f. 
+          
+          
+          
+        * apply moveR_Vp.
+          srapply @apD_const.
+
+
+
+
+
+          
+        refine (_ @ (moveR_Vp _ _ _ (apD_const _ _))).
+        
+
+        
+        apply inverse.
+        
+        set (Pl := (fun a : B1 M => P (push (inl a))) ).
+        change (fun a : B1 M => P (push (inl a))) with Pl.
+        set (lm := (fun m : M =>
+                    transport_compose P (fun x0 : B1 M => push (inl x0)) (B_loop1 m) bp @ l m) ).
+        change (fun m : M =>
+                    transport_compose P (fun x0 : B1 M => push (inl x0)) (B_loop1 m) bp @ l m) with lm.
+        unfold looptofill_curried.
+        unfold prod_curry.
+        unfold looptofill.
+        simpl.
+        
+        
+        
+        refine (concat
+                  (ap_compose
+                     (S1_rec (B1 M) (point (B1 M))
+                             ((B_loop1 m1 @ B_loop1 m2) @ (B_loop1 (m1 + m2))^) )
+                      _ loop
+                  )
+                  _ ).
+        
+        
+        
+        refine (ap_compose _ (transport P (pp (m1, m2, x))) loop @ _).
+        
+        
+          
+    
     refine (pushout_ind _ _ _ _ _).
     - apply sum_ind.
       + refine (B1_ind _ _ _).

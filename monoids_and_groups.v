@@ -1,4 +1,5 @@
-Require Import HoTT.
+Load stuff.
+Require Import UnivalenceAxiom.
 
 
 Section Monoids_and_Groups.
@@ -62,6 +63,12 @@ Section Monoids_and_Groups.
   Coercion grp : Abelian_Group >-> Group.
   Global Arguments grp_sym {A} {a} {b} : rename.
 
+  (*Must do some work to get a coercion Abelian_Group >-> Symmetric_Monoid*)
+  Definition forget_to_SymMon : Abelian_Group -> Symmetric_Monoid :=
+    fun A => Build_Symmetric_Monoid A (@grp_sym A).
+
+  Coercion forget_to_SymMon : Abelian_Group >-> Symmetric_Monoid.    
+
 End Monoids_and_Groups.
   
 Section nat_monoid.  
@@ -103,8 +110,15 @@ Notation "'grp_rid'" := (@mon_rid (grp_mon _)) (at level 0) : monoid_scope.
 Notation "'grp_rid'" := (@mon_rid (grp_mon _)) (at level 0) : monoid_scope.
 (*TODO: Use this notation*)
 
-
-
+Section Loop_is_group.
+  Definition loopGroup (A : pType) {istrunc_A : IsTrunc 1 A} : Group.
+    srapply Build_Group.
+    exact (Build_Monoid (loops A) concat idpath concat_p_pp concat_1p concat_p1).
+    - exact inverse.
+    - exact concat_Vp.
+    - exact concat_pV.
+  Defined.
+End Loop_is_group.
 
 Section Group_lemmas.
   Open Scope monoid_scope.
@@ -292,7 +306,20 @@ Section Group_lemmas.
   Defined.
 
   Definition path_group2 {G : Group} {a b c d : G} : a = c -> b = d -> a + b = c + d
-    := fun p q => grp_whiskerL q @ grp_whiskerR p. 
+    := fun p q => grp_whiskerL q @ grp_whiskerR p.
+
+  Definition isequiv_grp_mult {G : Group} (g : G) :
+    IsEquiv (fun a => a + g).
+  Proof.
+    srapply @isequiv_adjointify.
+    - exact (fun a => a - g).
+    - intro a. apply grp_moveR_gM. reflexivity.
+    - intro a. apply grp_moveR_gV. reflexivity.
+  Defined.
+
+  Definition grp_mult_equiv {G : Group} (g : G) : G <~>G :=
+    BuildEquiv G G (fun a => a+ g) (isequiv_grp_mult g).
+  
 End Group_lemmas.
 
 Section Homomorphism.
@@ -307,6 +334,8 @@ Section Homomorphism.
   Global Arguments preserve_id {M N} h.
   Global Arguments preserve_mult {M N} h {m1} {m2}.
 
+  Coercion hom_map : Homomorphism >-> Funclass.
+
   Definition ishom {M N : Monoid} (f : M -> N) :=
     (f (mon_id M) = mon_id N) * (forall m1 m2 : M, f (m1 + m2) = f m1 + f m2).
       
@@ -320,7 +349,7 @@ Section Homomorphism.
     - refine (equiv_functor_sigma_id _).
       intro f.
       apply equiv_inverse.
-      exact (sig_const _ _).
+      exact (equiv_sigma_prod0 _ _).
     - issig (Build_Homomorphism M N) (@hom_map M N) (@preserve_id M N) (@preserve_mult M N).
   Defined.
 
@@ -343,35 +372,40 @@ Section Homomorphism.
     exact (mon_isset _ _ _).
   Defined.
 
+  (*Two homomorphisms are equal if their underlying maps are equal.*)
   Definition path_hom {M N : Monoid} (f g : Homomorphism M N) :    
-    (hom_map f = hom_map g) -> f = g.
+    (hom_map f = hom_map g) -> f = g :> Homomorphism M N.
   Proof.
     intro h.
     apply (equiv_ap (issig_hom M N)^-1 _ _)^-1.
     refine (@path_sigma_hprop _ _ prop_ishom _ _ _).
     exact h.
-  Defined.    
+  Defined.
+
+  Definition idhom {M : Monoid} : Homomorphism M M
+    := Build_Homomorphism M M idmap idpath (fun _ _ => idpath).
   
   Definition compose_hom {L M N: Monoid} :
     Homomorphism M N -> Homomorphism L M -> Homomorphism L N.
   Proof.
     intros g f.
-    refine (Build_Homomorphism _ _ ((hom_map g) o (hom_map f)) _ _).
-    - exact (ap (hom_map g) (preserve_id f) @ (preserve_id g)).
+    refine (Build_Homomorphism _ _ (g o f) _ _).
+    - exact (ap g (preserve_id f) @ (preserve_id g)).
     - intros m1 m2.
-      refine ((ap (hom_map g) (preserve_mult f)) @ _).
+      refine ((ap g (preserve_mult f)) @ _).
       exact (preserve_mult g ).
   Defined.
 
   (*A homomorphism of groups preserve inverses*)
-  Definition preserve_inv (G H : Group) (f : Homomorphism G H) (a : G) :
-    hom_map f (- a) = - (hom_map f a).
+  Definition preserve_inv {G H : Group} (f : Homomorphism G H) (a : G) :
+    f (- a) = - (f a).
   Proof.
     apply grp_moveL_V1.
     refine ((preserve_mult f)^ @ _).
     refine (_ @ preserve_id f).
-    exact (ap (hom_map f) (grp_rinv a)).
-  Defined.    
+    exact (ap f (grp_rinv a)).
+  Defined.
 End Homomorphism.
 
 Notation "'Hom'" := Homomorphism : monoid_scope.
+Infix "oH" := compose_hom (at level 40, left associativity).

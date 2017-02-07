@@ -7,36 +7,36 @@ Section Classifying_Space.
   (*Define the classifying space of a monoid as a cell complex*)
 
   (*The 1-skeleton of B.*)
-  Definition B1 (M : Monoid)  := @Coeq M Unit (const tt) (const tt).
+  Definition pre_B (M : Monoid)  := @Coeq M Unit (const tt) (const tt).
   
-  (*B1 has one point:*)
-  Global Instance ispointed_B1 {M : Monoid} : IsPointed (B1 M) := coeq tt.
+  (*pre_B has one point:*)
+  Global Instance ispointed_pre_B {M : Monoid} : IsPointed (pre_B M) := coeq tt.
   
-  (*B1 has one loop for every m : M*)
-  Definition B_loop1 {M : Monoid} : M -> point (B1 M) = point (B1 M) := cp.
+  (*pre_B has one loop for every m : M*)
+  Definition pre_B_loop {M : Monoid} : M -> point (pre_B M) = point (pre_B M) := cp.
 
-  Definition B1_rec {M : Monoid}
+  Definition pre_B_rec {M : Monoid}
              (P : Type)
              (bp : P)
              (l : forall m : M, bp = bp) :
-    B1 M -> P.
+    pre_B M -> P.
     srapply @Coeq_rec.
     - exact (const bp). (*intros []. exact bp.*)
     - exact l.
   Defined.
 
-  Definition B1_rec_beta_l {M : Monoid}
+  Definition pre_B_rec_beta_l {M : Monoid}
              (P : Type)
              (bp : P)
              (l : forall m : M, bp = bp)
              (m : M):
-    ap (B1_rec P bp l) (B_loop1 m) = l m :=
+    ap (pre_B_rec P bp l) (pre_B_loop m) = l m :=
     Coeq_rec_beta_cp P (const bp) l m.
 
-  Definition B1_ind {M : Monoid}
-             (P : B1 M -> Type) (bp : P (point (B1 M)))
-             (loop' : forall (m : M), transport P (B_loop1 m) bp = bp)
-             : forall a : B1 M, P a.
+  Definition pre_B_ind {M : Monoid}
+             (P : pre_B M -> Type) (bp : P (point (pre_B M)))
+             (loop' : forall (m : M), transport P (pre_B_loop m) bp = bp)
+             : forall a : pre_B M, P a.
   Proof.
     srapply @Coeq_ind.
     - intros []. exact bp.
@@ -44,24 +44,24 @@ Section Classifying_Space.
   Defined.
 
 
-  Definition B1_ind_beta_l {M : Monoid}
-             (P : B1 M -> Type) (bp : P (point (B1 M)))
-             (loop' : forall (m : M), transport P (B_loop1 m) bp = bp)
+  Definition pre_B_ind_beta_l {M : Monoid}
+             (P : pre_B M -> Type) (bp : P (point (pre_B M)))
+             (loop' : forall (m : M), transport P (pre_B_loop m) bp = bp)
              (m : M) :
-    apD (B1_ind P bp loop') (B_loop1 m) = loop' m
+    apD (pre_B_ind P bp loop') (pre_B_loop m) = loop' m
     :=
       Coeq_ind_beta_cp P _ loop' m.
 
   
-  Definition looptofill (M : Monoid) (m1 m2 : M) : S1 -> B1 M.
-    refine (S1_rec (B1 M) (point (B1 M)) _).
-    exact ((B_loop1 m1) @ (B_loop1 m2) @ (B_loop1 (m1 + m2))^).
+  Definition looptofill (M : Monoid) (m1 m2 : M) : S1 -> pre_B M.
+    refine (S1_rec (pre_B M) (point (pre_B M)) _).
+    exact ((pre_B_loop m1) @ (pre_B_loop m2) @ (pre_B_loop (m1 + m2))^).
   Defined.
 
-  Definition looptofill_curried (M : Monoid) : M*M*S1 -> B1 M :=
+  Definition looptofill_curried (M : Monoid) : M*M*S1 -> pre_B M :=
     prod_curry (prod_curry (looptofill M)).  
   
-  Definition S1toB1 {M : Monoid} (m1 m2 : M) : S1 -> B1 M :=
+  Definition S1topre_B {M : Monoid} (m1 m2 : M) : S1 -> pre_B M :=
     looptofill M m1 m2.
 
   Definition collapseS1 (M : Monoid) : M*M*S1 -> M*M.
@@ -70,34 +70,21 @@ Section Classifying_Space.
   Defined. 
 
   (*Construct 2-cells*)
-  Definition B2 (M : Monoid) := pushout
+  Definition B (M : Monoid) := pushout
                                   (looptofill_curried M)
                                   (collapseS1 M).
 
   Definition ispointed_MMS1 {M : Monoid} : IsPointed (M * M * S1) := (mon_id M, mon_id M, base).
-  
-(*  (*Not sure if this is needed. . .*)
-  Definition path_to_other_pt {M : Monoid} (x : M * M * S1) : pushl x = point (B2 M) := pp x. *)
 
-  Definition B1toB2 {M : Monoid} : B1 M -> B2 M := (push o inl).
+  Definition pre_BtoB {M : Monoid} : pre_B M -> B M := (push o inl).
 
-  Global Instance ispointed_B2 {M : Monoid} : IsPointed (B2 M) := B1toB2 ispointed_B1.
-  (*  Definition otherpt_B2 {M : Monoid} (m1 m2 : M) : B2 M := push (inr (m1, m2)).
-  Definition path_to_otherpt_B2 {M : Monoid} (m1 m2 : M) : point (B2 M) = otherpt_B2 m1 m2 :=
-    pp (m1, m2, base). *)
+  Global Instance ispointed_B {M : Monoid} : IsPointed (B M) := pre_BtoB ispointed_pre_B.
 
-  Definition B_loop2 {M : Monoid} (m : M) : point (B2 M) = point (B2 M) :=
-    ap B1toB2 (B_loop1 m).
+  Definition B_loop {M : Monoid} (m : M) : point (B M) = point (B M) :=
+    ap pre_BtoB (pre_B_loop m).
 
-(*  Definition nullhom_S1toB2' {M : Monoid} (m1 m2 : M) :
-    B1toB2 o (S1toB1 m1 m2) == const (otherpt_B2 m1 m2).
-  Proof.
-    intro x.
-    exact (pp (m1, m2, x)).
-  Defined. *)
-
-  Definition nullhom_S1toB2 {M : Monoid} (m1 m2 : M) :
-    B1toB2 o (S1toB1 m1 m2) == (fun _ : S1 => B1toB2 (S1toB1 m1 m2 base)) .
+  Definition nullhom_S1toB {M : Monoid} (m1 m2 : M) :
+    pre_BtoB o (S1topre_B m1 m2) == (fun _ : S1 => pre_BtoB (S1topre_B m1 m2 base)) .
   Proof.
     intro x.
     refine (concat (pp (m1, m2, x)) _).
@@ -105,50 +92,48 @@ Section Classifying_Space.
   Defined.
 
 
-  Definition const_S1toB2 `{Funext} {M : Monoid} (m1 m2 : M) :
-    B1toB2 o (S1toB1 m1 m2) = (fun _ : S1 => B1toB2 (S1toB1 m1 m2 base)) :=
-    path_forall _ _ (nullhom_S1toB2 m1 m2).
+  Definition const_S1toB {M : Monoid} (m1 m2 : M) :
+    pre_BtoB o (S1topre_B m1 m2) = (fun _ : S1 => pre_BtoB (S1topre_B m1 m2 base)) :=
+    path_forall _ _ (nullhom_S1toB m1 m2).
 
-  
-
-  Definition ishom_MtoB2 `{Funext} {M : Monoid} (m1 m2: M) :
-     B_loop2 m1 @ B_loop2 m2 = B_loop2 (m1 + m2).
+  Definition B_resp_mul {M : Monoid} (m1 m2: M) :
+     B_loop (m1 + m2) = B_loop m1 @ B_loop m2.
   Proof.
-    unfold B_loop2.
-    apply moveL_1M.
-    refine (whiskerR (ap_pp B1toB2 _ _)^ _ @ _).
-    refine (whiskerL _ (ap_V B1toB2 _)^ @ _).
-    refine ((ap_pp B1toB2 _ _)^ @ _).
-    refine (ap02 _ (S1_rec_beta_loop _ _ _)^ @ _).
-    refine ((ap_compose _ _ _)^ @ _).
-    refine (_ @ ap_const loop (B1toB2 (S1toB1 m1 m2 base))) .
-    refine (_ @ ap12 loop (const_S1toB2 m1 m2)).
+    unfold B_loop.
+    apply moveR_1M.
+    refine (_ @ whiskerR (ap_pp pre_BtoB _ _) _).
+    refine (_ @ whiskerL _ (ap_V pre_BtoB _)).
+    refine (_ @ (ap_pp pre_BtoB _ _)).
+    refine (_ @ ap02 _ (S1_rec_beta_loop _ _ _)).
+    refine (_ @ (ap_compose _ _ _)).
+    refine ((ap_const loop (pre_BtoB (S1topre_B m1 m2 base)))^ @ _).
+    refine ((ap12 loop (const_S1toB m1 m2))^ @ _).
     change
       (S1_rec (Coeq (const tt) (const tt)) (coeq tt)
-              ((B_loop1 m1 @ B_loop1 m2) @ (B_loop1 (m1 + m2))^)) with
-    (S1toB1 m1 m2).
-    assert (p : (ap10 (const_S1toB2 m1 m2) base) = idpath).
-    { refine ((ap10_path_forall _ _ (nullhom_S1toB2 m1 m2) _) @ _).
+              ((pre_B_loop m1 @ pre_B_loop m2) @ (pre_B_loop (m1 + m2))^)) with
+    (S1topre_B m1 m2).
+    assert (p : (ap10 (const_S1toB m1 m2) base) = idpath).
+    { refine ((ap10_path_forall _ _ (nullhom_S1toB m1 m2) _) @ _).
       apply concat_pV. }
-    refine (_ @ whiskerL _ p^).
-    refine (_ @ (concat_p1 _ )^).
-    refine (_ @ whiskerR (inverse2 p)^  _).
-    exact (concat_1p _)^.
-  Defined.                          
+    refine (whiskerL _ p @ _).
+    refine (concat_p1 _ @ _).
+    refine (whiskerR (inverse2 p) _ @ _).
+    apply concat_1p.
+  Defined.
 
-  Definition B2_rec {M : Monoid}
-             (P : Type)
-             (bp : P)
-             (l : M -> bp = bp)
-             (h : forall m1 m2 : M, l m1 @ l m2 = l (m1 + m2) ) :
-    B2 M -> P.
-    (*B2 is the pushout of B1 M and M*M*S1*)
+  Definition B_rec {M : Monoid}
+             (C : Type)
+             (c0 : C)
+             (Cp : M -> c0 = c0)
+             (resp_mul_C : forall m1 m2 : M, Cp (m1 + m2) = Cp m1 @ Cp m2) :
+    B M -> C.
+    (*B is the pushout of pre_B M and M*M*S1*)
     srapply @pushout_rec.
     - apply sum_rect.      
-      + (*The map defined on B1 is given by l*)
-        exact (B1_rec _ bp l).
+      + (*The map defined on pre_B is given by l*)
+        exact (pre_B_rec _ c0 Cp).
         (*The map on M*M*S1 is the constant map (it gives the loops that will be killed)*)
-      + exact (const bp).
+      + exact (const c0).
     - (*Show that the map is well-defined, e.g. m1@m2=m1*m2 *)
       simpl.
       intros [[m1 m2]].
@@ -161,167 +146,144 @@ Section Classifying_Space.
       + exact idpath.
       + refine (concat (transport_paths_Fl loop idpath) _).
         refine (concat_p1 _ @ _).
-        unfold B1_rec.
-        refine (concat (y := 1^) (inverse2 _) idpath). (*This feels stupid. . .*)
+        unfold pre_B_rec.
+        apply (inverse2 (q := idpath)).
         refine (ap_compose _ _ _ @ _).
-        refine (concat (y:= ap (Coeq_rec P (const bp) l)
-                               ((B_loop1 m1 @ B_loop1 m2) @ (B_loop1 (m1 + m2))^) ) _ _).
+        refine (concat (y:= ap (Coeq_rec C (const c0) Cp)
+                               ((pre_B_loop m1 @ pre_B_loop m2) @ (pre_B_loop (m1 + m2))^) ) _ _).
         { apply (ap (ap _)). apply S1_rec_beta_loop. }
         refine (ap_pp _ _ _ @ _).
         refine (whiskerR (ap_pp _ _ _) _ @ _).
         refine (whiskerL _ (ap_V _ _) @ _).
         apply moveR_pV.
         refine (_ @ (concat_1p _)^).
-        unfold B_loop1.
-        refine (_ @ (Coeq_rec_beta_cp P (const bp) l (m1 + m2))^).
-        refine (_ @ h m1 m2).
-        apply concat2; refine (Coeq_rec_beta_cp P (const bp) l _).
+        unfold pre_B_loop.
+        refine (_ @ (Coeq_rec_beta_cp C (const c0) Cp (m1 + m2))^).
+        refine (_ @ (resp_mul_C m1 m2)^).
+        apply concat2; refine (Coeq_rec_beta_cp C (const c0) Cp _).
   Defined.
 
-  Definition B2_rec_beta_l {M : Monoid}
-             (P : Type)
-             (bp : P)
-             (l : M -> bp = bp)
-             (h : forall m1 m2 : M, l m1 @ l m2 = l (m1 + m2) )
+  Definition B_rec_beta_l {M : Monoid}
+             (C : Type)
+             (c0 : C)
+             (Cp : M -> c0 = c0)
+             (resp_mul_C : forall m1 m2 : M, Cp (m1 + m2) = Cp m1 @ Cp m2)
              (m : M):
-    ap (B2_rec P bp l h) (B_loop2 m) = l m.
+    ap (B_rec C c0 Cp resp_mul_C) (B_loop m) = Cp m.
   Proof.
-    unfold B2_rec. unfold B_loop2. unfold B1toB2.
-    Admitted.
-  
+    unfold B_loop.
+    refine ((ap_compose pre_BtoB _ _)^ @ _).
+    apply pre_B_rec_beta_l.
+  Defined.
 
   (*Should probably switch to lean or implement pathovers here. . .*)
-  Definition B2_ind {M : Monoid}
-             (P : B2 M -> Type)
-             (bp : P (point (B2 M)))
-             (l : forall (m : M), transport P (B_loop2 m) bp = bp)
-             (h : forall (m1 m2 : M),
+  Definition B_ind {M : Monoid}
+             (C : B M -> Type)
+             (c0 : C (point (B M)))
+             (Cp : forall (m : M), transport C (B_loop m) c0 = c0)
+
+
+
+             (resp_mul_C : forall (m1 m2 : M),
                     transport
-                      (fun pth => transport P pth bp = bp)
-                      (ishom_MtoB2 m1 m2)
-                      (transport_pp P (B_loop2 m1) (B_loop2 m2) bp @
-                                    ap (transport P (B_loop2 m2)) (l m1) @ (l m2))
-                    = l (m1 + m2))
-             : forall a : B2 M, P a.
-    (*Weird try : go via sigma types*)
-    (* apply section_to_depfun. *)
-    (* esplit. *)
-    (* Unshelve. *)
-    (* admit. *)
-    (* srapply @B2_rec. *)
-    (*   -(*The basepoint goes to. . .*) *)
-    (*     exists (point (B2 M)). exact bp. *)
-    (*   - (*B_loop goes to. . .*) *)
-    (*     intro m. *)
-    (*     srapply @path_sigma. *)
-    (*       exact (B_loop2 m). *)
-    (*       exact (l m). *)
-    (*   - intros m1 m2. simpl. *)
-    (*     refine ((path_sigma_pp_pp P _ _ _ _)^ @ _). *)
-    (*     srapply @path2_sigma. *)
-    (*      + apply ishom_MtoB2. *)
-    (*      + simpl. *)
-    (*        refine (transport_paths_Fl (ishom_MtoB2 m1 m2)  _  @ _). *)
-    (*        apply moveR_Vp. *)
-    (*        apply inverse. *)
-    (*        apply moveR_pM. *)
-    (*        admit. *)
-    (*        Unshelve. *)
-
-    (*     refine (_ @ inv_V _). *)
-    (*     refine (_ @ (ap inverse (path_sigma_V ) *)
-        
-
-    (*     (*Todo: path_sigma_V*) *)
-        
-    (*     apply moveL_1M. *)
-    (*     refine ((path_sigma_pp_pp P _ _ _ _)^ @ _). *)
-          
+                      (fun pth => transport C pth c0 = c0)
+                      (B_resp_mul m1 m2)
+                      (Cp (m1 + m2))
+                    = concat_over _ _ _ (Cp m1) (Cp m2))
+             : forall a : B M, C a.
     srapply @pushout_ind.
     - apply sum_ind.
-      + srapply @B1_ind.
+      + srapply @pre_B_ind.
         * (*Variable is basepoint*)
-          exact bp.
-        * (*Variable runs along B_loop2*)
+          exact c0.
+        * (*Variable runs along B_loop*)
           intro m.
-          refine (transport_compose P (push o inl) (B_loop1 m) bp @ _).
-          exact (l m).
+          refine (transport_compose C (push o inl) (pre_B_loop m) c0 @ _).
+          exact (Cp m).
       + (*Variable is hub point*)
         intros [m1 m2].
-        exact (transport P (pp (m1, m2, base)) bp).
+        exact (transport C (pp (m1, m2, base)) c0).
     - intros [[m1 m2]].
       srapply @S1_ind.
       + reflexivity.
-      + (*Variable runs along ishom (I think. . . )*)
+      + (*Variable runs along resp_mult (I think. . . )*)
         cbn.
-        set (restriction_to_B1 := (B1_ind
-                                     (fun a : B1 M => P (push (inl a))) bp
+        set (restriction_to_pre_B := (pre_B_ind
+                                     (fun a : pre_B M => C (push (inl a))) c0
                                      (fun m : M =>
-                                        transport_compose P (fun x0 : B1 M => push (inl x0)) 
-                                                          (B_loop1 m) bp @ l m))).
-        (*Try to simplify now, didn't become simpler. . .
-        refine (transport_PequivQ
-                  (fun x => equiv_moveL_transport_V
-                              P (pp (m1, m2, x))
-                              (restriction_to_B1 (looptofill_curried M (m1, m2, x)))
-                              _)
-                  loop idpath @ _).
-        apply moveR_equiv_V.
-        cbn. unfold equiv_inv.
-        apply moveL_Vp.
-        *)
-                                         
+                                        transport_compose C (fun x0 : pre_B M => push (inl x0)) 
+                                                          (pre_B_loop m) c0 @ Cp m))).
 
-        (* refine (transport_paths_FlFr_D *)
-        (*           (f := fun x => transport P (pp (m1, m2, x)) *)
-        (*                                    (restriction_to_B1 (looptofill M m1 m2 x))) *)
-        (*           (g := const (transport P (pp (m1, m2, base)) bp)) *)
-        (*           loop idpath @ _). *)
-        (* apply moveR_pM. *)
-        (* refine (_ @ (concat_1p _)^). *)
-        
-        
-        (* apply moveR_Vp. *)
-        (* transitivity (idpath (transport P (pp (m1, m2, base)) bp)). *)
-
-
-
-        
         (* refine (transport_paths_FlFr_D loop idpath @ _). *)
 
         (* dpath_path_FlFr *)
         (* transport_paths_FlFr_D *)
         
-        simpl in restriction_to_B1. unfold looptofill_curried. unfold prod_curry. simpl.
+        simpl in restriction_to_pre_B. unfold looptofill_curried. unfold prod_curry. simpl.
+
+        (*Want to factorize our dependent type.*)
+
+        set (P := fun xb : {x : S1 & C (push (inl (looptofill M m1 m2 x)))} =>
+                transport C (pp (m1, m2, xb.1)) xb.2 = transport C (pp (m1, m2, base)) c0).
+
+        refine (transport_compose
+                  P
+                  (section_of (restriction_to_pre_B oD looptofill M m1 m2)) loop idpath @ _).
+        unfold P. clear P.
+        refine (transport_paths_Fl
+                  (ap (section_of (restriction_to_pre_B oD looptofill M m1 m2)) loop)
+                  idpath @ _).
+        refine (concat_p1 _ @ _).
+        apply (inverse2 (q := idpath)).
+
+        rewrite ap_section.
+        rewrite (apD_composeD restriction_to_pre_B (looptofill M m1 m2)).
+        simpl.
+        assert (ap (looptofill M m1 m2) loop =
+                ((pre_B_loop m1 @ pre_B_loop m2) @ (pre_B_loop (m1 + m2))^)). apply S1_rec_beta_loop.
+        rewrite X.
+        rewrite (S1_rec_beta_loop (pre_B M) (point (pre_B M))
+  ((pre_B_loop m1 @ pre_B_loop m2) @ (pre_B_loop (m1 + m2))^)).
+        
+
+        assert (ap (section_of (restriction_to_pre_B oD looptofill M m1 m2)) loop =
+                (path_sigma _ _ _ idpath (apD (restriction_to_pre_B oD looptofill M m1 m2)))).
+        
+        assert ((ap (fun a : S1 => (a; (restriction_to_pre_B oD looptofill M m1 m2) a)) loop) =
+                path_sigma _ _ _ idpath (apD (restriction_to_pre_B oD (looptofill M m1 m2)) loop)).
+        
+        
+                
+        
 
 
         (* moveR_transport_p *)
         (*   ap01D1 *)
           
         (* refine (transport_composeD *)
-        (*           (fun x : S1 => (restriction_to_B1 (looptofill M m1 m2 x)) = *)
-        (*                          transport P (pp (m1, m2, x))^ *)
-        (*                                    (transport P (pp (m1, m2, base)) bp)) *)
+        (*           (fun x : S1 => (restriction_to_pre_B (looptofill M m1 m2 x)) = *)
+        (*                          transport C (pp (m1, m2, x))^ *)
+        (*                                    (transport C (pp (m1, m2, base)) c0)) *)
                   
-        (*           (fun x => moveR_transport_p P (pp (m1, m2, x)) *)
-        (*                                       (restriction_to_B1 (looptofill M m1 m2 x)) *)
-        (*                                       (transport P (pp (m1, m2, base)) bp) ) *)
+        (*           (fun x => moveR_transport_p C (pp (m1, m2, x)) *)
+        (*                                       (restriction_to_pre_B (looptofill M m1 m2 x)) *)
+        (*                                       (transport C (pp (m1, m2, base)) c0) ) *)
                                  
                                  
                                  
                                  
-        (*           (fun x b => transport P (pp (m1, m2, x)) *)
-        (*                                 (restriction_to_B1 b) = *)
-        (*                       transport P (pp (m1, m2, base)) bp) *)
+        (*           (fun x b => transport C (pp (m1, m2, x)) *)
+        (*                                 (restriction_to_pre_B b) = *)
+        (*                       transport C (pp (m1, m2, base)) c0) *)
         (*           (fun x => looptofill M m1 m2 x) *)
         (*           loop idpath *)
         (*           @ _). *)
         (* Unshelve. *)
         (* Focus 2. *)
         (*   intros x b. *)
-        (*   exact (transport P (pp (m1, m2, x))  *)
-        (*                    (restriction_to_B1 b) = *)
-        (*          transport P (pp (m1, m2, base)) bp) . *)
+        (*   exact (transport C (pp (m1, m2, x))  *)
+        (*                    (restriction_to_pre_B b) = *)
+        (*          transport C (pp (m1, m2, base)) c0) . *)
           
                   
                   
@@ -334,18 +296,18 @@ Section Classifying_Space.
         
         change (fun x : S1 =>
                   transport
-                    P (pp (m1, m2, x))
-                    (restriction_to_B1 (looptofill M m1 m2 x)))
+                    C (pp (m1, m2, x))
+                    (restriction_to_pre_B (looptofill M m1 m2 x)))
                with
-               (composeDD (fun x => transport P (pp (m1, m2, x)))
-                          (composeD restriction_to_B1 (looptofill M m1 m2))) .
+               (composeDD (fun x => transport C (pp (m1, m2, x)))
+                          (composeD restriction_to_pre_B (looptofill M m1 m2))) .
         
         (* enough (ap_S1 : *)
-        (*           ap (looptofill M m1 m2) loop = ((B_loop1 m1 @ B_loop1 m2) @ (B_loop1 (m1 + m2))^)). *)
-        (* enough (ap_B1 : *)
-        (*           apD (restriction_to_B1 oD looptofill M m1 m2) loop = *)
+        (*           ap (looptofill M m1 m2) loop = ((pre_B_loop m1 @ pre_B_loop m2) @ (pre_B_loop (m1 + m2))^)). *)
+        (* enough (ap_pre_B : *)
+        (*           apD (restriction_to_pre_B oD looptofill M m1 m2) loop = *)
         (*           transport_compose _ _ _ _ @ *)
-        (*              apD restriction_to_B1 ((B_loop1 m1 @ B_loop1 m2) @ (B_loop1 (m1 + m2))^)). *)
+        (*              apD restriction_to_pre_B ((pre_B_loop m1 @ pre_B_loop m2) @ (pre_B_loop (m1 + m2))^)). *)
 
 
         (* admit. *)
@@ -353,14 +315,14 @@ Section Classifying_Space.
         
         
         
-        (* refine (_ @ moveR_Vp (apD_const (composeDD (fun x : S1 => transport P (pp (m1, m2, x))) *)
-        (*                                            (restriction_to_B1 oD looptofill M m1 m2)) loop)). *)
+        (* refine (_ @ moveR_Vp (apD_const (composeDD (fun x : S1 => transport C (pp (m1, m2, x))) *)
+        (*                                            (restriction_to_pre_B oD looptofill M m1 m2)) loop)). *)
         
         
           
         transitivity ((transport_const _ _)^ @
-                      (apD (composeDD (fun x : S1 => transport P (pp (m1, m2, x)))
-                           (restriction_to_B1 oD looptofill M m1 m2)) loop)).
+                      (apD (composeDD (fun x : S1 => transport C (pp (m1, m2, x)))
+                           (restriction_to_pre_B oD looptofill M m1 m2)) loop)).
         * apply moveL_Vp.
           refine (concat_p1 _ @ _).
           apply inverse.
@@ -370,11 +332,11 @@ Section Classifying_Space.
           refine (apD_composeDD _ _ loop @ _).
           apply moveR_Mp.
 
-          (* transitivity (apD011 (fun x : S1 => transport P (pp (m1, m2, x))) loop *)
-          (*                 (apD restriction_to_B1 ((B_loop1 m1 @ B_loop1 m2) @ (B_loop1 (m1 + m2))^)) *)
+          (* transitivity (apD011 (fun x : S1 => transport C (pp (m1, m2, x))) loop *)
+          (*                 (apD restriction_to_pre_B ((pre_B_loop m1 @ pre_B_loop m2) @ (pre_B_loop (m1 + m2))^)) *)
           (*                 ). *)
           (* apD_compose *)
-          (*rewrite B1_beta?*)
+          (*rewrite pre_B_beta?*)
           
           admit.
         * apply moveR_Vp.
@@ -388,33 +350,33 @@ Section Classifying_Space.
 
 (*Alternative way to write g:*)                             
                           (* (fun x => *)
-                          (*    B1_ind *)
-                          (*    (fun a : B1 M => P (push (inl a))) bp *)
+                          (*    pre_B_ind *)
+                          (*    (fun a : pre_B M => C (push (inl a))) c0 *)
                           (*    (fun m : M => *)
-                          (*       transport_compose P (fun x0 : B1 M => push (inl x0))  *)
-                          (*                         (B_loop1 m) bp @ l m) (looptofill M m1 m2 x))). *)
+                          (*       transport_compose C (fun x0 : pre_B M => push (inl x0))  *)
+                          (*                         (pre_B_loop m) c0 @ l m) (looptofill M m1 m2 x))). *)
                                       
                                            
-        (* set (Pl := fun a : B1 M => P (push (inl a))). *)
+        (* set (Pl := fun a : pre_B M => C (push (inl a))). *)
         
 
         (* set (f := *)
         (*        (fun x : S1 => *)
         (*           transport *)
-        (*             P (pp (m1, m2, x)) *)
-        (*             (B1_ind *)
-        (*                Pl bp *)
+        (*             C (pp (m1, m2, x)) *)
+        (*             (pre_B_ind *)
+        (*                Cl c0 *)
         (*                (fun m : M => *)
-        (*                   transport_compose P (fun x0 : B1 M => push (inl x0))  *)
-        (*                                     (B_loop1 m) bp @ l m) (looptofill_curried M (m1, m2, x))))). *)
+        (*                   transport_compose C (fun x0 : pre_B M => push (inl x0))  *)
+        (*                                     (pre_B_loop m) c0 @ l m) (looptofill_curried M (m1, m2, x))))). *)
         (* change (fun x : S1 => *)
         (*           transport *)
-        (*             P (pp (m1, m2, x)) *)
-        (*             (B1_ind *)
-        (*                Pl bp *)
+        (*             C (pp (m1, m2, x)) *)
+        (*             (pre_B_ind *)
+        (*                Cl c0 *)
         (*                (fun m : M => *)
-        (*                   transport_compose P (fun x0 : B1 M => push (inl x0))  *)
-        (*                                     (B_loop1 m) bp @ l m) (looptofill_curried M (m1, m2, x)))) *)
+        (*                   transport_compose C (fun x0 : pre_B M => push (inl x0))  *)
+        (*                                     (pre_B_loop m) c0 @ l m) (looptofill_curried M (m1, m2, x)))) *)
         (*        with f. *)
         (* unfold pushr in f. unfold collapseS1 in f. *)
         (* apply (cancelL (transport_const loop (f base)) _ _). *)
@@ -460,10 +422,10 @@ Section Classifying_Space.
 
 
         (* assert ((fun x : S1 => transport P (pp (m1, m2, x))^ (f x)) == *)
-        (*        B1_ind (fun a : B1 M => P (push (inl a))) bp *)
+        (*        pre_B_ind (fun a : pre_B M => P (push (inl a))) c0 *)
         (*                 (fun m : M => *)
-        (*                    transport_compose P (fun x0 : B1 M => push (inl x0))  *)
-        (*                                      (B_loop1 m) bp @ l m) o (looptofill M m1 m2)). *)
+        (*                    transport_compose P (fun x0 : pre_B M => push (inl x0))  *)
+        (*                                      (pre_B_loop m) c0 @ l m) o (looptofill M m1 m2)). *)
         (*   { intro x. *)
         (*     unfold f. refine ((transport_pp P _ _ _)^ @ _). *)
         (*     refine (transport2 P (q := idpath) (concat_pV _) _ @ _). *)
@@ -477,12 +439,12 @@ Section Classifying_Space.
         
    (*      apply inverse. *)
         
-   (*      set (Pl := (fun a : B1 M => P (push (inl a))) ). *)
-   (*      change (fun a : B1 M => P (push (inl a))) with Pl. *)
+   (*      set (Pl := (fun a : pre_B M => P (push (inl a))) ). *)
+   (*      change (fun a : pre_B M => P (push (inl a))) with Pl. *)
    (*      set (lm := (fun m : M => *)
-   (*                  transport_compose P (fun x0 : B1 M => push (inl x0)) (B_loop1 m) bp @ l m) ). *)
+   (*                  transport_compose P (fun x0 : pre_B M => push (inl x0)) (pre_B_loop m) c0 @ l m) ). *)
    (*      change (fun m : M => *)
-   (*                  transport_compose P (fun x0 : B1 M => push (inl x0)) (B_loop1 m) bp @ l m) with lm. *)
+   (*                  transport_compose P (fun x0 : pre_B M => push (inl x0)) (pre_B_loop m) c0 @ l m) with lm. *)
    (*      unfold looptofill_curried. *)
    (*      unfold prod_curry. *)
    (*      unfold looptofill. *)
@@ -492,8 +454,8 @@ Section Classifying_Space.
         
    (*      refine (concat *)
    (*                (ap_compose *)
-   (*                   (S1_rec (B1 M) (point (B1 M)) *)
-   (*                           ((B_loop1 m1 @ B_loop1 m2) @ (B_loop1 (m1 + m2))^) ) *)
+   (*                   (S1_rec (pre_B M) (point (pre_B M)) *)
+   (*                           ((pre_B_loop m1 @ pre_B_loop m2) @ (pre_B_loop (m1 + m2))^) ) *)
    (*                    _ loop *)
    (*                ) *)
    (*                _ ). *)
@@ -507,18 +469,18 @@ Section Classifying_Space.
     
    (*  refine (pushout_ind _ _ _ _ _). *)
    (*  - apply sum_ind. *)
-   (*    + refine (B1_ind _ _ _). *)
-   (*      * exact bp. *)
+   (*    + refine (pre_B_ind _ _ _). *)
+   (*      * exact c0. *)
    (*      * intro m. *)
    (*        refine (concat *)
    (*                  (transport_compose P (push o inl) *)
-   (*                                     (B_loop1 m) *)
-   (*                                     bp ) *)
+   (*                                     (pre_B_loop m) *)
+   (*                                     c0 ) *)
    (*                  _ *)
    (*               ). *)
    (*        apply ident. *)
    (*    + intros [m1 m2]. *)
-   (*      exact (transport P (pp (m1, m2, base)) bp). *)
+   (*      exact (transport P (pp (m1, m2, base)) c0). *)
    (*  - intros [[m1 m2]]. *)
    (*    refine (S1_ind _ _ _). *)
    (*    + exact idpath. *)
@@ -534,19 +496,19 @@ Section Classifying_Space.
         
 
           
-   (*      unfold B_loop1. *)
+   (*      unfold pre_B_loop. *)
 
    (*      refine (concat *)
    (*                (ap_compose *)
-   (*                   (S1_rec (B1 M) (point (B1 M)) *)
-   (*                           ((B_loop1 m1 @ B_loop1 m2) @ (B_loop1 (multM m1 m2))^) ) *)
+   (*                   (S1_rec (pre_B M) (point (pre_B M)) *)
+   (*                           ((pre_B_loop m1 @ pre_B_loop m2) @ (pre_B_loop (multM m1 m2))^) ) *)
    (*                    _ loop *)
    (*                ) *)
    (*                _ ). *)
         
                
                   
-   (*      unfold B1_ind. *)
+   (*      unfold pre_B_ind. *)
         
         
 
@@ -559,25 +521,25 @@ Section Classifying_Space.
 (*TODO*) (*
   Global Instance ispointed_S1 : IsPointed S1 := base.
   Definition pS1 := Build_pType S1 _.
-  Definition pB1 (M : Monoid) := Build_pType (B1 M) _.
-  Definition pB2 (M : Monoid) := Build_pType (B2 M) _.
-  Definition pS1toB1 {M : Monoid} (m1 m2 : M) :=
-    Build_pMap pS1 (pB1 M) (S1toB1 m1 m2) idpath.
-  Definition pB1toB2 {M : Monoid} (m1 m2 : M) : pB1 M ->* pB2 M :=
-    Build_pMap (pB1 M) (pB2 M) (B1toB2) idpath.
+  Definition ppre_B (M : Monoid) := Build_pType (pre_B M) _.
+  Definition pB (M : Monoid) := Build_pType (B M) _.
+  Definition pS1topre_B {M : Monoid} (m1 m2 : M) :=
+    Build_pMap pS1 (ppre_B M) (S1topre_B m1 m2) idpath.
+  Definition ppre_BtoB {M : Monoid} (m1 m2 : M) : ppre_B M ->* pB M :=
+    Build_pMap (ppre_B M) (pB M) (pre_BtoB) idpath.
  
-  Lemma pconst_S1toB2 `{Funext} (M : Monoid) (m1 m2 : M) :
-    (pB1toB2 m1 m2) o* (pS1toB1 m1 m2) = pconst pS1 (pB2 M).
+  Lemma pconst_S1toB `{Funext} (M : Monoid) (m1 m2 : M) :
+    (ppre_BtoB m1 m2) o* (pS1topre_B m1 m2) = pconst pS1 (pB M).
   Proof.
     apply path_pmap.
     refine (Build_pHomotopy _ _).
     intro x.
     simpl.
-    unfold const. unfold point. unfold ispointed_B2. unfold B1toB2. unfold ispointed_B1.
+    unfold const. unfold point. unfold ispointed_B. unfold pre_BtoB. unfold ispointed_pre_B.
     refine (concat _ (pp ispointed_MMS1)^).
-    apply (constant_S1toB2 x).
+    apply (constant_S1toB x).
     - cbn.
-      unfold constant_S1toB2.
+      unfold constant_S1toB.
       hott_simpl.
       apply moveR_pV.
       hott_simpl.
@@ -594,110 +556,110 @@ Section Classifying_Space.
   (*TODO: Use this to make the proof below simpler?*)
 *)
   
-  Definition monid_to_idpath2 `{Funext} {M : Monoid} : B_loop2 (mon_id M) = idpath.
-    apply (cancelL (B_loop2 (mon_id M)) _ _).
-    refine (concat (ishom_MtoB2 _ _) _).
+  Definition monid_to_idpath `{Funext} {M : Monoid} : B_loop (mon_id M) = idpath.
+    apply (cancelL (B_loop (mon_id M)) _ _).
+    refine (concat (ishom_MtoB _ _) _).
     refine (concat _ (concat_p1 _)^).
     apply (ap B_loop2).
     apply mon_lid.
   Defined.
 
-  Definition B (M : Monoid) := Tr 1 (B2 M).
+  Definition trB (M : Monoid) := Tr 1 (B M).
 
-  Global Instance ispointed_B {M : Monoid} : IsPointed (B M) := tr (point (B2 M)).
+  Global Instance ispointed_trB {M : Monoid} : IsPointed (trB M) := tr (point (B M)).
 
-  Definition B_loop {M : Monoid} (m : M) : point (B M) = point (B M) := ap tr (B_loop2 m).
-  Definition ishom_MtoB `{Funext} {M : Monoid} (m1 m2: M) :
-    (B_loop m1) @ (B_loop m2) = B_loop (m1 + m2).
+  Definition trB_loop {M : Monoid} (m : M) : point (trB M) = point (trB M) := ap tr (B_loop m).
+  Definition ishom_MtotrB `{Funext} {M : Monoid} (m1 m2: M) :
+    (trB_loop m1) @ (trB_loop m2) = trB_loop (m1 + m2).
     refine (concat (ap_pp tr _ _)^ _).
     apply (ap (ap tr)).
-    apply ishom_MtoB2.
+    apply ishom_MtoB.
   Defined.
 
-  Definition monid_to_idpath `{Funext} {M : Monoid} : B_loop (mon_id M) = idpath.
-    unfold B_loop.
+  Definition monid_to_idpath `{Funext} {M : Monoid} : trB_loop (mon_id M) = idpath.
+    unfold trB_loop.
     refine (concat _ (ap_1 _ tr)).
     apply (ap (ap tr)).
     apply monid_to_idpath2.
   Defined.
 
-  Definition B_rec {M : Monoid}
+  Definition trB_rec {M : Monoid}
              (P : Type) (istrunc : IsTrunc 1 P)
-             (bp : P)
-             (loop' : forall m : M, bp = bp)
+             (c0 : P)
+             (loop' : forall m : M, c0 = c0)
              (ishom : forall m1 m2 : M, loop' m1 @ loop' m2 = loop' (m1 + m2) )
-              : B M -> P.
+              : trB M -> P.
   Proof.
     apply Trunc_rec.
-    exact (B2_rec P bp loop' ishom).
+    exact (B_rec P c0 loop' ishom).
   Defined.
 
-  Definition B_rec_beta_l {M : Monoid}
+  Definition trB_rec_beta_l {M : Monoid}
              (P : Type) (istrunc : IsTrunc 1 P)
-             (bp : P)
-             (loop' : forall m : M, bp = bp)
+             (c0 : P)
+             (loop' : forall m : M, c0 = c0)
              (ishom : forall m1 m2 : M, loop' m1 @ loop' m2 = loop' (m1 + m2) )
              (m : M) :
-    ap (B_rec P istrunc bp loop' ishom) (B_loop m) = loop' m.
+    ap (trB_rec P istrunc c0 loop' ishom) (trB_loop m) = loop' m.
   Proof.
-    unfold B_rec.
+    unfold trB_rec.
     (*TODO: Trunc_rec_beta something exists?*)
   Admitted.
 
-  Definition B_ind {M : Monoid}
-             (P : B M -> Type) (istrunc : forall (a : B M), IsTrunc 1 (P a))
-             (bp : P (point (B M)))
-             (l : forall (m : M), transport P (B_loop m) bp = bp)
+  Definition trB_ind {M : Monoid}
+             (P : trB M -> Type) (istrunc : forall (a : trB M), IsTrunc 1 (P a))
+             (c0 : P (point (trB M)))
+             (l : forall (m : M), transport P (trB_loop m) c0 = c0)
              (h : forall (m1 m2 : M),
                     transport
-                      (fun pth => transport P pth bp = bp)
-                      (ishom_MtoB m1 m2)
-                      (transport_pp P (B_loop m1) (B_loop m2) bp @
-                                    ap (transport P (B_loop m2)) (l m1) @ (l m2))
+                      (fun pth => transport P pth c0 = c0)
+                      (ishom_MtotrB m1 m2)
+                      (transport_pp P (trB_loop m1) (trB_loop m2) c0 @
+                                    ap (transport P (trB_loop m2)) (l m1) @ (l m2))
                     = l (m1 + m2))
-             : forall a : B M, P a.
+             : forall a : trB M, P a.
     apply Trunc_ind.
     exact istrunc.
-    srapply @B2_ind.
-    - exact bp.
+    srapply @B_ind.
+    - exact c0.
     - intro m.
       refine (_ @ l m).
       unfold B_loop2.
-      refine ((transport_compose _ B1toB2 (B_loop1 m) bp)^ @ _).
-      unfold B_loop1.
-      unfold B_loop.
+      refine ((transport_compose _ pre_BtoB (pre_B_loop m) c0)^ @ _).
+      unfold pre_B_loop.
+      unfold trB_loop.
       admit.
     - admit.
   Admitted.
 
   (*Computation rule that becomes unessecary when B_rec is properly defined.*)
-  Definition B_rec_beta_bp {M : Monoid}
+  Definition trB_rec_beta_bp {M : Monoid}
              (P : Type) (istrunc : IsTrunc 1 P)
              (bp : P)
              (loop' : forall m : M, bp = bp)
              (ishom : forall m1 m2 : M, loop' m1 @ loop' m2 = loop' (m1 + m2) ) :
-    B_rec P istrunc bp loop' ishom (point (B M)) = bp.
+    trB_rec P istrunc bp loop' ishom (point (trB M)) = bp.
   Admitted.
 
-  Definition B_ind_beta_bp {M : Monoid}
-             (P : B M -> Type) (istrunc : forall (a : B M), IsTrunc 1 (P a))
-             (bp : P (point (B M)))
-             (l : forall (m : M), transport P (B_loop m) bp = bp)
+  Definition trB_ind_beta_bp {M : Monoid}
+             (P : trB M -> Type) (istrunc : forall (a : trB M), IsTrunc 1 (P a))
+             (bp : P (point (trB M)))
+             (l : forall (m : M), transport P (trB_loop m) bp = bp)
              (h : forall (m1 m2 : M),
                     transport
                       (fun pth => transport P pth bp = bp)
-                      (ishom_MtoB m1 m2)
-                      (transport_pp P (B_loop m1) (B_loop m2) bp @
-                                    ap (transport P (B_loop m2)) (l m1) @ (l m2))
+                      (ishom_MtotrB m1 m2)
+                      (transport_pp P (trB_loop m1) (trB_loop m2) bp @
+                                    ap (transport P (trB_loop m2)) (l m1) @ (l m2))
                     = l (m1 + m2)) :
-    B_ind P istrunc bp l h (point (B M)) = bp.
+    trB_ind P istrunc bp l h (point (trB M)) = bp.
   Admitted.
     
 End Classifying_Space.
 
 
 
-Section loopBM_is_groupcompletion.
+Section looptrBM_is_groupcompletion.
   Open Scope monoid_scope.
   Fixpoint iterloop (n : nat) :=
     match n with
@@ -706,15 +668,15 @@ Section loopBM_is_groupcompletion.
     end.
 
   (*A simple case first. . .*)
-  Lemma BN_is_S1 : S1 <~> B nat_monoid.
+  Lemma trBN_is_S1 : S1 <~> trB nat_monoid.
   Proof.
     srapply @equiv_adjointify.
-    - (*Map from S1 to BN*)
+    - (*Map from S1 to trBN*)
       srapply @S1_rec.
         exact (point _).
-      refine (B_loop _). exact 1.
-    - (*Map from BN to S1*)
-      srapply @B_rec.
+      refine (trB_loop _). exact 1.
+    - (*Map from trBN to S1*)
+      srapply @trB_rec.
       + exact base.
       + exact iterloop.
       + induction m1; intro m2.
@@ -723,17 +685,17 @@ Section loopBM_is_groupcompletion.
           refine (concat_pp_p _ _ _ @ _).
           apply whiskerL.
           apply IHm1. }
-    - (*Composition is identity on BN*)
-      srapply @B_ind.
+    - (*Composition is identity on trBN*)
+      srapply @trB_ind.
       simpl. exact idpath.
       +  simpl.
          intro m.
          refine
            (transport_paths_FlFr
               (f := fun a =>
-                    S1_rec (B nat_monoid) (point (B nat_monoid)) 
-                         (B_loop (M := nat_monoid) (S O))
-                         (B_rec (M := nat_monoid) S1 is1type_S1 base iterloop
+                    S1_rec (trB nat_monoid) (point (trB nat_monoid)) 
+                         (trB_loop (M := nat_monoid) (S O))
+                         (trB_rec (M := nat_monoid) S1 is1type_S1 base iterloop
                                 (fun m1 : nat =>
                                    nat_rect
                                      (fun m0 : nat =>
@@ -745,13 +707,13 @@ Section loopBM_is_groupcompletion.
                                           (m2 : nat) =>
                                         concat_pp_p loop (iterloop m0) (iterloop m2) @
                                                     whiskerL loop (IHm1 m2)) m1) a))
-            (B_loop (M := nat_monoid) m) idpath @ _).
+            (trB_loop (M := nat_monoid) m) idpath @ _).
          simpl.
          apply moveR_pM.
          refine (concat_p1 _ @ _ @ (concat_1p _)^).
          apply inverse2.
          refine (ap_compose
-                   (B_rec (M := nat_monoid) S1 is1type_S1 base iterloop
+                   (trB_rec (M := nat_monoid) S1 is1type_S1 base iterloop
                           (fun m1 : nat =>
                              nat_rect
                                (fun m0 : nat =>
@@ -763,26 +725,26 @@ Section loopBM_is_groupcompletion.
                                     (m2 : nat) =>
                                   concat_pp_p loop (iterloop m0) (iterloop m2) @
                                               whiskerL loop (IHm1 m2)) m1))
-                   (S1_rec (B nat_monoid) (point (B (nat_monoid))) (B_loop (M := nat_monoid) (S O)))
-                   (B_loop (M := nat_monoid) m) @ _).
+                   (S1_rec (trB nat_monoid) (point (trB (nat_monoid))) (trB_loop (M := nat_monoid) (S O)))
+                   (trB_loop (M := nat_monoid) m) @ _).
          transitivity
            (ap
-              (S1_rec (B nat_monoid) (point (B nat_monoid)) (B_loop (M := nat_monoid) 1)) (iterloop m)).
-         apply (ap (ap (S1_rec (B nat_monoid) (point (B nat_monoid)) (B_loop (M := nat_monoid) 1)))).
-         apply B_rec_beta_l.
+              (S1_rec (trB nat_monoid) (point (trB nat_monoid)) (trB_loop (M := nat_monoid) 1)) (iterloop m)).
+         apply (ap (ap (S1_rec (trB nat_monoid) (point (trB nat_monoid)) (trB_loop (M := nat_monoid) 1)))).
+         apply trB_rec_beta_l.
          (*Something transport_const?*)
-         Check (fun f : B nat_monoid -> B nat_monoid => ap f (B_loop (M := nat_monoid) m)).
+         Check (fun f : trB nat_monoid -> trB nat_monoid => ap f (trB_loop (M := nat_monoid) m)).
 
 
          induction m.
          { apply inverse. simpl.
            hott_simpl. apply (monid_to_idpath (M := nat_monoid)). }
          simpl. hott_simpl.
-         refine (ap_pp (S1_rec (B nat_monoid) (point (B nat_monoid)) (B_loop (M := nat_monoid) (S O)))
+         refine (ap_pp (S1_rec (trB nat_monoid) (point (trB nat_monoid)) (trB_loop (M := nat_monoid) (S O)))
                        loop (iterloop m) @ _).
          rewrite IHm.
          rewrite S1_rec_beta_loop.
-         srapply @ishom_MtoB.
+         srapply @ishom_MtotrB.
       + intros m1 m2.
         apply (istrunc_truncation 1).
     - (*Composition is identity on S1*)
@@ -792,7 +754,7 @@ Section loopBM_is_groupcompletion.
         refine (transport_paths_FlFr
                   (f :=
                      fun x : S1 =>
-                       B_rec
+                       trB_rec
                          (M := nat_monoid) S1 is1type_S1 base iterloop
                          (fun m1 : nat =>
                             nat_rect
@@ -806,18 +768,18 @@ Section loopBM_is_groupcompletion.
                                  concat_pp_p loop (iterloop m0) (iterloop m2) @
                                              whiskerL loop (IHm1 m2)) m1)
                          (S1_rec
-                            (B nat_monoid) (point (B nat_monoid)) (B_loop (M := nat_monoid) (S O)) x))
+                            (trB nat_monoid) (point (trB nat_monoid)) (trB_loop (M := nat_monoid) (S O)) x))
                   loop idpath @ _).
         apply moveR_pM.
         refine (concat_p1 _ @ _ @ (concat_1p _)^).
         apply inverse2.
         refine (_ @ (ap_idmap loop)^).
         refine (ap_compose
-                  (S1_rec (B nat_monoid) (point (B (nat_monoid))) (B_loop (M := nat_monoid) (S O)))
-                  (B_rec (M := nat_monoid) S1 _ base iterloop _)
+                  (S1_rec (trB nat_monoid) (point (trB (nat_monoid))) (trB_loop (M := nat_monoid) (S O)))
+                  (trB_rec (M := nat_monoid) S1 _ base iterloop _)
                   loop @ _).
         transitivity (ap
-                        (B_rec (M := nat_monoid) S1 is1type_S1 base iterloop
+                        (trB_rec (M := nat_monoid) S1 is1type_S1 base iterloop
                                (fun m1 : nat =>
                                   nat_rect
                                     (fun m0 : nat =>
@@ -829,77 +791,37 @@ Section loopBM_is_groupcompletion.
                                          (m2 : nat) =>
                                        concat_pp_p loop (iterloop m0) (iterloop m2) @
                                                    whiskerL loop (IHm1 m2)) m1))
-                        (B_loop (M := nat_monoid) (S O))).
+                        (trB_loop (M := nat_monoid) (S O))).
         { apply (ap _).
           apply S1_rec_beta_loop. }
-        refine (B_rec_beta_l (M := nat_monoid) S1 _ base iterloop _ (S O) @ _).
+        refine (trB_rec_beta_l (M := nat_monoid) S1 _ base iterloop _ (S O) @ _).
         unfold iterloop. apply concat_p1.
   Defined.
-
-(*   Definition path_trunctype_compose {n : trunc_index} {A B C : TruncType n} *)
-(*              (f : A <~> B) (g : B <~> C)  : *)
-(*     path_trunctype (g oE f) = path_trunctype f @ path_trunctype g. *)
-(*   Proof. *)
-(*     (* destruct f as [f Hf]. *) *)
-(*     (* destruct g as [g Hg]. *) unfold equiv_compose'. unfold equiv_compose. *)
-(*     unfold path_trunctype. *)
-(*     unfold equiv_path_trunctype. *)
-(*     simpl. hott_simpl. *)
-(*     destruct A as [A hA]. destruct B as [B hB]. destruct C as [C hC]. simpl. *)
-(*     refine (_ @ ap_pp *)
-(*               (fun u : {X : Type & IsTrunc n X} => *)
-(*                  {| trunctype_type := u.1; istrunc_trunctype_type := u.2 |}) *)
-(*               (path_sigma_hprop (A; hA) *)
-(*                                 (B; hB) *)
-(*                                 (path_universe_uncurried f)) *)
-(*               (path_sigma_hprop (B; hB) *)
-(*                                 (C; hC) *)
-(*                                 (path_universe_uncurried g)) *)
-(*            ). *)
-(*     apply (ap (ap *)
-(*                  (fun u : {X : Type & IsTrunc n X} => *)
-(*                     {| trunctype_type := u.1; istrunc_trunctype_type := u.2 |}))). *)
-(*     unfold path_sigma_hprop. *)
-(*     refine (_ @ path_sigma_pp_pp _ _ _ _ _ ). *)
-(*     unfold path_sigma. *)
-(*     apply (ap (path_sigma_uncurried (IsTrunc n) (A; hA) (C; hC))). *)
-(*     unfold equiv_inv.  *)
-(*     apply path_universe_compose. *)
-(*     unfold path_universe_uncurried. *)
-(*     unfold equiv_inv. destruct (isequiv_equiv_path A C) as [ua w e r]. *)
-    
-(*     path_sigma_pp_pp *)
-
-(*     unfold equiv_composeR'. unfold equiv_compose'. unfold equiv_compose. *)
-(*     unfold equiv_inverse. simpl. hott_simpl. *)
-
-  
-(* path_universe_compose *)
 
   (*Lage alternativ til apD?*)
 
     
   (*Classifying space as a pointed type*)
-  Definition pB (M : Monoid) := Build_pType (B M) _.
+  Definition ptrB (M : Monoid) := Build_pType (trB M) _.
 
-  (*B S is an abelian group*)
-  Definition loopB_abGrp (S : Symmetric_Monoid) : Abelian_Group.
+  (*trB S is an abelian group*)
+  Definition looptrB_abGrp (S : Symmetric_Monoid) : Abelian_Group.
   Proof.
-    refine (Build_Abelian_Group (loopGroup (pB S)) _).
+    refine (Build_Abelian_Group (loopGroup (ptrB S)) _).
     unfold symmetric. unfold loopGroup. simpl.
     unfold mon_mult.
     unfold symmetric.
   Admitted.
   
-  Definition grpcplS_to_loopsB {S : Symmetric_Monoid} : Hom (group_completion S) (loopGroup (pB S)) :=
+  Definition grpcplS_to_loopstrB {S : Symmetric_Monoid} : Hom (group_completion S) (loopGroup (ptrB S)) :=
     extend_to_inv 
-      (Build_Homomorphism S (loopGroup (pB S)) B_loop monid_to_idpath
-                          (fun m1 m2 => (ishom_MtoB m1 m2)^)).
+      (Build_Homomorphism S (loopGroup (ptrB S)) trB_loop monid_to_idpath
+                          (fun m1 m2 => (ishom_MtotrB m1 m2)^)).
   
-  (*Fibration over B S with fiber groupcompletion S*)
-  Definition B_code (S : Symmetric_Monoid) : B S -> hSet.
+  (*Fibration over trB S with fiber groupcompletion S*)
+  Definition trB_code (S : Symmetric_Monoid) : trB S -> hSet.
   Proof.
-    srapply @B_rec.
+    srapply @trB_rec.
         - exact (BuildTruncType 0 (group_completion S)).
         - intro a.
           apply (ap trunctype_type)^-1.
@@ -920,36 +842,36 @@ Section loopBM_is_groupcompletion.
                     (fun m => (grp_whiskerL (preserve_mult to_groupcompletion) @ grp_assoc)^) ).
   Defined.
 
-  Definition B_code_beta {S : Symmetric_Monoid} (m : S) :
-    ap (B_code S) (B_loop m) =
+  Definition trB_code_beta {S : Symmetric_Monoid} (m : S) :
+    ap (trB_code S) (trB_loop m) =
     (ap trunctype_type)^-1 (path_universe (grp_mult_equiv (to_groupcompletion m))).
   Proof.
-    srapply @B_rec_beta_l.
+    srapply @trB_rec_beta_l.
   Defined.
 
   Definition transport_code_is_mult {S : Symmetric_Monoid} (m : S) :
-    transport (B_code S) (B_loop m) == fun g : (group_completion S) => g + (to_groupcompletion m).
+    transport (trB_code S) (trB_loop m) == fun g : (group_completion S) => g + (to_groupcompletion m).
   Proof.
     srapply @Trunc_ind.
     srapply @Coeq_ind.
     - (*Variable is fixed*)
       intros [a b].
-      refine (transport_compose trunctype_type (B_code S) (B_loop m) (tr (coeq (a, b))) @ _).
+      refine (transport_compose trunctype_type (trB_code S) (trB_loop m) (tr (coeq (a, b))) @ _).
       
 
-      Check (fun p : B_code S (point (B S)) = B_code S (point (B S)) =>
+      Check (fun p : trB_code S (point (trB S)) = trB_code S (point (trB S)) =>
                transport (fun X : hSet => trunctype_type X) p (tr (coeq (a, b)))).
       refine (transport_compose idmap (trunctype_type)
-                                (ap (B_code S) (B_loop m)) (tr (coeq (a, b))) @ _).
-      assert (B_code_beta' : ap trunctype_type (ap (B_code S) (B_loop m))  =
+                                (ap (trB_code S) (trB_loop m)) (tr (coeq (a, b))) @ _).
+      assert (trB_code_beta' : ap trunctype_type (ap (trB_code S) (trB_loop m))  =
                              path_universe (grp_mult_equiv (to_groupcompletion m))).
-      { refine (ap (ap trunctype_type) (B_code_beta m) @ _).
+      { refine (ap (ap trunctype_type) (trB_code_beta m) @ _).
         apply (eisretr (ap trunctype_type)). }
       
       
-      refine (ap (fun p : trunctype_type (B_code S (point (B S))) =
-                          trunctype_type (B_code S (point (B S))) =>
-                    transport (fun X : Type => X) p (tr (coeq (a, b)))) B_code_beta' @ _).
+      refine (ap (fun p : trunctype_type (trB_code S (point (trB S))) =
+                          trunctype_type (trB_code S (point (trB S))) =>
+                    transport (fun X : Type => X) p (tr (coeq (a, b)))) trB_code_beta' @ _).
       refine (ap10 (transport_idmap_path_universe (grp_mult_equiv (to_groupcompletion m))) _).
     - (*Variable runs along cp*)
       intro abs.
@@ -957,10 +879,10 @@ Section loopBM_is_groupcompletion.
   Defined.
 
   Definition transport_code_is_mult_V {S : Symmetric_Monoid} (m : S) :
-    transport (B_code S) (B_loop m)^ == fun g : (group_completion S) => g - (to_groupcompletion m).
+    transport (trB_code S) (trB_loop m)^ == fun g : (group_completion S) => g - (to_groupcompletion m).
   Proof.
     intro x.
-    refine (moveR_transport_V (B_code S) (B_loop m) x _ _).
+    refine (moveR_transport_V (trB_code S) (trB_loop m) x _ _).
     apply inverse.
     refine (transport_code_is_mult m _ @ _).
     refine (_ @ grp_rid x).
@@ -969,8 +891,8 @@ Section loopBM_is_groupcompletion.
     apply grp_linv.
   Defined.
 
-  Definition B_encode {S : Symmetric_Monoid} (x : B S) :
-    (point _ = x) -> B_code S x := fun p => transport (B_code S) p (point _).
+  Definition trB_encode {S : Symmetric_Monoid} (x : trB S) :
+    (point _ = x) -> trB_code S x := fun p => transport (trB_code S) p (point _).
 
   (*I hope this is useful for proving truncations
    Something like this is probably already implemented. . .*)
@@ -980,65 +902,65 @@ Section loopBM_is_groupcompletion.
     intro H. apply H.
   Defined.
 
-  Definition B_decode {S : Symmetric_Monoid} (x : B S) :
-    B_code S x -> (point _ = x).
+  Definition trB_decode {S : Symmetric_Monoid} (x : trB S) :
+    trB_code S x -> (point _ = x).
   Proof.
     revert x.
-    srapply @B_ind.
+    srapply @trB_ind.
     - (*x is point*)
       simpl.
-      apply grpcplS_to_loopsB.
-    - (*x is B_loop m*)
+      apply grpcplS_to_loopstrB.
+    - (*x is trB_loop m*)
       intro m.
       apply path_arrow. intro x.
-      refine (transport_arrow (B_loop m) _ x @ _).
+      refine (transport_arrow (trB_loop m) _ x @ _).
       (*This is more readable, but then it protests when writing x - m*)
-      (*unfold B_code in x. simpl in x.  *)
-      refine (transport_paths_r (B_loop m) _ @ _).      
+      (*unfold trB_code in x. simpl in x.  *)
+      refine (transport_paths_r (trB_loop m) _ @ _).      
       apply moveR_pM.
-      refine (ap (fun g : group_completion S => grpcplS_to_loopsB g)
+      refine (ap (fun g : group_completion S => grpcplS_to_loopstrB g)
                  (transport_code_is_mult_V m x) @ _).
-      refine (preserve_mult grpcplS_to_loopsB @ _).
-      refine (whiskerL (grpcplS_to_loopsB x) _).
-      refine (whiskerR monid_to_idpath (B_loop m)^ @ _).
+      refine (preserve_mult grpcplS_to_loopstrB @ _).
+      refine (whiskerL (grpcplS_to_loopstrB x) _).
+      refine (whiskerR monid_to_idpath (trB_loop m)^ @ _).
       apply concat_1p.
     - (*x is ishom m1 m2*)
       intros m1 m2.
       srapply @generalize_paths.
   Defined.
 
-  Definition B_decode_beta_bp {S : Symmetric_Monoid} :
-    B_decode (point (B S)) = grpcplS_to_loopsB .
+  Definition trB_decode_beta_bp {S : Symmetric_Monoid} :
+    trB_decode (point (trB S)) = grpcplS_to_loopstrB .
   Proof.
-    srapply @B_ind_beta_bp.
+    srapply @trB_ind_beta_bp.
   Defined.
 
-  Definition B_encodeisretr {S : Symmetric_Monoid} (x : B S):
-    Sect (B_encode x) (B_decode x).
+  Definition trB_encodeisretr {S : Symmetric_Monoid} (x : trB S):
+    Sect (trB_encode x) (trB_decode x).
   Proof.
     intro p.
     destruct p. simpl.
-    (*This should be automatic if B_ind was properly defined:*)
-    refine (ap10 B_decode_beta_bp (point (group_completion S)) @ _). 
-    unfold grpcplS_to_loopsB. simpl.
+    (*This should be automatic if trB_ind was properly defined:*)
+    refine (ap10 trB_decode_beta_bp (point (group_completion S)) @ _). 
+    unfold grpcplS_to_loopstrB. simpl.
     apply concat_pV.
   Defined.
 
-  Definition B_encodeissect {S : Symmetric_Monoid} (x : B S) :
-    Sect (B_decode x) (B_encode x).
+  Definition trB_encodeissect {S : Symmetric_Monoid} (x : trB S) :
+    Sect (trB_decode x) (trB_encode x).
   Proof.
     revert x.
-    srapply @B_ind.
+    srapply @trB_ind.
     - intro m.
-      rewrite (ap10 B_decode_beta_bp m).
+      rewrite (ap10 trB_decode_beta_bp m).
       revert m.
       srapply @Trunc_ind.
       srapply @Coeq_ind.
       + intros [a b].
-        unfold B_encode.
+        unfold trB_encode.
         simpl.
-        refine (transport_pp (B_code S) (B_loop a) (B_loop b)^ (point (group_completion S)) @ _).
-        apply (moveR_transport_V (B_code S)).
+        refine (transport_pp (trB_code S) (trB_loop a) (trB_loop b)^ (point (group_completion S)) @ _).
+        apply (moveR_transport_V (trB_code S)).
         refine (transport_code_is_mult a _ @ _ @ (transport_code_is_mult b _)^).
         apply (ap tr).
         refine ((cp (mon_id S + a, mon_id S + mon_id S, b))^ @ _).
@@ -1059,13 +981,13 @@ Section loopBM_is_groupcompletion.
       srapply @generalize_paths.
   Defined.
 
-  Definition equiv_pathsB_code {S : Symmetric_Monoid} (x : B S) :
-    point (B S) = x <~> B_code S x :=
-    equiv_adjointify (B_encode x) (B_decode x) (B_encodeissect x) (B_encodeisretr x).
+  Definition equiv_pathstrB_code {S : Symmetric_Monoid} (x : trB S) :
+    point (trB S) = x <~> trB_code S x :=
+    equiv_adjointify (trB_encode x) (trB_decode x) (trB_encodeissect x) (trB_encodeisretr x).
   
-  Definition equiv_loopsB_group_completion (S : Symmetric_Monoid):
-       loops (pB S) <~> group_completion S:=
-    equiv_pathsB_code (point (B S)).        
+  Definition equiv_loopstrB_group_completion (S : Symmetric_Monoid):
+       loops (ptrB S) <~> group_completion S:=
+    equiv_pathstrB_code (point (trB S)).
         
       
     
@@ -1079,3 +1001,28 @@ Section loopBM_is_groupcompletion.
 
 
 
+
+        (*Try to simplify now, didn't become simpler. . .
+        refine (transport_PequivQ
+                  (fun x => equiv_moveL_transport_V
+                              C (pp (m1, m2, x))
+                              (restriction_to_pre_B (looptofill_curried M (m1, m2, x)))
+                              _)
+                  loop idpath @ _).
+        apply moveR_equiv_V.
+        cbn. unfold equiv_inv.
+        apply moveL_Vp.
+        *)
+                                         
+
+        (* refine (transport_paths_FlFr_D *)
+        (*           (f := fun x => transport C (pp (m1, m2, x)) *)
+        (*                                    (restriction_to_pre_B (looptofill M m1 m2 x))) *)
+        (*           (g := const (transport C (pp (m1, m2, base)) c0)) *)
+        (*           loop idpath @ _). *)
+        (* apply moveR_pM. *)
+        (* refine (_ @ (concat_1p _)^). *)
+        
+        
+        (* apply moveR_Vp. *)
+        (* transitivity (idpath (transport C (pp (m1, m2, base)) c0)). *)

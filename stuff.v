@@ -10,6 +10,16 @@ Require Import HoTT.
 (*      (fun ab => match ab with (a, b) => (a ;b) end) *)
 (*      (fun _ => idpath) (fun _ => idpath)). *)
 
+(*The section corresponding to a dependent function:*)
+Definition section_of {A : Type} {B : A -> Type} (f : forall a : A, B a) :
+  A -> {a : A & B a} := fun a => (a ; f a).
+
+Definition ap_section {A : Type} {B : A -> Type} (f : forall a : A, B a) {a a' : A} (p : a = a'):
+  ap (section_of f) p = path_sigma B (a; f a) (a'; f a') p (apD f p).
+Proof.
+  destruct p. reflexivity.
+Defined.
+
 
 Definition ap12 {A B : Type} {a b : A} (p : a = b) {f g : A->B} (q : f=g)  :
   (ap10 q a)^ @ (ap f p) @ (ap10 q b) = ap g p.

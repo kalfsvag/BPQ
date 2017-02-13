@@ -20,6 +20,8 @@ Proof.
   destruct p. reflexivity.
 Defined.
 
+Definition refl_sigma {A : Type} {B : A -> Type} (a : A) (b : B a) : (a ; b) = (a ; b) :=
+  path_sigma B _ _ idpath idpath.
 
 Definition ap12 {A B : Type} {a b : A} (p : a = b) {f g : A->B} (q : f=g)  :
   (ap10 q a)^ @ (ap f p) @ (ap10 q b) = ap g p.

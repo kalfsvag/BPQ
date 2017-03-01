@@ -70,7 +70,7 @@ Section Monoids_and_Groups.
   Coercion forget_to_SymMon : Abelian_Group >-> Symmetric_Monoid.    
 
 End Monoids_and_Groups.
-  
+
 Section nat_monoid.  
   (*Strangely, I cannot find any proofs of nat being associative*)
   Local Open Scope nat_scope.

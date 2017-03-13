@@ -73,24 +73,25 @@ End Monoids_and_Groups.
 
 Section nat_monoid.  
   (*Strangely, I cannot find any proofs of nat being associative*)
-  Local Open Scope nat_scope.
-  Definition plus_assoc : associative Peano.plus.
-    intros j k l.
-    induction j, k, l.
-    - exact idpath.
-    - exact idpath.
-    - exact idpath.
-    - exact idpath.
-    - exact (ap S IHj).
-    - exact (ap S IHj).
-    - exact (ap S IHj).
-    - exact (ap S IHj).
-  Defined.
+  Open Scope nat_scope.
+  (* Definition plus_assoc : associative Peano.plus. *)
+  (*   intros j k l. *)
+  (*   induction j, k, l. *)
+  (*   - exact idpath. *)
+  (*   - exact idpath. *)
+  (*   - exact idpath. *)
+  (*   - exact idpath. *)
+  (*   - exact (ap S IHj). *)
+  (*   - exact (ap S IHj). *)
+  (*   - exact (ap S IHj). *)
+  (*   - exact (ap S IHj). *)
+  (* Defined. *)
   
   Definition nat_monoid : Monoid :=
     Build_Monoid
       nat Peano.plus O
       plus_assoc (fun _ => idpath) (fun n => (nat_plus_n_O n)^).
+  Close Scope nat_scope.
 End nat_monoid.
 
 
@@ -122,13 +123,14 @@ End Loop_is_group.
 
 Section Group_lemmas.
   Open Scope monoid_scope.
-  Definition grp_whiskerL {G : Group} {a b c : G} : b = c -> a + b = a + c
+  Context {G : Group}.
+  Definition grp_whiskerL {a b c : G} : b = c -> a + b = a + c
     := ap (fun g => a + g).
 
-  Definition grp_whiskerR {G : Group} {a b c : G} : a = b -> a + c = b + c
+  Definition grp_whiskerR {a b c : G} : a = b -> a + c = b + c
     := ap (fun g => g + c).
   
-  Definition grp_cancelR {G : Group} {a b : G} (s : G) :
+  Definition grp_cancelR {a b : G} (s : G) :
     a + s = b + s -> a = b.
   Proof.
     intro p.      
@@ -138,7 +140,7 @@ Section Group_lemmas.
     exact (grp_whiskerR p).
   Defined.
   
-  Definition grp_cancelL {G : Group} {a b} (s : G) :
+  Definition grp_cancelL {a b} (s : G) :
     s + a = s + b -> a = b.
   Proof.
     intro p.
@@ -148,7 +150,7 @@ Section Group_lemmas.
     exact (grp_whiskerL p).
   Defined.
 
-  Definition grp_moveR_Mg {G : Group} {a b c : G} :
+  Definition grp_moveR_Mg {a b c : G} :
     b = -a + c -> a + b = c.
     Proof.
       intro p.
@@ -158,7 +160,7 @@ Section Group_lemmas.
       exact (grp_lid c).
     Defined.
 
-  Definition grp_moveR_gM {G : Group} {a b c : G} :
+  Definition grp_moveR_gM {a b c : G} :
     a = c - b -> a + b = c.
     Proof.
       intro p.
@@ -168,7 +170,7 @@ Section Group_lemmas.
       exact (grp_rid c).
     Defined.      
 
-  Definition grp_moveR_Vg {G : Group} {a b c : G} :
+  Definition grp_moveR_Vg {a b c : G} :
     b = a + c -> - a + b = c.
   Proof.
     intro p.
@@ -178,7 +180,7 @@ Section Group_lemmas.
     exact (grp_lid c).
   Defined.
 
-  Definition grp_moveR_gV {G : Group} {a b c : G} :
+  Definition grp_moveR_gV {a b c : G} :
     a = c + b -> a - b = c.
   Proof.
     intro p.
@@ -188,7 +190,7 @@ Section Group_lemmas.
     exact (grp_rid c).
   Defined.
 
-  Definition grp_moveL_Mg {G : Group} {a b c : G} :
+  Definition grp_moveL_Mg {a b c : G} :
     -b + a = c -> a = b + c.
   Proof.
     intro p.
@@ -198,7 +200,7 @@ Section Group_lemmas.
     exact (grp_lid a)^.
   Defined.    
     
-  Definition grp_moveL_gM {G : Group} {a b c : G} :
+  Definition grp_moveL_gM {a b c : G} :
     a - c = b-> a = b + c.
   Proof.
     intro p.
@@ -208,7 +210,7 @@ Section Group_lemmas.
     exact (grp_rid a)^.
   Defined.
 
-  Definition grp_moveL_Vg {G : Group} {a b c : G} :
+  Definition grp_moveL_Vg {a b c : G} :
     b + a = c -> a = -b + c.
   Proof.
     intro p.
@@ -218,7 +220,7 @@ Section Group_lemmas.
     exact (grp_lid a)^.
   Defined.    
 
-  Definition grp_moveL_gV {G : Group} {a b c : G} :
+  Definition grp_moveL_gV {a b c : G} :
     a + c = b -> a = b - c.
   Proof.
     intro p.
@@ -228,7 +230,7 @@ Section Group_lemmas.
     exact (grp_rid a)^.
   Defined.
 
-  Definition grp_moveL_1M {G : Group} {a b : G} :
+  Definition grp_moveL_1M {a b : G} :
     a - b = grp_id G -> a = b.
   Proof.
     intro p.
@@ -236,7 +238,7 @@ Section Group_lemmas.
     exact (grp_lid b).
   Defined.
 
-  Definition grp_moveL_M1 {G : Group} {a b : G} :
+  Definition grp_moveL_M1 {a b : G} :
     - a + b = grp_id G -> a = b.
   Proof.
     intro p.
@@ -244,7 +246,7 @@ Section Group_lemmas.
     exact (grp_rid a)^ .
   Defined.
 
-  Definition grp_moveL_1V {G : Group} {a b : G} :
+  Definition grp_moveL_1V {a b : G} :
     a + b = grp_id G -> a = - b.
   Proof.
     intro p.
@@ -252,7 +254,7 @@ Section Group_lemmas.
     exact (grp_lid (- b)).
   Defined.
 
-  Definition grp_moveL_V1 {G : Group} {a b : G} :
+  Definition grp_moveL_V1 {a b : G} :
     a + b = grp_id G -> b = - a.
   Proof.
     intro p.
@@ -260,7 +262,7 @@ Section Group_lemmas.
     exact (grp_rid (-a)).
   Defined.
   
-  Definition grp_moveR_M1 {G : Group} {a b : G} :
+  Definition grp_moveR_M1 {a b : G} :
     grp_id G = -a + b -> a = b.
   Proof.
     intro p.
@@ -268,7 +270,7 @@ Section Group_lemmas.
     exact (grp_rid a)^ .
   Defined.
 
-  Definition grp_moveR_1M {G : Group} {a b : G} :
+  Definition grp_moveR_1M {a b : G} :
     grp_id G = b -a -> a = b.
   Proof.
     intro p.
@@ -276,7 +278,7 @@ Section Group_lemmas.
     exact (grp_lid a)^ .
   Defined.
 
-  Definition grp_moveR_1V {G : Group} {a b : G} :
+  Definition grp_moveR_1V {a b : G} :
     grp_id G = b + a -> -a = b.
   Proof.
     intro p.
@@ -284,7 +286,7 @@ Section Group_lemmas.
     exact (grp_lid (-a))^ .
   Defined.
 
-  Definition grp_moveR_V1 {G : Group} {a b : G} :
+  Definition grp_moveR_V1 {a b : G} :
     grp_id G = a + b -> -a = b.
   Proof.
     intro p.
@@ -292,10 +294,10 @@ Section Group_lemmas.
     exact (grp_rid (-a))^ .
   Defined.
 
-  Definition inv_id {G : Group} : - (grp_id G) = grp_id G
+  Definition inv_id : - (grp_id G) = grp_id G
     := grp_moveR_1V (grp_rid _)^ .
 
-  Definition grp_inv_distr {G : Group} {a b: G} :
+  Definition grp_inv_distr {a b: G} :
     - (a + b) = - b - a.
   Proof.
     apply grp_moveL_Vg.
@@ -305,10 +307,10 @@ Section Group_lemmas.
     exact (grp_lid b)^ .
   Defined.
 
-  Definition path_group2 {G : Group} {a b c d : G} : a = c -> b = d -> a + b = c + d
+  Definition path_group2 {a b c d : G} : a = c -> b = d -> a + b = c + d
     := fun p q => grp_whiskerL q @ grp_whiskerR p.
 
-  Definition isequiv_grp_mult {G : Group} (g : G) :
+  Definition isequiv_grp_mult (g : G) :
     IsEquiv (fun a => a + g).
   Proof.
     srapply @isequiv_adjointify.
@@ -317,12 +319,13 @@ Section Group_lemmas.
     - intro a. apply grp_moveR_gV. reflexivity.
   Defined.
 
-  Definition grp_mult_equiv {G : Group} (g : G) : G <~>G :=
+  Definition grp_mult_equiv (g : G) : G <~>G :=
     BuildEquiv G G (fun a => a+ g) (isequiv_grp_mult g).
   
 End Group_lemmas.
 
 Section Homomorphism.
+  Open Scope type_scope.
   Open Scope monoid_scope.
   
   Record Homomorphism (M N : Monoid) :=

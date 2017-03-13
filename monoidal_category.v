@@ -2,6 +2,14 @@ Require Import HoTT.
 Require Import UnivalenceAxiom.
 Load stuff.
 
+Definition ap011_pp_pp {A B C : Type} (f : A -> B -> C) {x x' x'' : A} {y y' y'' : B}
+           (p : x = x') (p' : x' = x'') (q : y = y') (q' : y' = y'') :
+  ap011 f (p @ p') (q @ q') = ap011 f p q @ ap011 f p' q'.
+Proof.
+  by path_induction.
+  (* destruct p, p', q, q'. exact idpath. *)
+Qed.
+
 Section Finite.
   (*Fin respects sum*)
 
@@ -410,16 +418,18 @@ Section Monoidal_Category.
      natural_assoc : forall (a b c a' b' c': M) (f : a-->a') (g : b --> b') (h : c --> c'),
        assoc a' b' c' o (f +^ (g +^ h)) = ((f +^ g) +^ h) o assoc a b c;
      lid : forall a : M, e + a --> a;
-     (* iso_lid natural_lid *)
+     iso_lid : forall a : M, IsIsomorphism (lid a);
+     natural_lid : forall (a a' : M) (f : a --> a'),
+       lid a' o (1 +^ f) = f o lid a;
      rid : forall a : M, a + e --> a;
-     (* iso_rid natural_rid *)
+     iso_rid : forall a : M, IsIsomorphism (rid a);
+     natural_rid : forall (a a' : M) (f : a --> a'),
+       rid a' o (f +^ 1) = f o rid a;
      coh_tri : forall a b : M,
          (rid a +^ 1) o (assoc a e b) = (1 +^ lid b) ;
      coh_pent : forall a b c d : M,
          (assoc (a+b) c d) o (assoc a b (c+d)) =
-         (assoc a b c +^ 1) o (assoc a (b+c) d) o (1 +^ assoc b c d) }.
-
-  
+         (assoc a b c +^ 1) o (assoc a (b+c) d) o (1 +^ assoc b c d) }.  
   
   
   (*Want to define the category [Sigma] of finite sets and isomorphisms. *)
@@ -463,30 +473,45 @@ Section Monoidal_Category.
       intros [i j] [k l].
       unfold morphism. simpl.
       intros [f g].
-      refine ((Fin_resp_sum k l)^-1 oE _ oE Fin_resp_sum i j).
-      exact (f +E g).
+      (* apply (equiv_path _ _). *)
+      (* apply (ap Fin). *)
+      (* exact (ap011 Peano.plus (nat_eq_fin_equiv i k f) (nat_eq_fin_equiv j l g)).  *)
+      exact ((Fin_resp_sum k l)^-1 oE (f +E g) oE Fin_resp_sum i j).
     - (*Respects composition*)
-      (*Now I am proving a proposition and use rewrite abundantly.*)
       intros [i1 i2] [j1 j2] [k1 k2].
-      simpl.
-      intros [f1 f2] [g1 g2].
-      simpl.
+      intros [f1 f2] [g1 g2]. simpl.
+            
+      (* (*Reduce it down to equality of natural numbers, where this is trivial.*) *)
+      (* refine (_ @ equiv_path_pp _ _). *)
+      (* apply (ap (equiv_path (Fin (i1 + i2)) (Fin (k1 + k2)))). *)
+      (* refine (_ @ ap_pp Fin _ _). *)
+      (* apply (ap (ap Fin)). *)
+      (* refine (_ @ ap011_pp_pp Peano.plus _ _ _ _). *)
+      (* refine (ap011 (ap011 Peano.plus) _ _); apply hset_nat. *)
+
       repeat (rewrite ecompose_ee_e).
       apply emoveR_Ve.
       rewrite ecompose_e_Ve.
       repeat rewrite ecompose_e_ee.
       apply emoveR_eM.
       rewrite ecompose_ee_V.
-      rewrite ecompose_ee_V. 
+      rewrite ecompose_ee_V.
       apply path_equiv. apply path_arrow.
       (*This is [functor_sum] respecting composition.*)
-      intros [m1 | m2]; reflexivity. 
+      intros [m1 | m2]; reflexivity.
     - (*Respects identity*)
       intros [i j]. simpl.
+      (* transitivity (equiv_path (Fin (i + j)) (Fin (i + j)) idpath). *)
+      (* + apply (ap (equiv_path (Fin (i + j)) (Fin (i + j)))). *)
+      (*   transitivity (ap Fin (idpath (i+j)))%nat. *)
+      (*   * apply (ap (ap Fin)). *)
+      (*     apply hset_nat. *)
+      (*   * apply ap_1. *)
+      (* + apply (path_equiv idpath).  *)
       apply emoveR_eM. rewrite ecompose_1e.
       apply emoveR_Ve. rewrite ecompose_eV.
       (*This is [functor_sum] respecting identity*)
-      apply path_equiv. apply path_arrow.      
+      apply path_equiv. apply path_arrow.
       intros [m1 | m2]; reflexivity.
   Defined.
 
@@ -495,12 +520,17 @@ Section Monoidal_Category.
 
   Definition assoc_Sigma : forall a b c : preSigma, a + (b + c) --> (a + b) + c.
   Proof.
-    (*Use associativity of sum of types*)
+    (*Reduce to equality in nat*)
     intros a b c. simpl.
-    refine ((Fin_resp_sum (a+b) c)^-1  oE _ oE Fin_resp_sum a (b + c)).
-    refine (((Fin_resp_sum a b)^-1 +E equiv_idmap)  oE _ oE (equiv_idmap +E Fin_resp_sum b c)). (*Where to put [^-1]?*)
-    apply equiv_inverse.
-    apply equiv_sum_assoc.
+    apply (equiv_path _ _). apply (ap Fin).
+    apply plus_assoc.
+
+    (* (*Use associativity of sum of types*) *)
+    (* intros a b c. simpl. *)
+    (* refine ((Fin_resp_sum (a+b) c)^-1  oE _ oE Fin_resp_sum a (b + c)). *)
+    (* refine (((Fin_resp_sum a b)^-1 +E equiv_idmap)  oE _ oE (equiv_idmap +E Fin_resp_sum b c)). (*Where to put [^-1]?*) *)
+    (* apply equiv_inverse. *)
+    (* apply equiv_sum_assoc. *)
 
     (*Mimic proof of associativity in nat.*)
     (* intros a b c. *)
@@ -509,8 +539,9 @@ Section Monoidal_Category.
     (* + simpl. *)
     (*   exact (IHa +E equiv_idmap). *)
   Defined.
+  
 
-  Definition isgroupoid_Sigma {a b : preSigma} (f : a --> b) : IsIsomorphism f.
+  Instance isgroupoid_Sigma {a b : preSigma} (f : a --> b) : IsIsomorphism f.
   Proof.
     srapply @Build_IsIsomorphism.
     - exact (f^-1)%equiv.
@@ -548,7 +579,17 @@ Section Monoidal_Category.
       assoc_Sigma a' b' c' o (f +^ (g +^ h)) = ((f +^ g) +^ h) o assoc_Sigma a b c.
   Proof.
     intros. simpl in f, g, h. simpl.
-    unfold binary_op_1. unfold binary_op. unfold assoc_Sigma. simpl.     repeat (rewrite ecompose_ee_e).
+    unfold binary_op_1. unfold binary_op. unfold assoc_Sigma. simpl.
+    
+  (*   refine ((equiv_path_pp _ _)^ @ _). *)
+  (*   refine (_ @ equiv_path_pp _ _). *)
+  (*   apply (ap (equiv_path (Fin (a + (b + c))) (Fin (a' + b' + c')))). *)
+  (*   refine ((ap_pp Fin _ _)^ @ _ @ ap_pp Fin _ _). *)
+  (*   apply (ap (ap Fin)). *)
+  (*   apply hset_nat. *)
+  (* Defined. *)
+  
+    repeat (rewrite ecompose_ee_e).
     repeat rewrite ecompose_e_Ve.
     apply emoveR_Ve. rewrite ecompose_e_Ve.
     repeat (rewrite ecompose_e_ee).
@@ -567,22 +608,63 @@ Section Monoidal_Category.
     simpl.
     
     
-    unfold assoc_Sigma.
+  (*   unfold assoc_Sigma. *)
 
-    srapply @path_arrow. 
+  (*   srapply @path_arrow.  *)
     
-  Admitted.
+  (* Admitted. *)
 
-  
-
+    
   Definition Sigma : Monoidal_Category.
   Proof.
-    apply (Build_Monoidal_Category (Build_Magma Sigma_cat Sigma_coprod) 0 _ _ _ _ _ _ _).
-    srapply (@Build_Monoidal_Category (Build_Magma Sigma_cat Sigma_coprod)). (*Now this takes forever. Why?*)
-    - (*Identity element*)
-      exact 0.
-    - (*Associativity*)
-      intros l m n.
+    (*This took a long time, because it was searching for isomorphism proofs. Making the proof an instance sped things up.*)
+    srapply (@Build_Monoidal_Category (Build_Magma Sigma_cat Sigma_coprod) 0 assoc_Sigma _ natural_assoc_sigma).
+    - (*Left identity*)
+      intro a. exact equiv_idmap.
+      (* (*This is just reflexivity, but use equiv_path for symmetry with the right identity.*) *)
+      (* intro a. *)
+      (* apply equiv_path. exact idpath. *)
+    - (*Left identity is natural*)
+      intros a a' f.
+      simpl in a, a', f. simpl.
+      refine (ecompose_1e _ @ _ @ (ecompose_e1 _)^).
+      apply path_equiv. simpl.
+      apply path_arrow. intro m.
+      refine ((transport_idmap_ap nat Fin _ _ _ _)^ @ _) .
+      generalize (nat_eq_fin_equiv a a' f). intro p. destruct p.
+      
+      
+      rewrite <- (transport_idmap_ap _ Fin .
+      unfold transport. simpl.
+      unfold equiv_path. simpl. admit.
+    - (* Right identity *)
+      intro a.
+      apply equiv_path. apply (ap Fin).
+      apply inverse. apply nat_plus_n_O.
+    - (*Right identity is natural*)
+      intros a a' f.
+      simpl. simpl in a, a', f.
+      apply path_equiv. apply path_arrow.
+      intro m.
+      simpl. repeat rewrite <- transport_idmap_ap.
+      
+
+      (*Try and reduce to isset_nat*)
+      refine ((equiv_path_pp _ _)^ @ _).
+      rewrite (ap_V Fin (nat_plus_n_O a)). rewrite equiv_path_V.
+      apply emoveL_eV.
+      refine ((equiv_path_pp _ _)^ @ _).
+      transitivity (equiv_path (Fin a) (Fin a') (path_universe f)).
+      + apply (ap (equiv_path (Fin a) (Fin a'))).
+        repeat rewrite <- ap_pp.
+      
+      
+
+
+
+
+
+      
       induction l.
       + exact equiv_idmap.
       + simpl.

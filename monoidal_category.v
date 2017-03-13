@@ -431,6 +431,175 @@ Section Monoidal_Category.
          (assoc (a+b) c d) o (assoc a b (c+d)) =
          (assoc a b c +^ 1) o (assoc a (b+c) d) o (1 +^ assoc b c d) }.  
   
+
+
+
+
+
+  (*Want to define the category [Sigma] of finite sets and isomorphisms. *)
+  (*obj Sigma := {A : Type & Finite A}
+    morph A B := Equiv (Fin (card A)) (Fin (card B))*)
+
+  (*Definition Sigma_morphism (m n : nat) := Equiv (Fin m) (Fin n).*)
+
+  Definition Sigma_cat : PreCategory.
+  Proof.
+    srapply (@Build_PreCategory {A : Type & Finite A}
+                                (fun A B => Equiv A.1 B.1)).
+                                (* (fun A B => Equiv (Fin (@fcard A.1 A.2)) (Fin (@fcard B.1 B.2)))). *)
+    - (*Identity*)
+      intro m.
+      apply equiv_idmap.
+    - (*Compose*)
+      intros A B C.
+      apply equiv_compose'.
+    - (*Associativity*)
+      intros A B C D.
+      intros e f g.
+      apply ecompose_ee_e.
+    - (*Composing with identity from left*)
+      intros D E. intro f.
+      apply ecompose_1e.
+    - (*Composing with identity from right*)
+      intros D E. intro f.
+      apply ecompose_e1.
+    - intros A B. simpl.
+      srapply @istrunc_equiv. apply isset_Finite. exact B.2.
+  Defined.
+
+  Definition Sigma_coprod : Functor (Sigma_cat*Sigma_cat) Sigma_cat.
+  Proof.
+    srapply @Build_Functor.
+    - (*Map on objects is sum of types*)
+      intros [A B].
+      exists (A.1 + B.1)%type. apply finite_sum; exact _.2.
+    - (*Map on morphisms.*)
+      (*Fin respects sum*)
+      intros [A B] [C D].
+      unfold morphism. simpl.
+      intros [f g]. apply (equiv_functor_sum' f g).
+    - (*Respects composition*)
+      intros [i1 i2] [j1 j2] [k1 k2].
+      intros [f1 f2] [g1 g2]. simpl.
+      apply path_equiv. apply path_arrow. 
+      intros [m | n]; exact idpath.
+    - (*Respects identity*)
+      intros [i j]. simpl.
+      apply path_equiv. apply path_arrow. intros [m | n]; exact idpath.
+  Defined.
+
+  (*Prove associativity and so forth as lemmas. . .*)
+  Definition preSigma := (Build_Magma Sigma_cat Sigma_coprod).
+
+  Definition assoc_Sigma : forall A B C : preSigma, A + (B + C) --> (A + B) + C.
+  Proof.
+    intros A B C. apply equiv_inverse.
+    apply equiv_sum_assoc.
+  Defined.
+  
+
+  Instance isgroupoid_Sigma {a b : preSigma} (f : a --> b) : IsIsomorphism f.
+  Proof.
+    srapply @Build_IsIsomorphism.
+    - exact (f^-1)%equiv.
+    - apply ecompose_Ve.
+    - apply ecompose_eV.
+  Defined.
+
+  (* Redundant: *)
+  (* Definition isiso_assoc_sigma : forall a b c : preSigma, IsIsomorphism (assoc_Sigma a b c). *)
+  (* Proof. *)
+  (*   intros a b c. *)
+  (*   srapply @Build_IsIsomorphism. *)
+  (*   - (*Construct inverse*) *)
+  (*     induction a. *)
+  (*     + exact equiv_idmap. *)
+  (*     + exact (IHa +E equiv_idmap). *)
+  (*   - (*Left inverse*) *)
+  (*     apply path_equiv. apply path_arrow.  *)
+  (*     induction a. *)
+  (*     + exact (fun _ => idpath). *)
+  (*     + intros [n | u]. *)
+  (*       * (*Equality on [inl] is the induction hypothesis*) *)
+  (*         apply (ap Datatypes.inl). apply IHa. *)
+  (*       * (*Both sides is just the point in Unit*) exact idpath. *)
+  (*   - (*Right inverse. This proof is identic to Left inverse*) *)
+  (*     apply path_equiv. apply path_arrow. *)
+  (*     induction a. *)
+  (*     + exact (fun _ => idpath). *)
+  (*     + intros [n | u]. *)
+  (*       * apply (ap Datatypes.inl). apply IHa. *)
+  (*       * exact idpath. *)
+  (* Defined.     *)
+
+  Definition natural_assoc_sigma : forall (A B C A' B' C' : preSigma) (f : A --> A') (g : B --> B') (h : C --> C'),
+      assoc_Sigma A' B' C' o (f +^ (g +^ h)) = ((f +^ g) +^ h) o assoc_Sigma A B C.
+  Proof.
+    intros. simpl in f, g, h. simpl.
+    apply path_equiv. apply path_arrow. intros [l | [m | n]] ; exact idpath.
+  Defined.
+
+    
+  Definition Sigma : Monoidal_Category.
+  Proof.
+    (*This took a long time, because it was searching for isomorphism proofs. Making the proof an instance sped things up.*)
+    srapply (@Build_Monoidal_Category (Build_Magma Sigma_cat Sigma_coprod)).
+    - (*Identity element*)
+      exact ( Fin 0 ; finite_fin 0 ).
+    - exact assoc_Sigma.
+    - exact natural_assoc_sigma.
+    - (*Left identity*)
+      intro a.
+      apply sum_empty_l.
+    - (*Left identity is natural*)
+      intros A A' f.
+      simpl in A, A', f. simpl.
+      apply path_equiv. apply path_arrow. intros [[] | n]. exact idpath.
+    - (*Right identity*)
+      intro a. apply sum_empty_r.
+    - (*Right identity is natural*)
+      intros A A' f. simpl.
+      apply path_equiv. apply path_arrow. intros [n | []]. exact idpath.
+    - (*Coherence triangle*)
+      intros A B. simpl.
+      apply path_equiv. apply path_arrow. intros [m | [[]|n]]; exact idpath.
+    - (*Coherence pentagon*)
+      intros A B C D.
+      apply path_equiv. apply path_arrow.
+      intros [k | [l | [m | n]]]; exact idpath.
+  Defined.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  (* Defining Sigma with nat as objects *)
+
   
   (*Want to define the category [Sigma] of finite sets and isomorphisms. *)
   (*obj Sigma := nat
@@ -473,22 +642,10 @@ Section Monoidal_Category.
       intros [i j] [k l].
       unfold morphism. simpl.
       intros [f g].
-      (* apply (equiv_path _ _). *)
-      (* apply (ap Fin). *)
-      (* exact (ap011 Peano.plus (nat_eq_fin_equiv i k f) (nat_eq_fin_equiv j l g)).  *)
       exact ((Fin_resp_sum k l)^-1 oE (f +E g) oE Fin_resp_sum i j).
     - (*Respects composition*)
       intros [i1 i2] [j1 j2] [k1 k2].
       intros [f1 f2] [g1 g2]. simpl.
-            
-      (* (*Reduce it down to equality of natural numbers, where this is trivial.*) *)
-      (* refine (_ @ equiv_path_pp _ _). *)
-      (* apply (ap (equiv_path (Fin (i1 + i2)) (Fin (k1 + k2)))). *)
-      (* refine (_ @ ap_pp Fin _ _). *)
-      (* apply (ap (ap Fin)). *)
-      (* refine (_ @ ap011_pp_pp Peano.plus _ _ _ _). *)
-      (* refine (ap011 (ap011 Peano.plus) _ _); apply hset_nat. *)
-
       repeat (rewrite ecompose_ee_e).
       apply emoveR_Ve.
       rewrite ecompose_e_Ve.
@@ -588,6 +745,10 @@ Section Monoidal_Category.
   (*   apply (ap (ap Fin)). *)
   (*   apply hset_nat. *)
   (* Defined. *)
+    
+    apply path_equiv. apply path_arrow. intro m. simpl.
+    repeat rewrite <- transport_idmap_ap.
+    
   
     repeat (rewrite ecompose_ee_e).
     repeat rewrite ecompose_e_Ve.

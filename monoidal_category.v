@@ -408,8 +408,7 @@ Section Monoidal_Category.
   Defined.
 
   Local Notation "f +^ g" := (binary_op_1 (f, g)) (at level 80). (*Don't know how I should choose level.*)
-  (*TODO: Symmetry*)
-  Record Monoidal_Category : Type :=
+  Record Symmetric_Monoidal_Category : Type :=
     {M : Magma ;
      e : M ;
      assoc : forall a b c : M, a + (b + c) --> (a + b) + c;
@@ -424,16 +423,19 @@ Section Monoidal_Category.
      iso_rid : forall a : M, IsIsomorphism (rid a);
      natural_rid : forall (a a' : M) (f : a --> a'),
        rid a' o (f +^ 1) = f o rid a;
+     symm : forall a b : M, a + b -->  b + a;
+     natural_sym : forall (a b a' b' : M) (f : a --> a') (g : b --> b'),
+         symm a' b' o (f +^ g) = (g +^ f) o symm a b;
+     symm_inv : forall a b : M, symm a b o symm b a = 1;
      coh_tri : forall a b : M,
          (rid a +^ 1) o (assoc a e b) = (1 +^ lid b) ;
      coh_pent : forall a b c d : M,
          (assoc (a+b) c d) o (assoc a b (c+d)) =
-         (assoc a b c +^ 1) o (assoc a (b+c) d) o (1 +^ assoc b c d) }.  
-  
-
-
-
-
+         (assoc a b c +^ 1) o (assoc a (b+c) d) o (1 +^ assoc b c d);
+     coh_hex : forall a b c : M,
+         (assoc c a b) o (symm (a+b) c) o assoc a b c =
+         (symm a c +^ 1) o (assoc a c b) o (1 +^ symm b c); (*I am guessing that this is correct*)
+    }.
 
   (*Want to define the category [Sigma] of finite sets and isomorphisms. *)
   (*obj Sigma := {A : Type & Finite A}
@@ -498,12 +500,9 @@ Section Monoidal_Category.
     - apply ecompose_eV.
   Defined.
     
-  Definition Sigma : Monoidal_Category.
+  Definition Sigma : Symmetric_Monoidal_Category.
   Proof.
-    (*This took a long time, because it was searching for isomorphism proofs. Making the proof an instance sped things up.*)
-    srapply (@Build_Monoidal_Category (Build_Magma Sigma_cat Sigma_coprod)).
-    - (*Identity element*)
-      exact ( Fin 0 ; finite_fin 0 ).
+    srapply (@Build_Symmetric_Monoidal_Category (Build_Magma Sigma_cat Sigma_coprod) ( Fin 0 ; finite_fin 0 )).
     - (*Associativity*)
       intros A B C. apply equiv_inverse.
       apply equiv_sum_assoc.
@@ -522,6 +521,17 @@ Section Monoidal_Category.
     - (*Right identity is natural*)
       intros A A' f. simpl.
       apply path_equiv. apply path_arrow. intros [n | []]. exact idpath.
+    - (*Symmetry*)
+      intros A A'.
+      apply equiv_sum_symm.
+    - (*Symmetry is natural*)
+      simpl.
+      intros A A' B B' f g.
+      apply path_equiv. apply path_arrow. intros [m | n]; exact idpath.
+    - (*Symmetry is its own inverse*)
+      simpl.
+      intros A B.
+      apply path_equiv. apply path_arrow. intros [m | n]; exact idpath.
     - (*Coherence triangle*)
       intros A B. simpl.
       apply path_equiv. apply path_arrow. intros [m | [[]|n]]; exact idpath.
@@ -529,9 +539,16 @@ Section Monoidal_Category.
       intros A B C D.
       apply path_equiv. apply path_arrow.
       intros [k | [l | [m | n]]]; exact idpath.
+    - (*Coherence hexagon*)
+      simpl. intros A B C.
+      apply path_equiv. apply path_arrow.
+      intros [l | [m | n]]; exact idpath.
   Defined.
 
+End Monoidal_Category.
 
+(* Define the group completion of a symmetric monoidal category *)
+Section Group_Completion.
 
 
 

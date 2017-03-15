@@ -393,7 +393,7 @@ Section Monoidal_Category.
   
   (*Another strategy to define monoidal categories*)
   Record Magma : Type :=
-    { magma_cat :> PreCategory; binary_op : Functor (magma_cat*magma_cat) magma_cat }.
+    { magma_cat :> Category; binary_op : Functor (magma_cat*magma_cat) magma_cat }.
   Arguments binary_op {m}.
   
   Definition binary_op_0 {M : Magma} : ((object M) * (object M) -> object M )%type :=
@@ -443,7 +443,7 @@ Section Monoidal_Category.
 
   (*Definition Sigma_morphism (m n : nat) := Equiv (Fin m) (Fin n).*)
 
-  Definition Sigma_cat : PreCategory.
+  Definition Sigma_precat : PreCategory.
   Proof.
     srapply (@Build_PreCategory {A : Type & Finite A}
                                 (fun A B => Equiv A.1 B.1)).
@@ -468,6 +468,45 @@ Section Monoidal_Category.
       srapply @istrunc_equiv. apply isset_Finite. exact B.2.
   Defined.
 
+  Instance isgroupoid_Sigma {a b : Sigma_precat} (f : a --> b) : IsIsomorphism f.
+  Proof.
+    srapply @Build_IsIsomorphism.
+    - exact (f^-1)%equiv.
+    - apply ecompose_Ve.
+    - apply ecompose_eV.
+  Defined.
+
+
+  (* This category is univalent *)
+  (* Prove this by reducing to univalence in types *)
+  (*First: An isomorphism is the same as an equivalence on the underlying type *)
+  Definition equiv_isomorphic_Sigma (A B : Sigma_precat) : (A.1 <~> B.1) <~> Isomorphic A B.
+  Proof.
+    srapply @equiv_adjointify.
+    - (*Inverse*)
+      intro f. apply (@Build_Isomorphic _ A B f _).
+    - (*Underlying map*)
+      exact (@morphism_isomorphic _ A B).
+    - intro g. apply path_isomorphic. exact idpath.
+    - exact (fun _ => idpath).
+  Defined.
+
+  Definition idtoiso_is_path_equiv {A B : Sigma_precat} :
+    @idtoiso Sigma_precat A B =
+    (equiv_isomorphic_Sigma A B) oE (equiv_equiv_path A.1 B.1) oE (equiv_path_sigma_hprop A B)^-1.
+  Proof.
+    apply path_arrow. 
+    intros []. apply path_isomorphic. exact idpath.
+  Defined.    
+
+  
+  Lemma iscategory_Sigma : IsCategory Sigma_precat.
+    intros A B.
+    rewrite idtoiso_is_path_equiv. exact _.
+  Qed.
+
+  Definition Sigma_cat := Build_Category iscategory_Sigma.
+
   Definition Sigma_coprod : Functor (Sigma_cat*Sigma_cat) Sigma_cat.
   Proof.
     srapply @Build_Functor.
@@ -489,17 +528,7 @@ Section Monoidal_Category.
       apply path_equiv. apply path_arrow. intros [m | n]; exact idpath.
   Defined.
 
-  (*Prove associativity and so forth as lemmas. . .*)
-  Definition preSigma := (Build_Magma Sigma_cat Sigma_coprod).
 
-  Instance isgroupoid_Sigma {a b : preSigma} (f : a --> b) : IsIsomorphism f.
-  Proof.
-    srapply @Build_IsIsomorphism.
-    - exact (f^-1)%equiv.
-    - apply ecompose_Ve.
-    - apply ecompose_eV.
-  Defined.
-    
   Definition Sigma : Symmetric_Monoidal_Category.
   Proof.
     srapply (@Build_Symmetric_Monoidal_Category (Build_Magma Sigma_cat Sigma_coprod) ( Fin 0 ; finite_fin 0 )).

@@ -3,13 +3,29 @@ Require Import UnivalenceAxiom.
 Load stuff.
 
 
-Require Import Functor.Core Category.
+Require Import Functor Category.
 (*These notations are defined elsewhere, but I do not know how to import it.*)
 Local Notation "x --> y" := (morphism _ x y) (at level 99, right associativity, y at level 200) : type_scope.
 Notation "F '_0' x" := (Functor.Core.object_of F x) (at level 10, no associativity, only parsing) : object_scope.
 Notation "F '_1' m" := (Functor.Core.morphism_of F m) (at level 10, no associativity) : morphism_scope.
 Open Scope category_scope.
 Open Scope morphism_scope.
+
+(* Definition diagonal_functor {C : PreCategory} : Functor C (C*C). *)
+(* Proof.   *)
+(*   srapply @Build_Functor. *)
+(*   (* Map on objects *) *)
+(*   - exact (fun c => (c,c)). *)
+(*   (* Map on morphisms *) *)
+(*   - exact (fun c d f => (f, f)). *)
+(*   (* Respect composition *) *)
+(*   - exact (fun c d e f g => idpath). *)
+(*   (* Respect identity *) *)
+(*   - exact (fun c => idpath). *)
+(* Defined. *)
+
+Definition pair_1 {C D : PreCategory} {c c' : C} {d d' : D} (f : c --> c') (g : d --> d') :
+  morphism (C*D) (c, d) (c', d') := (f,g).
 
 
 Definition transport_morphism_Fl {C D : PreCategory} (F : Functor C D) {c1 c2 : C} {d : D} (p : c1 = c2) (f : F c1 --> d):
@@ -43,10 +59,10 @@ Local Notation "f +^ g" := (binary_op_1 (f, g)) (at level 80). (*Don't know how 
 Definition sum_idmap {M : Magma} {m n : M} : (identity m +^ identity n) = identity (m + n) :=
   identity_of binary_op (m, n).
 
-(* The translation functor *)
-Definition translate {M : Magma} (a : M) : Functor M M.
+(* Translation from right *)
+Definition translate_fr {M : Magma} (a : M) : Functor M M.
 Proof.
-  refine (Core.compose (D := M*M) binary_op _).
+  refine (Functor.compose (D := M*M) binary_op _).
   srapply @Build_Functor.
   (* Objects *)
   - exact (fun m => (m, a)).
@@ -59,39 +75,60 @@ Proof.
   (* Respect identity *)
   - exact (fun _ => idpath).
 Defined.
+
+(* Translation from left *)
+Definition translate_fl {M : Magma} (a : M) : Functor M M.
+Proof.
+  refine (Functor.compose (D := M*M) binary_op _).
+  srapply @Build_Functor.
+  (* Objects *)
+  - exact (fun m => (a, m)).
+  (* Morphisms *)
+  - intros m n f. exact (identity a, f).
+  (* Respect composition *)
+  - intros l m n.
+    intros f g.
+    apply path_prod. apply inverse. apply left_identity. exact idpath. 
+  (* Respect identity *)
+  - exact (fun _ => idpath).
+Defined.
   
 
 
 Section Monoidal_Category.
-
-  Record Symmetric_Monoidal_Category : Type :=
-    {M :> Magma ;
-     e : M ;
-     assoc : forall a b c : M, a + (b + c) --> (a + b) + c;
-     iso_assoc : forall a b c : M, IsIsomorphism (assoc a b c);
-     natural_assoc : forall (a b c a' b' c': M) (f : a-->a') (g : b --> b') (h : c --> c'),
+  (* Require cancellation law, even if that is not reflected in the name. *)
+  Record Symmetric_Monoidal_Groupoid : Type :=
+    {smon_magma :> Magma ;
+     isgroupoid_smon_magma : forall (a b : smon_magma) (f : a --> b), IsIsomorphism f;
+     e : smon_magma ;
+     assoc : forall a b c : smon_magma, a + (b + c) --> (a + b) + c;
+     (* iso_assoc : forall a b c : smon_magma, IsIsomorphism (assoc a b c); *)
+     natural_assoc : forall (a b c a' b' c': smon_magma) (f : a-->a') (g : b --> b') (h : c --> c'),
        assoc a' b' c' o (f +^ (g +^ h)) = ((f +^ g) +^ h) o assoc a b c;
-     lid : forall a : M, e + a --> a;
-     iso_lid : forall a : M, IsIsomorphism (lid a);
-     natural_lid : forall (a a' : M) (f : a --> a'),
+     lid : forall a : smon_magma, e + a --> a;
+     (* iso_lid : forall a : smon_magma, IsIsomorphism (lid a); *)
+     natural_lid : forall (a a' : smon_magma) (f : a --> a'),
        lid a' o (1 +^ f) = f o lid a;
-     rid : forall a : M, a + e --> a;
-     iso_rid : forall a : M, IsIsomorphism (rid a);
-     natural_rid : forall (a a' : M) (f : a --> a'),
+     rid : forall a : smon_magma, a + e --> a;
+     (* iso_rid : forall a : smon_magma, IsIsomorphism (rid a); *)
+     natural_rid : forall (a a' : smon_magma) (f : a --> a'),
        rid a' o (f +^ 1) = f o rid a;
-     symm : forall a b : M, a + b -->  b + a;
-     natural_sym : forall (a b a' b' : M) (f : a --> a') (g : b --> b'),
+     symm : forall a b : smon_magma, a + b -->  b + a;
+     natural_sym : forall (a b a' b' : smon_magma) (f : a --> a') (g : b --> b'),
          symm a' b' o (f +^ g) = (g +^ f) o symm a b;
-     symm_inv : forall a b : M, symm a b o symm b a = 1;
-     coh_tri : forall a b : M,
+     symm_inv : forall a b : smon_magma, symm a b o symm b a = 1;
+     coh_tri : forall a b : smon_magma,
          (rid a +^ 1) o (assoc a e b) = (1 +^ lid b) ;
-     coh_pent : forall a b c d : M,
+     coh_pent : forall a b c d : smon_magma,
          (assoc (a+b) c d) o (assoc a b (c+d)) =
          (assoc a b c +^ 1) o (assoc a (b+c) d) o (1 +^ assoc b c d);
-     coh_hex : forall a b c : M,
+     coh_hex : forall a b c : smon_magma,
          (assoc c a b) o (symm (a+b) c) o assoc a b c =
          (symm a c +^ 1) o (assoc a c b) o (1 +^ symm b c); (*I am guessing that this is correct*)
+     cancellation : forall (s t a : smon_magma) (f g : s --> t), (f +^ identity a) = (g +^ identity a) -> f = g
     }.
+  Instance isgroupoid_moncat (M : Symmetric_Monoidal_Groupoid) (a b : M) (f : a --> b) : IsIsomorphism f :=
+    isgroupoid_smon_magma M a b f.
 
   (*Want to define the category [Sigma] of finite sets and isomorphisms. *)
   Definition isset_Finite (A : Type) :
@@ -131,7 +168,7 @@ Section Monoidal_Category.
       srapply @istrunc_equiv. apply isset_Finite. exact B.2.
   Defined.
 
-  Instance isgroupoid_Sigma {a b : Sigma_precat} (f : a --> b) : IsIsomorphism f.
+  Instance isgroupoid_Sigma (a b : Sigma_precat) (f : a --> b) : IsIsomorphism f.
   Proof.
     srapply @Build_IsIsomorphism.
     - exact (f^-1)%equiv.
@@ -193,9 +230,10 @@ Section Monoidal_Category.
 
   Ltac reduce_sigma_morphism := intros; apply path_equiv; apply path_arrow; repeat (intros [?m | ]); intros.
   
-  Definition Sigma : Symmetric_Monoidal_Category.
+  Definition Sigma : Symmetric_Monoidal_Groupoid.
   Proof.
-    srapply (@Build_Symmetric_Monoidal_Category (Build_Magma Sigma_cat Sigma_coprod) ( Fin 0 ; finite_fin 0 )).
+    srapply (@Build_Symmetric_Monoidal_Groupoid (Build_Magma Sigma_cat Sigma_coprod) isgroupoid_Sigma
+                                                ( Fin 0 ; finite_fin 0 )).
     - (*Associativity*)
       intros A B C. apply equiv_inverse.
       apply equiv_sum_assoc.
@@ -230,23 +268,18 @@ Section Monoidal_Category.
     - (*Coherence hexagon*)
       simpl. intros A B C.
       apply path_equiv. apply path_arrow. repeat (intros [m | ]); intros; exact idpath.
+    - (* Translations are faithful *)
+      (* This proof is not natural in A, but this is a proposition so it doesn't matter. . .*)
+      intros S T A f g H.
+      apply path_equiv. apply path_arrow. intro s.
+      set (collapseA := fun ta : T.1 + A.1%type =>
+                          match ta with
+                          |Datatypes.inl t => t
+                          |Datatypes.inr _ => f s (*This is an arbitrary choice.*)
+                          end).
+      change (f s) with (collapseA ((f +^ 1) (Datatypes.inl s))).
+      rewrite H. reflexivity.
   Defined.
-
-  (* Translations are faithful *)
-  (* This proof is not natural in A, but this is a proposition so it doesn't matter. . .*)
-  Lemma faithful_translation_sigma {S T A : Sigma} (f g : S --> T) : (f +^ identity A) = (g +^ identity A) -> f = g.
-  Proof.
-    intro H.    
-    apply path_equiv. apply path_arrow. intro s.
-    set (collapseA := fun ta : T.1 + A.1%type =>
-                        match ta with
-                        |inl t => t
-                        |inr _ => f s (*This is an arbitrary choice.*)
-                        end).
-    change (f s) with (collapseA ((f +^ 1) (inl s))).
-    rewrite H. reflexivity.
-  Qed.
-
 
 End Monoidal_Category.
 
@@ -265,102 +298,132 @@ Section Group_Completion.
       
   Notation "( a , b ) --> ( c , d ) " := (morphism (_ * _) (a, b) (c, d)).
   
-  Definition group_completion_morph (M : Symmetric_Monoidal_Category) : (M*M)%category -> (M*M)%category -> Type.
+  Definition group_completion_morph (M : Symmetric_Monoidal_Groupoid) : (M*M)%category -> (M*M)%category -> Type.
   Proof.
-    intros [a b] [c d].
-    exact (Trunc 0 {s : M & (s + a, s + b) --> (c, d)}).
+    intros [a1 a2] [b1 b2].
+    exact {s : M & (s + a1, s + a2) --> (b1, b2)}. (* (Trunc 0 {s : M & (s + a, s + b) --> (c, d)}) *)
   Defined.
-  (* TODO: Define monoidal groupoids instead, and show that it is not necessary to truncate. *)
+
+  (* Must I start with everything reduced for the notation to be readable? *)
+  Definition equiv_group_completion_morph {M : Symmetric_Monoidal_Groupoid} (a b : M*M)
+             (f g : group_completion_morph M a b) :
+    f = g <~> {alpha : f.1 --> g.1 & f.2 = g.2 o (pair_1 (alpha +^ 1) (alpha +^ 1))}.
+  Proof.
+    destruct a as [a1 a2]. destruct b as [b1 b2]. unfold group_completion_morph in f, g.
+    (* destruct f as [t f]. destruct g as [s g]. simpl. *) (* simpl in f1, f2, g1, g2. *)
+    set (F := Functor.prod (translate_fr a1) (translate_fr a2)).
+    refine (_ oE equiv_path_sigma (fun s : M => F s --> (b1, b2)) _ _).
+    transitivity {p : f.1 = g.1 & f.2 = g.2 o (F _1 (idtoiso M p))}.
+    { apply equiv_functor_sigma_id. intro p.
+      transitivity (f.2 o (F _1 (idtoiso M p ))^-1 = g.2).
+      - apply equiv_concat_l.
+        apply inverse. apply transport_morphism_Fl.
+      (* Can't find this specific equivalence implemented. . . *)
+      - srapply @equiv_adjointify. apply iso_moveL_pM. apply iso_moveR_pV.
+        intro q. apply (trunc_morphism (M*M)).
+        intro q. apply (trunc_morphism (M*M)). } 
+    transitivity ({alpha : f.1 <~=~> g.1 & f.2 = g.2 o pair_1 (morphism_isomorphic +^ 1) (morphism_isomorphic +^ 1)}).
+    { srapply @equiv_functor_sigma'.
+      - exact (BuildEquiv _ _(idtoiso M (y:=g.1)) _).
+      - reflexivity.
+    } clear F.
+    srapply @equiv_functor_sigma'.
+    - srapply @equiv_adjointify.
+      + intro e. exact morphism_isomorphic.
+      + intro e. exact (Build_Isomorphic (isgroupoid_moncat M f.1 g.1 e)).
+      + intro e. exact idpath.
+      + intro e. apply path_isomorphic. exact idpath.
+    - reflexivity.
+  Defined.
+
+  Definition path_group_completion_morph {M : Symmetric_Monoidal_Groupoid} (a b : M*M)
+             (f g : group_completion_morph M a b) :
+    {alpha : f.1 --> g.1 & f.2 = g.2 o (pair_1 (alpha +^ 1) (alpha +^ 1))} -> f = g :=
+    (equiv_group_completion_morph a b f g)^-1%equiv.
+  
+  (* (* The following two maps may or may not be equal to the underlying maps of [equiv_group_completion_morph] *) *)
+  (* Definition path_to_sigma {M : Symmetric_Monoidal_Groupoid} (a b : M*M) *)
+  (*            (f g : group_completion_morph M a b) : *)
+  (*   f = g -> {alpha : f.1 --> g.1 & f.2 = g.2 o (pair_1 (alpha +^ 1) (alpha +^ 1))}. *)
+  (* Proof. *)
+  (*   intro p. *)
+  (*   destruct p. *)
+  (*   destruct a as [a1 a2]. destruct b as [b1 b2]. *)
+  (*   destruct f as [s [f1 f2]]. simpl. *)
+  (*   exists (identity s). *)
+  (*   apply inverse. *)
+  (*   refine (_ @ right_identity (M*M) _ _ (f1, f2)). *)
+  (*   apply path_prod; simpl. *)
+  (*   apply (ap (fun g => f1 o g)). apply sum_idmap. *)
+  (*   apply (ap (fun g => f2 o g)). apply sum_idmap. *)
+  (* Defined. *)
+
+  (* Definition path_grp_compl_morph {M : Symmetric_Monoidal_Groupoid} (a b : M*M) *)
+  (*            (f g : group_completion_morph M a b) : *)
+  (*   {alpha : f.1 --> g.1 & f.2 = g.2 o (pair_1 (alpha +^ 1) (alpha +^ 1))} -> f = g. *)
+  (* Proof. *)
+  (*   destruct f as [s  f]. destruct g as [t g]. destruct a as [a1 a2]. destruct b as [b1 b2]. simpl. *)
+  (*   intros [alpha H]. *)
+  (*   srapply @path_sigma; simpl. *)
+  (*   - apply (isotoid M _ _). exact (Build_Isomorphic (isgroupoid_smon_magma M s t alpha )). *)
+  (*   - (* refine (transport_morphism_Fl (translate_fr ) ((isotoid M s t) *) *)
+  (*     (*           {| morphism_isomorphic := alpha; isisomorphism_isomorphic := isgroupoid_smon_magma M s t alpha |}) f *) *)
+  (*     (*                               @ _). *) admit. Abort. *)
+
   
 
-  Definition path_to_sigma {M : Symmetric_Monoidal_Category} {a1 a2 b1 b2 : M}
-             (f g : {s : M & (s + a1, s + a2) --> (b1, b2)}) :
-    f = g -> {eq : f.1 --> g.1 & (IsIsomorphism eq * (g.2 o (eq +^ 1) = f.2))%type}.
+  Instance isset_group_completion_morph (M : Symmetric_Monoidal_Groupoid) (a b : M*M) :
+    IsHSet (group_completion_morph M a b).
   Proof.
-    intro p.
-    destruct p.
-    destruct f as [s f]. simpl.
-    exists (identity s).
-    split.  exact _.
-    refine (_ @ right_identity M _ _ f).
-    apply (ap (fun g => f o g)). apply sum_idmap.
-  Defined.
+    intros f g. change (IsTrunc_internal (-1)) with (IsTrunc (-1)).
+    apply (trunc_equiv' {alpha : f.1 --> g.1 & f.2 = g.2 o (pair_1 (alpha +^ 1) (alpha +^ 1))}).
+     exact (equiv_inverse (equiv_group_completion_morph a b f g)).
+    destruct a as [a1 a2]. destruct b as [b1 b2].
+    destruct f as [s f]. destruct g as [t g]. (* simpl in f1, f2, g1, g2. *)
+    apply trunc_sigma'.
+    - intro alpha. exact _.
+    - intros [e H] [e' H']. simpl in e, H, e', H'. 
+      apply contr_inhabited_hprop. exact _. simpl.
+      srapply @cancellation. exact a1.
+      destruct (H'^). clear H'.
+      destruct g as [g g']. simpl in g, g'. simpl in H.
+      pose proof (ap Datatypes.fst H) as fstH. simpl in fstH. clear H. clear g'.
+      srefine ((iso_compose_V_pp (isgroupoid_moncat M _ _ g) _)^ @ _ @ iso_compose_V_pp (isgroupoid_moncat M _ _ g) _).
+      rewrite fstH. exact idpath.
+  Qed.
 
-  Definition path_grp_compl_morph {M : Symmetric_Monoidal_Category} {a b : M} (f g : {s : M & s + a --> b}) :
-    {eq : f.1 --> g.1 & (IsIsomorphism eq * (g.2 o (eq +^ 1) = f.2))%type} -> f = g.
-  Proof.
-    destruct f as [s  f]. destruct g as [t g].
-    intros [e [He comm]]. simpl in e, He, comm.
-    srapply @path_sigma; simpl.
-    - apply (isotoid M _ _). exact (Build_Isomorphic He).
-    - refine (transport_morphism_Fl (translate a)
-                  ((isotoid M s t) {| morphism_isomorphic := e; isisomorphism_isomorphic := He |}) f @ _).
-      rewrite eisretr.
-      apply iso_moveR_pV. exact (comm^).
-  Defined.
-
-  Definition equiv_path_grp_completion_morph {M : Symmetric_Monoidal_Category} (a b : M)
-             (f g : {s : M & s + a --> b}) :
-    f = g <~> {eq : f.1 --> g.1 & (IsIsomorphism eq * (g.2 o (eq +^ 1) = f.2))%type}.
-  Proof.
-    srapply @equiv_adjointify.
-    - apply path_to_sigma.
-    - apply path_grp_compl_morph.
-    (* - intros [eq [isiso_e He]]. *)
-    (*   apply path_sigma_hprop. *)
-    (*   destruct f as [s f]. destruct g as [t g]. simpl. unfold path_grp_compl_morph.  *)
-    (*   simpl in He, eq. destruct He. unfold path_to_sigma. simpl. *)
-    (*   unfold path_grp_compl_morph. simpl. *)
-
-      
-    (*   unfold path_grp_compl_morph. simpl. *)
-
-                         
-    (*   intros [eq iso_eq comm]. *)
-    (*   srapply @path_sigma. *)
-      
-      
-    (*   unfold path_grp_compl_morph. simpl. *)
-  Abort.      
-
-
-    
-
-  Definition group_completion_cat (M : Symmetric_Monoidal_Category) : PreCategory.
+  Definition group_completion_cat (M : Symmetric_Monoidal_Groupoid) : PreCategory.
   Proof.
     srapply (Build_PreCategory (group_completion_morph M)).
     (* Identity map *)
     - intros [a b].
-      apply tr. exists (e M).
+      exists (e M).
       split; apply lid.
     (* Composing morphisms *)
     - intros [a1 a2] [b1 b2] [c1 c2].
-      intros f g. strip_truncations.
+      intros f g. 
       destruct f as [s [f1 f2]].
       destruct g as [t [g1 g2]].
-      apply tr.
       exists (s + t).
       split.
       + refine (f1 o _).
         refine (_ o (assoc M s t a1)^-1).
         exact (1 +^ g1).
-        apply iso_assoc.
+        apply isgroupoid_moncat.
       + refine (f2 o _).
         refine (_ o (assoc M s t a2)^-1).
         exact (1 +^ g2).
-        apply iso_assoc.
+        apply isgroupoid_moncat.
     (* Associativity *)
     - intros [a1 a2] [b1 b2] [c1 c2] [d1 d2].
       intros f g h.
-      strip_truncations.
       destruct f as [r [f1 f2]].
       destruct g as [s [g1 g2]].
       destruct h as [t [h1 h2]].
-      apply (ap tr).
       srapply @path_sigma.
       + simpl. apply (isotoid M _ _).
         symmetry.
-        apply (@Build_Isomorphic M _ _ (assoc M t s r) (iso_assoc M t s r)).
+        apply (@Build_Isomorphic M _ _ (assoc M t s r) (isgroupoid_moncat M _ _ _)).
       + simpl.
         refine (transport_prod (P := fun s0 => (s0 + a1) --> d1)  _ _ @ _).
         apply path_prod.

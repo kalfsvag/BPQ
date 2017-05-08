@@ -98,6 +98,8 @@ Defined.
 (*       apply leq0n. *)
 (*     (* k+1 *) *)
 (*     +  *)
+
+Close Scope nat_scope.
   
 
 (* This was already implemented as equiv_sigma_prod0. *)

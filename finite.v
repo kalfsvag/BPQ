@@ -1,4 +1,8 @@
 Require Import HoTT.
+Load stuff.
+
+(* Use my own definition of minus. . . *)
+Notation "n - m" := (nat_minus m n).
 
 (* The finite pointed set {0, 1, ..., n} *)
 Notation "[ n ]" := (Fin (S n)).
@@ -73,6 +77,17 @@ Proof.
     apply equiv_sum_symm.
 Defined.
 
+Definition decompose_fin {n : nat} (i : Fin n) :
+  Fin n <~>  Fin (nat_minus (nat_fin' i).+1 n) + Unit + Fin (nat_fin' i).
+Proof.
+  induction n. contradiction.
+  revert i.
+  srapply @fin_ind.
+  - apply equiv_inverse. apply sum_empty_r.    
+  - intro i. simpl. simpl in IHn.
+    refine (_ oE equiv_functor_sum_r (IHn i)).
+    apply equiv_sum_assoc.
+Defined.
 
 Definition iterated_prod (A : Type) (n : nat) : Type.
 Proof.
@@ -87,14 +102,13 @@ Notation "A *^ n" := (iterated_prod A n) (at level 20).
 
 (* Decompose the iterated product, isolating the i'th component. *)
 Definition decompose_iterated_prod {A : Type} {n : nat} (i : Fin n) :
-  (A *^ (n.+1)) <~> (A*^(nat_fin' i) * A * A*^(n - (nat_fin' i))).
+  (A *^ n) <~> (A*^(nat_fin' i) * A * A*^(nat_minus (nat_fin' i).+1) n).
 Proof.
   induction n. contradiction.
-  simpl. simpl in IHn.
   revert i. srapply @fin_ind; simpl.
-  - transitivity (Unit * (A * (A * A *^ n))).
+  - transitivity (Unit * (A * A *^ n)).
       apply equiv_inverse. apply prod_unit_l.
-      apply equiv_prod_assoc.    
+      apply equiv_prod_assoc.
   - intro i.
     refine (_ oE equiv_functor_prod_l (IHn i)).
     refine (_ oE equiv_prod_assoc A _ _).
@@ -105,24 +119,22 @@ Defined.
 (* Project down to the i'th component *)
 Definition projection_iterated_prod {A : Type} {n : nat} (i : Fin n) : A*^n -> A.
 Proof.
-  induction n. contradiction.
-  revert i. srapply @fin_rec.
-  (* i=0 *)
-  - 
   refine (_ o (@decompose_iterated_prod A n i)).
   intros [[a0 a] a1]. exact a.
 Defined.
 
 (* Project away from the i'th component *)
-Definition face_iterated_prod {A: Type} {n : nat} (i : Fin n) : A*^(n.+1) -> A*^n.
+Definition face_iterated_prod {A: Type} {n : nat} (i : [n]) : A*^(n.+1) -> A*^n.
 Proof.
-  induction n. contradiction.
-  simpl. simpl in IHn.
+  induction n.
+  (* n=0 *)
+  - exact (const tt).
+  - simpl. simpl in IHn.
   revert i. srapply @fin_ind; simpl.
   (* i=0 *)
-  - apply snd.
+  + apply snd.
   (* i+1 *)
-  - intro i.
+  + intro i.
     intros [a0 a].
     exact (a0, IHn i a).
 Defined.

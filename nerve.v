@@ -14,6 +14,51 @@ Open Scope morphism_scope.
 (* c_j := projection_iterated_prod (include_1 j) *)
 (* c_j+1 := projection_iterated_prod (fin_succ j) *)
 
+(* (* Trying to do an inductive definition of the nerve *) *)
+(* Inductive composable_arrows (C : PreCategory) : forall (n : nat) (c0 : C), Type := *)
+(*   | nil : forall (c : C), composable_arrows C O c *)
+(*   | cons : forall (n : nat) (c0 c1 : C) (f0 : c0 --> c1), *)
+(*       composable_arrows C n c1 -> composable_arrows C n.+1 c0. *)
+
+(* Arguments nil {C} c. *)
+(* Arguments cons {C} {n} {c0 c1} f0 _. *)
+
+(* Definition Nerve (C : PreCategory) (n : nat) := {c0 : C & composable_arrows C n c0}. *)
+
+(* Definition nerve_face {C : PreCategory} {n : nat} (i : [n.+1]) : Nerve C n.+1 -> Nerve C n. *)
+(* Proof. *)
+(*   intros [c0 f]. destruct f.    (* The first subgoal here doesn't make sense. . . *) *)
+(*   revert i. srapply @fin_rec. *)
+(*   (* i=0 *) *)
+(*   - intros [c0 f]. destruct f as [ | ].  *)
+
+
+    
+(*   induction n. *)
+(*   (* n=0 *) *)
+(*   - intros [[s t] f]. *)
+(*     revert i. srapply @fin_rec. *)
+(*     (* i=0 *) exact ((t,t); nil C t). *)
+(*     srapply @fin_rec. *)
+(*     (* i=1 *) exact ((s,s); nil C s). contradiction. *)
+(*   (* n.+1 *) *)
+(*   - rename IHn into d. *)
+(*     revert i. srapply @fin_rec. *)
+(*     (* i=0 *) intros [[s t] f]. *)
+    
+
+(*     destruct f. *)
+(*   (* Degenerations from identity morphisms *) *)
+(*   -  exists (c,c). induction n. *)
+(*      (* n=0 *) apply nil. *)
+(*      (* n+1 *) apply (cons C n c c 1 _ IHn). *)
+(*   - change n0 with n. *)
+
+(*   simpl. apply nil. *)
+(*   exact ((c,c) ; nil C c). *)
+
+
+
 (* Morphisms from the j'th projection to the successor *)
 Definition morphism_j_Sj {n : nat} {C : PreCategory} (j : Fin n) (c : C*^(n.+1)) :=
   (projection_iterated_prod (include_1 j) c) --> (projection_iterated_prod (fin_succ j) c).
@@ -61,13 +106,98 @@ Defined.
 
 (* Prove a simplicial identity to check if this works *)
 Open Scope function_scope.
-Definition a_simplicial_identity {n : nat} {C : PreCategory} (i : [n]) (c : Nerve n.+2 C)  :
-  (nerve_face (fin_succ i) o nerve_face (include_1 (include_1 i))) c =
-  (nerve_face (include_1 i) o nerve_face (include_1 (include_1 i))) c.
+Definition a_simplicial_identity {n : nat} {C : PreCategory} (i : [n.+1]) (c : Nerve n.+2 C)  :
+  (nerve_face i o nerve_face (fin_succ i)) c =
+  (nerve_face i o nerve_face (include_1 i)) c.
 Proof.
-  destruct c as [c f]. destruct c as [c0 [c1 [c2 c]]].
-  revert i. srapply @fin_ind. simpl. unfold const.
-  srapply @path_sigma. simpl. unfold face_iterated_prod. simpl.
+  destruct c as [c f].
+  (* i=0 *)
+
+  destruct c as [c0 [c1 [c2 c]]].
+  induction n.
+  (* n = 0 *)
+  - revert i. srapply @fin_ind.
+    + srapply @path_sigma. reflexivity. 
+      apply path_forall. intro k. contradiction.
+    + srapply @fin_ind.
+      * srapply @path_sigma. reflexivity.
+        apply path_forall. intro k. contradiction.
+      * contradiction.
+  (* n+1 *)
+  - rename n0 into n.
+    revert i. srapply @fin_ind.
+    (* i=0 *)
+    + srapply @path_sigma. reflexivity. rewrite transport_1. reflexivity.
+    (* i+1 *)
+    + srapply @fin_ind.
+      (* i=1 *)
+      * srapply @path_sigma. reflexivity. rewrite transport_1. apply path_forall.
+        srapply @fin_ind.
+        (* k=0 *) simpl. apply associativity.
+        (* k+1 *) reflexivity.
+      (* i+2 *)
+      * intro i. 
+        refine (IHn (fin_succ i) _ _).
+        simpl. simpl in IHn.
+        intro i. srapply @path_sigma.
+        simpl.
+
+
+    
+        rewrite transport_1. simpl.
+  - 
+    + revert i. srapply @fin_ind.
+      * reflexivity.
+      * srapply @fin_ind; simpl.
+        reflexivity. contradiction.
+    + 
+        
+  
+  revert i. srapply @fin_ind.
+  (* i=0 *)
+  - simpl. unfold const.
+    srapply @path_sigma. reflexivity.
+    rewrite transport_1.
+    apply path_forall. intro k.
+    (* Take care of n=0 *)
+    induction n. contradiction. rename n0 into n.
+    revert k. srapply @fin_ind; reflexivity.
+  (* i+1 *)
+  - srapply @fin_ind.
+    (* i=1 *)
+    + simpl. induction n.
+      (* n=0 *)
+      srapply @path_sigma. reflexivity.
+      rewrite transport_1. apply path_forall.  intro j. contradiction.
+      (* n+1 *) rename n0 into n.
+      srapply @path_sigma. reflexivity.
+      rewrite transport_1. apply path_forall. srapply @fin_ind.
+      (* k=0 *)
+      * simpl. apply associativity.
+      (* k=1 *)
+      * simpl. reflexivity.
+    (* i+2 *)
+    + simpl. intro i. induction n. contradiction. rename n0 into n.
+      srapply @path_sigma. simpl.
+      apply (ap (fun x => (c0, x))). 
+      
+
+      
+      simpl.
+      
+      
+      
+      simpl. repeat rewrite face_iterated_prod_0. reflexivity.
+     
+      
+      simpl. unfold face_iterated_prod. simpl.
+
+    intro i. 
+    simpl.
+    unfold nerve_face.
+    
+
+    simpl. unfold face_iterated_prod. simpl.
   unfold nerve_face.
   
   

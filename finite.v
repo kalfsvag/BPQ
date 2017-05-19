@@ -34,12 +34,20 @@ Proof.
   induction n.
   (* Trivial when n is zero *)
   contradiction.
-  apply fin_rec.
-  (* Zero goes to zero *)
-  - exact fin_zero.
-  (* [i+1] goes to [fin_succ i] *)
-  - refine (fin_succ o IHn).
+  srapply @fin_rec.
+  (* 0 goes to 0 *) exact fin_zero.
+  intro i. simpl. apply (@fin_succ (n.+1)). exact (IHn i).
 Defined.
+  
+  
+  (* apply fin_rec. *)
+  (* (* Zero goes to zero *) *)
+  (* - exact fin_zero. *)
+  (* (* [i+1] goes to [fin_succ i] *) *)
+  (* - refine (fin_succ o IHn). *)
+(* Defined. *)
+
+
 
 (* I think I order Fin the other way than in the HoTT library. . . *)
 Fixpoint nat_fin' {n : nat} : Fin n -> nat.
@@ -124,8 +132,17 @@ Proof.
 Defined.
 
 (* Project away from the i'th component *)
-Definition face_iterated_prod {A: Type} {n : nat} (i : [n]) : A*^(n.+1) -> A*^n.
+Fixpoint face_iterated_prod {A: Type} {n : nat} (i : [n]) : A*^(n.+1) -> A*^n.
 Proof.
+(*   revert i. srapply @fin_rec. *)
+(*   (* i=0 *) *)
+(*   - intros [a0 a]. exact a. *)
+(*   (* i+1 *) *)
+(*   - induction n. contradiction. *)
+(*     intro i. *)
+(*     intros [a0 a]. exact (a0, face_iterated_prod A n i a). *)
+(* Defined. *)
+    
   induction n.
   (* n=0 *)
   - exact (const tt).
@@ -138,8 +155,78 @@ Proof.
     intros [a0 a].
     exact (a0, IHn i a).
 Defined.
+
+(* (* The 0'th face projects away from the 0'th component *) *)
+(* Definition face_iterated_prod_0 {A:Type} {n : nat} (a0 : A) (a : A*^n) : *)
+(*   face_iterated_prod fin_zero (a0, a) = a. *)
+(* Proof. *)
+(*   induction n. *)
+(*   (* n=0 *) *)
+(*   - apply contr_unit. *)
+(*   (* n+1 *) *)
+(*   - reflexivity. *)
+(* Defined. *)
+
+(* (* I can't manage to make simpl do this reduction alone. . . *) *)
+(* Definition face_iterated_prod_Si {A : Type} {n : nat} (a0 : A) (a : A*^n.+1) (i : [n]) : *)
+(*   face_iterated_prod (fin_succ i) (a0, a) = (a0, face_iterated_prod i a) := idpath. *)
+
+(* Definition a_simplicial_identity_prod {A : Type} {n : nat} (i : [n]) (a : A*^n.+2): *)
+(*   (face_iterated_prod i o face_iterated_prod (fin_succ i)) a = *)
+(*   (face_iterated_prod i o face_iterated_prod (include_1 i)) a. *)
+(* Proof. *)
+(*   destruct a as [a0 [a1 a]]. *)
+(*   induction n. *)
+(*   (* n=0 *) *)
+(*   - reflexivity. *)
+(*   (* n+1 *) *)
+(*   - revert i. srapply @fin_ind. *)
+(*     (* i=0 *) *)
+(*     + reflexivity. *)
+(*     + srapply @fin_ind. *)
+(*       simpl. *)
+(*     +  *)
+(*     + induction n. simpl. *)
+
+(*     induction n. *)
+(*     (* n=1 *) *)
+(*     + revert i. srapply @fin_ind.  *)
+(*     (* i=0 *) *)
+(*       * reflexivity. *)
+(*       (* i+1 *) *)
+(*       * reflexivity. *)
+(*     (* n+2 *) *)
+(*     + revert i. *)
+(*       srapply @fin_ind. *)
+(*     (* i=0 *) reflexivity. *)
+(*     (* i+1 *) srapply @fin_ind. *)
+(*     (* i=1 *) reflexivity. *)
+(*     (* i+2 *) destruct a as [a2 [a3 a]]. simpl. *)
+      
+      
+(*     + srapply @fin_ind. *)
+(*       (* i=1 *) *)
+(*       * simpl. apply path_prod. reflexivity. simpl. rewrite face_iterated_prod_0. reflexivity. *)
+(*       *  *)
+(*         unfold face_iterated_prod. simpl. *)
+
+(*       intro i. destruct a as [a2 a]. *)
+(*       repeat rewrite face_iterated_prod_Si. simpl. simpl in IHn. *)
+(*       apply path_prod. reflexivity. *)
+      
+      
+      
+      
+(*       simpl. *)
+      
+(*       unfold face_iterated_prod. simpl. *)
+
   
   
   
     
   
+
+
+
+

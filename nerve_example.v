@@ -1,23 +1,50 @@
 Require Import HoTT.
-Load finite.
+Require Import UnivalenceAxiom.
+(* Load finite. *)
+
+
+(* The nonempty finite sets of n+1 elements *)
+Inductive pFin : forall (n : nat), Type :=
+  | fin_zero {n : nat} : pFin n
+  | fin_succ {n : nat} : pFin n -> pFin n.+1.
+
+Definition fin_include {n : nat} : pFin n -> pFin n.+1.
+Proof.
+  intro i. induction i.
+  (* zero goes to zero *)
+  exact fin_zero.
+  (* i+1 goes to i+1 *)
+  exact (fin_succ IHi).
+Defined.
+
+(* pFin is equivalent to Fin *)
+Lemma equiv_pFin_Fin (n : nat) : pFin n <~> Fin n.+1.
+Proof.
+  srapply @equiv_adjointify.
+  - intro i. induction i.
+    (* i=0 *) exact (inr tt).
+    (* i+1 *) exact (inl IHi).
+  - induction n.
+    intro i. exact fin_zero.    (* n=0 *)
+    intros [i |].
+    exact (fin_succ (IHn i)). (* i+1 *)
+    intro t. exact fin_zero.  (* i=0 *)
+  - intro i. simpl.
+    induction n. simpl. destruct i. contradiction. destruct u. reflexivity.
+    destruct i.
+    { simpl. exact (ap inl (IHn f)). } destruct u. reflexivity.
+  - intro i. induction i.
+    + simpl. induction n. reflexivity. reflexivity.
+    + simpl. simpl in IHi. exact (ap fin_succ IHi).
+Defined.
+
 Require Import Functor Category.
 (*This notation is defined elsewhere, but I do not know how to import it.*)
 Local Notation "x --> y" := (morphism _ x y) (at level 99, right associativity, y at level 200) : type_scope.
 
 (* Open Scope category_scope.   *)
 Open Scope morphism_scope.
-
-
-Inductive pFin : forall (n : nat), Type :=
-  | fin_zero {n : nat} : pFin n
-  | fin_succ {n : nat} : pFin n -> pFin n.+1.
-
-Definition fin_include {n : nat} : Fin n -> Fin n.+1.
-Proof.
-  intro i. induction i.
-  exact fin_zero.
-
-
+    
 (* Trying to do an inductive definition of the nerve *)
 Inductive composable_arrows (C : PreCategory) : forall (n : nat) (c0 : C), Type :=
   | nil : forall c0 : C, composable_arrows C O c0
@@ -30,26 +57,44 @@ Arguments cons {C} {n} {c0 c1} f0 _.
 (* Overload the list notation. . . *)
 Notation "f0 :: s" := (cons f0 s) (at level 60, right associativity).
 
-(* Definition composable_arrows_pred (C : PreCategory) (n : nat) (c0 : C) : Type. *)
-(* Proof. *)
-(*   destruct n. *)
-(*   - exact Unit. *)
-(*   - exact (composable_arrows C n c0). *)
-(* Defined. *)
+Definition sig_ca (C : PreCategory) (n : nat) (c0 : C) : Type.
+Proof.
+  destruct n. -exact Unit. -exact {c1 : C & (c1 --> c0) * composable_arrows C n c1}.
+Defined.
 
-(* (* Augment the definition of ca by saying that ca_-1 = Unit *) *)
-(* Definition ca_face_Si {C : PreCategory} {n : nat} {c0 : C} (i : Fin n) : *)
-(*   composable_arrows C n c0 -> composable_arrows_pred C n c0. *)
-(* Proof. *)
-(*   intro s. induction s. *)
-(*   - exact tt. *)
-(*   - destruct s. *)
-(*     + apply nil. *)
-(*     + revert i. srapply @fin_rec. *)
-(*       (* i=1 *) exact ((f0 o f1) :: s). *)
-(*       intro i. unfold composable_arrows_pred in IHs. *)
-(*       apply (cons f0). exact (IHs i). *)
-(* Defined. *)
+Definition issig_ca' {C : PreCategory} {n : nat} {c0 : C} :
+  composable_arrows C n c0 <~> sig_ca C n c0.
+Proof.
+  srapply @equiv_adjointify.
+  - intro s. destruct s. exact tt. simpl.
+    exact (c1; (f0, s)).
+  - destruct n. intro t. exact (nil c0). simpl.
+    intros [c1 [f0 s]]. exact (f0 :: s).
+  - intro s. induction n. destruct s. reflexivity. reflexivity.
+  - intro s. induction s. reflexivity. reflexivity.
+Defined.
+    
+Definition issig_ca {C : PreCategory} {n : nat} {c0 : C} :
+  composable_arrows C n.+1 c0 <~> {c1 : C & (c1 --> c0) * composable_arrows C n c1} := issig_ca'.    
+
+Definition composable_arrows_pred (C : PreCategory) (n : nat) (c0 : C) : Type.
+Proof.
+  destruct n.
+  - exact Unit.
+  - exact (composable_arrows C n c0).
+Defined.
+
+(* Augment the definition of ca by saying that ca_-1 = Unit *)
+Fixpoint ca_face_Si {C : PreCategory} {n : nat} {c0 : C} (i : pFin n) :
+  composable_arrows C n.+1 c0 -> composable_arrows C n c0.
+Proof.
+  intro s'. destruct (issig_ca s') as [c1 [f0 s]]. clear s'.
+  destruct i.
+  (* i=1 *)
+  - destruct s. exact (nil c0). exact (f0 o f1 :: s).
+  (* i+2 *)
+  - exact (f0 :: ca_face_Si C n c1 i s). (* d_i+2 (c0 <- c1 <- . . . = c0 <- d_i+1 (c1<-...) *)
+Defined.
 
 (* All composable strings of length n: *)
 Definition Nerve (C : PreCategory) (n : nat) :=
@@ -79,23 +124,39 @@ Defined.
 (*     - simpl. exact (c1; s). *)
 (* Defined. *)
 
-Definition nerve_face {C : PreCategory} {n : nat} (i : [n]) :
+Definition nerve_face {C : PreCategory} {n : nat} (i : pFin n) :
   Nerve C n -> Nerve_pred C n.
 Proof.
-  intros [c s]. destruct s.  (* s is nil *) {exact tt. } simpl.
-  revert i. srapply @fin_rec.
-  (* i=0 *) {exact (c1; s). }
-  (* i+1 *) intro i.
-  exists c0. revert c0 f0. induction s; intros.
-  (* The naming of c's and f's get a bit jumbled here. . . *)
-  (* s is f0 *) {exact (nil c1). }
-  revert i. srapply @fin_rec.
-  (* i=1 *) {exact (f1 o f0 :: s). }
-  (* i+2 *)
-  (* d_(i+2) (c0 <- c1 <- . . .) = c0 <- d_(i+1) (c1 <- ...) *)
-  intro i.
-  exact (f1 :: IHs i c0 f0).
+  intros [c0 s]. destruct i.
+  {destruct s. exact tt. exact (_;s). } (* i=0 *)
+  exists c0. exact (ca_face_Si i s).
 Defined.
+(*   simpl. pose proof (issig_ca s) as s'. clear s. rename s' into s. exists c0. *)
+(*   revert c0 s. *)
+(*   induction i; intros. *)
+(*   (* i=1 *) *)
+(*   { destruct s as [c1 [f0 s]]. destruct s. *)
+(*     - exact (nil c0). *)
+(*     - exact (f0 o f1 :: s). } *)
+(*   (* i+2 *) *)
+(*   destruct s as [c1 [f0 s']]. destruct (issig_ca s') as [c2 [f1 s]]. clear s'. *)
+(*   srefine (f0 :: _). *)
+(*   exact (IHi c1 (c2; (f1, s))). *)
+(* Defined. *)
+(*   intros [c s]. destruct s.  (* s is nil *) {exact tt. } simpl. *)
+(*   revert i. srapply @fin_rec. *)
+(*   (* i=0 *) {exact (c1; s). } *)
+(*   (* i+1 *) intro i. *)
+(*   exists c0. revert c0 f0. induction s; intros. *)
+(*   (* The naming of c's and f's get a bit jumbled here. . . *) *)
+(*   (* s is f0 *) {exact (nil c1). } *)
+(*   revert i. srapply @fin_rec. *)
+(*   (* i=1 *) {exact (f1 o f0 :: s). } *)
+(*   (* i+2 *) *)
+(*   (* d_(i+2) (c0 <- c1 <- . . .) = c0 <- d_(i+1) (c1 <- ...) *) *)
+(*   intro i. *)
+(*   exact (f1 :: IHs i c0 f0). *)
+(* Defined. *)
 
 (* Definition nerve_face {C : PreCategory} {n : nat} (i : [n]) : *)
 (*   Nerve C n -> Nerve_pred C n. *)
@@ -108,26 +169,63 @@ Defined.
 (*     exact (ca_face_Si i s). *)
 (* Defined. *)
 
-Arguments nerve_face {C} {n} (i) _ : simpl never.
+(* Arguments nerve_face {C} {n} (i) _ : simpl never. *)
 
 (* Formulate a simplicial identity that is trivially true when n is 0 and 1 *)
-Definition augmented_simp_id {C : PreCategory} {n : nat} (i : Fin n) (s : Nerve C n) : Type.
-Proof.
-  destruct s as [c0 s].
-  destruct s.
-  (* s is nil *) exact Unit.
-  destruct s.
-  (* s is c0 -> c1 *) exact Unit.
-  (* s is c0 -> c1 -> c2 -> ... *)
-  exact (nerve_face i (nerve_face (fin_succ i) (c0; cons f0 (cons f1 s))) =
-         nerve_face i (nerve_face (include_1 i) (c0; cons f0 (cons f1 s)))).
-Defined.
-
-Definition a_simplicial_identity {C : PreCategory} {n : nat} (i : [n])
+(* Definition augmented_simp_id {C : PreCategory} {n : nat} (i : Fin n) (s : Nerve C n) : Type. *)
+(* Proof. *)
+(*   destruct s as [c0 s]. *)
+(*   destruct s. *)
+(*   (* s is nil *) exact Unit. *)
+(*   destruct s. *)
+(*   (* s is c0 -> c1 *) exact Unit. *)
+(*   (* s is c0 -> c1 -> c2 -> ... *) *)
+(*   exact (nerve_face i (nerve_face (fin_succ i) (c0; cons f0 (cons f1 s))) = *)
+(*          nerve_face i (nerve_face (include_1 i) (c0; cons f0 (cons f1 s)))). *)
+(* Defined. *)
+Open Scope function_scope.
+Definition a_simplicial_identity {C : PreCategory} {n : nat} (i : pFin n)
            (c0 c1 : C) (f0 : c1 --> c0) (s : composable_arrows C n c1) :
   (nerve_face i (nerve_face (fin_succ i) (c0; f0 :: s)) =
-   nerve_face i (nerve_face (include_1 i) (c0; f0 :: s))).
+   nerve_face i (nerve_face (fin_include i) (c0; f0 :: s))).
 Proof.
+  destruct i. { destruct s. reflexivity. reflexivity. }
+  rewrite <- (eissect issig_ca s). destruct (issig_ca s) as [c2 [f1 s']]. simpl. clear s. rename s' into s.
+  apply (ap (fun s => (c0; s))).
+  revert c0 c1 c2 f0 f1 s.
+  (* i=1 *)
+  induction i; intros. simpl. destruct s. reflexivity.
+  rewrite associativity. reflexivity. 
+  (* i+2 *)
+  simpl.
+  rewrite <- (eissect issig_ca s). destruct (issig_ca s) as [c3 [f2 s']]. simpl. clear s. rename s' into s.
+  apply (ap (cons f0)). apply IHi.
+Qed.
+  apply (IHi s _ _ f1 f2).
+  simpl.
+  transitivity (c0; 
+  
+  
+  apply (ap (fun s => (c0;s))). simpl.
+  
+  exact (IHi
+  
+  
+  
+  revert s.
+  set (Q := fun s : composable_arrows C n.+1 c1 =>
+               nerve_face (fin_succ i) (nerve_face (fin_succ (fin_succ i)) (c0; f0 :: s)) =
+               nerve_face (fin_succ i) (nerve_face (fin_include (fin_succ i)) (c0; f0 :: s))).
+  srapply (@equiv_functor_forall _ _ (fun x => Q (issig_ca^-1 x)) _ Q issig_ca)%function.
+  - intro b.
+            
+  srapply (@functor_forall _ (fun x => Q (issig_ca^-1 x)) _ Q (issig_ca))%function.
+              
+  destruct i. simpl. revert s.
+  apply (
+              
+  destruct s. 
+  
   induction s. 
   induction n. simpl. 
   revert i. srapply @fin_ind. { destruct s. reflexivity. reflexivity. }

@@ -457,3 +457,18 @@ Section Adjointness.
   
 
 End Adjointness.
+
+Section Group_complete_nat.
+  (* Definition int_group : Group. *)
+  (* Proof. *)
+  (*   srapply @Build_Group. *)
+  (*   - srapply (@Build_Monoid Int). *)
+    
+  
+  Definition grpcpl_nat_is_int : group_completion nat_symm_monoid <~> Int.
+  Proof.
+    srapply @equiv_adjointify.
+    - apply Trunc_rec.
+      srapply @Coeq_rec.
+      + intros [m n]. exact (Int_sum (nat_to_int m) (Int_minus (nat_to_int n))).
+      + intros [[l m] n]. simpl.

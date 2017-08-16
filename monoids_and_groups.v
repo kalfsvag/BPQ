@@ -92,8 +92,9 @@ Section nat_monoid.
       nat Peano.plus O
       plus_assoc (fun _ => idpath) (fun n => (nat_plus_n_O n)^).
   Close Scope nat_scope.
-End nat_monoid.
 
+  Definition nat_symm_monoid : Symmetric_Monoid := Build_Symmetric_Monoid nat_monoid nat_plus_comm.    
+End nat_monoid.
 
 
 Notation "a + b"  := (mon_mult a b) : monoid_scope.

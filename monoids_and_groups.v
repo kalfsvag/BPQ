@@ -71,6 +71,8 @@ Section Monoids_and_Groups.
 
 End Monoids_and_Groups.
 
+                                     
+
 Section nat_monoid.  
   (*Strangely, I cannot find any proofs of nat being associative*)
   Open Scope nat_scope.
@@ -413,3 +415,19 @@ End Homomorphism.
 
 Notation "'Hom'" := Homomorphism : monoid_scope.
 Infix "oH" := compose_hom (at level 40, left associativity).
+
+
+
+(* Defining sets with a monoid action (see MacLane, p5) *)
+Section Monoid_action.
+  Open Scope monoid_scope.
+  Record Monoid_Action (M : Monoid) (X : hSet) := {function_of : M -> (X -> X);
+                                                   assoc_function_of : forall (m1 m2 : M) (x : X),
+                                                       function_of (m1 + m2) x = function_of m1 (function_of m2 x);
+                                                   preserve_id_function_of : forall x : X,
+                                                       function_of (mon_id M) x = x
+                                                  }.
+  Definition product_action (M : Monoid) : Monoid_Action M (M*M).
+  
+                                                    
+                                                   

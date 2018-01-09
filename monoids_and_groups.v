@@ -13,8 +13,8 @@ Section Monoids_and_Groups.
     forall a : A, m a (inv a) = e.
 
 
-  Record Monoid : Type := { mon_set : Type;
-                            mon_isset : IsHSet mon_set;
+  Record Monoid : Type := { mon_set : hSet;
+                            (* mon_isset : IsHSet mon_set; *)
                             mon_mult  : mon_set->mon_set->mon_set;
                             mon_id : mon_set;
                             mon_assoc : associative mon_mult;
@@ -27,11 +27,11 @@ Section Monoids_and_Groups.
                                      mon_sym : symmetric (mon_mult mon) }.
   Global Arguments mon_sym {s} {a} {b}.
 
-  (*Makes mon_isset an implicit argument*)
-  Global Arguments Build_Monoid mon_set {mon_isset} mon_mult mon_id mon_assoc mon_lid mon_rid.
+  (* (*Makes mon_isset an implicit argument*) *)
+  (* Global Arguments Build_Monoid mon_set {mon_isset} mon_mult mon_id mon_assoc mon_lid mon_rid. *)
 
 
-  Coercion mon_set : Monoid >-> Sortclass.
+  Coercion mon_set : Monoid >-> TruncType.
   Coercion mon : Symmetric_Monoid >-> Monoid.
   Global Arguments mon_mult {m} m1 m2.
   Global Arguments mon_assoc {m} {a} {b} {c}.
@@ -91,7 +91,7 @@ Section nat_monoid.
   
   Definition nat_monoid : Monoid :=
     Build_Monoid
-      nat Peano.plus O
+      (BuildhSet nat) Peano.plus O
       plus_assoc (fun _ => idpath) (fun n => (nat_plus_n_O n)^).
   Close Scope nat_scope.
 
@@ -105,7 +105,7 @@ Notation "a - b" := (mon_mult a (grp_inv b)) : monoid_scope.
 
 (*Just so that you don't have to remember what is monoid structure and what is group structure *)
 Notation "'grp_set' G" := (mon_set (grp_mon G)) (at level 0) : monoid_scope.
-Notation "'grp_isset' G" := (mon_isset (grp_mon G)) (at level 0) : monoid_scope.
+(* Notation "'grp_isset' G" := (mon_isset (grp_mon G)) (at level 0) : monoid_scope. *)
 Notation "'grp_id' G" := (mon_id (grp_mon G)) (at level 0) : monoid_scope.
 Notation "'grp_mult'" := (@mon_mult (grp_mon _)) (at level 0, only parsing) : monoid_scope.
 Notation "'grp_assoc'" := (mon_assoc ( m := grp_mon _)) (at level 0) : monoid_scope.
@@ -117,7 +117,7 @@ Notation "'grp_rid'" := (@mon_rid (grp_mon _)) (at level 0) : monoid_scope.
 Section Loop_is_group.
   Definition loopGroup (A : pType) {istrunc_A : IsTrunc 1 A} : Group.
     srapply Build_Group.
-    exact (Build_Monoid (loops A) concat idpath concat_p_pp concat_1p concat_p1).
+    exact (Build_Monoid (BuildhSet (loops A)) concat idpath concat_p_pp concat_1p concat_p1).
     - exact inverse.
     - exact concat_Vp.
     - exact concat_pV.
@@ -365,7 +365,8 @@ Section Homomorphism.
     intro f.
     set (A := (f (mon_id M) = mon_id N)).
     set (B := (forall m1 m2 : mon_set M, f (m1 + m2) = f m1 + f m2)).
-    refine (@trunc_prod -1 A (mon_isset _ _ _) B _).
+    refine (@trunc_prod -1 A _ B _).
+    exact (istrunc_trunctype_type N _ _).
     unfold B; clear A; clear B.
     set (P := fun m1 : mon_set M => forall m2, f (m1 + m2) = f m1 + f m2).
     refine (@trunc_forall _ (mon_set M) P -1 _).
@@ -375,7 +376,7 @@ Section Homomorphism.
                 f (m1 + m2) = f m1 + f m2).
     refine (@trunc_forall _ _ P -1 _).
     intro m2; unfold P; clear P.
-    exact (mon_isset _ _ _).
+    exact (istrunc_trunctype_type N _ _).
   Defined.
 
   (*Two homomorphisms are equal if their underlying maps are equal.*)
@@ -418,16 +419,75 @@ Infix "oH" := compose_hom (at level 40, left associativity).
 
 
 
-(* Defining sets with a monoid action (see MacLane, p5) *)
-Section Monoid_action.
-  Open Scope monoid_scope.
-  Record Monoid_Action (M : Monoid) (X : hSet) := {function_of : M -> (X -> X);
-                                                   assoc_function_of : forall (m1 m2 : M) (x : X),
-                                                       function_of (m1 + m2) x = function_of m1 (function_of m2 x);
-                                                   preserve_id_function_of : forall x : X,
-                                                       function_of (mon_id M) x = x
-                                                  }.
-  Definition product_action (M : Monoid) : Monoid_Action M (M*M).
+(* (* Defining sets with a monoid action (see MacLane, p5) *) *)
+(* Section Monoid_action. *)
+(*   Open Scope monoid_scope. *)
+(*   Record Monoid_Action (M : Monoid) (X : hSet) := {function_of : M -> (X -> X); *)
+(*                                                    assoc_function_of : forall (m1 m2 : M) (x : X), *)
+(*                                                        function_of m1 (function_of m2 x) = function_of (m1 + m2) x; *)
+(*                                                    preserve_id_function_of : forall x : X, *)
+(*                                                        function_of (mon_id M) x = x *)
+(*                                                   }. *)
+(*   Arguments function_of {M} {X} _ _ _. *)
+(*   Definition product_action (M : Monoid) : Monoid_Action M (BuildhSet (M*M)). *)
+(*   Proof. *)
+(*     srapply (@Build_Monoid_Action). *)
+(*     (* The action *) *)
+(*     - intro m. *)
+(*       intros [a b]. *)
+(*       exact (m + a, m + b). *)
+(*     - intros m1 m2 [x1 x2]. *)
+(*       apply path_prod; apply mon_assoc. *)
+(*     - intros [x1 x2]. apply path_prod; apply mon_lid. *)
+(*   Defined. *)
+
+(*   (* [S X] *) *)
+(*   (* The quotient X/~, where x ~ y if there is a s : S s.t. s + x = y *) *)
+(*   Definition grp_compl_relation {M : Monoid} (X : hSet) (a : Monoid_Action M X) : relation X *)
+(*     := (fun x y => {m : M | function_of a m x = y}). *)
+
+(*   Lemma relation_is_mere {M : Monoid} (X : hSet) *)
+(*         (a : Monoid_Action M X) *)
+(*         (isfree_a : forall (m1 m2 : M) (x : X), (function_of a m1 x = function_of a m2 x -> m1 = m2)) *)
+(*     : is_mere_relation X (grp_compl_relation X a). *)
+(*   Proof. *)
+(*     intros. *)
+(*     unfold grp_compl_relation. *)
+(*     apply (trunc_sigma' _). *)
+(*     - intros [m1 p1] [m2 p2]. simpl. *)
+(*       apply (contr_inhabited_hprop _). *)
+(*       exact (isfree_a m1 m2 x (p1 @ p2^)). *)
+(*   Qed. *)
+
+(*   Definition isfree_product_action (M : Monoid) (right_cancellation_M : forall l m n : M, m + l = n + l -> m = n) *)
+(*     : forall (m1 m2 : M) (x : M*M), *)
+(*       function_of (product_action M) m1 x = function_of (product_action M) m2 x -> m1 = m2. *)
+(*   Proof. *)
+(*     intros m1 m2 [x1 x2]. simpl. *)
+(*     intro p. *)
+(*     apply (right_cancellation_M x1). *)
+(*     exact (ap fst p). *)
+(*   Defined. *)
+
+(*   Definition group_completion (M : Monoid) (right_cancellation_M : forall l m n : M, m + l = n + l -> m = n) : Type. *)
+(*   Proof. *)
+(*     refine (quotient (grp_compl_relation (BuildhSet (M*M)) (product_action M)) *)
+(*                     (sR := relation_is_mere (BuildhSet (M*M)) (product_action M) (isfree_product_action _ right_cancellation_M))). *)
+(*   Defined. *)
+
+(*   (* TODO: Make this cleaner, move to group_completion, and see if the same stuff can be proved. *) *)
+    
+    
+    
+  
+(*   Definition divide_action (S : Symmetric_Monoid) (X: hSet) (action : Monoid_Action S X): hSet. *)
+(*   Proof. *)
+    
+    
+  
+(* End Monoid_action. *)
+
+
   
                                                     
                                                    

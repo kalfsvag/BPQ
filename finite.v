@@ -1,40 +1,369 @@
 Require Import HoTT.
 Load stuff.
 
-(* The nonempty finite sets of n+1 elements *)
-Inductive pFin : forall (n : nat), Type :=
-  | fin_zero {n : nat} : pFin n
-  | fin_succ {n : nat} : pFin n -> pFin n.+1.
+(* Comparing not_leq to gt *)
+Section Inequalities.
+  Open Scope nat.
+  (* For two natural numbers, one is either less than or equal the other, or it is greater. *)
+  Definition leq_or_gt (i j : nat) : (i <= j) + (i > j).
+  Proof.
+    revert j. induction i; intro j.
+    (* 0 <= j *)
+    - exact (inl tt).
+    - destruct j.
+      (* 0 < i+1 *)
+      + exact (inr tt).
+      (* (i < j+1) + (j.+1 < i + 1) <-> (i <= j) + (j < i) *)
+      + apply IHi.
+  Defined.
+ 
 
-Definition fin_include {n : nat} : pFin n -> pFin n.+1.
-Proof.
-  intro i. induction i.
-  (* zero goes to zero *)
-  exact fin_zero.
-  (* i+1 goes to i+1 *)
-  exact (fin_succ IHi).
-Defined.
+  Definition leq_succ (n : nat) : n <= n.+1.
+  Proof.
+    induction n. reflexivity. apply IHn.
+  Defined.
 
-(* pFin is equivalent to Fin *)
-Lemma equiv_pFin_Fin (n : nat) : pFin n <~> Fin n.+1.
-Proof.
-  srapply @equiv_adjointify.
-  - intro i. induction i.
-    (* i=0 *) exact (inr tt).
-    (* i+1 *) exact (inl IHi).
-  - induction n.
-    intro i. exact fin_zero.    (* n=0 *)
-    intros [i |].
-    exact (fin_succ (IHn i)). (* i+1 *)
-    intro t. exact fin_zero.  (* i=0 *)
-  - intro i. simpl.
-    induction n. simpl. destruct i. contradiction. destruct u. reflexivity.
-    destruct i.
-    { simpl. exact (ap inl (IHn f)). } destruct u. reflexivity.
-  - intro i. induction i.
-    + simpl. induction n. reflexivity. reflexivity.
-    + simpl. simpl in IHi. exact (ap fin_succ IHi).
-Defined.
+  (* Lemma leq_refl_code (i j : nat) : i =n j -> i <= j. *)
+  (* Proof. *)
+  (*   intro H. *)
+  (*   destruct (path_nat H). apply leq_refl. *)
+  (* Qed. *)
+  
+  Definition neq_succ (n : nat) : not (n =n n.+1).
+  Proof.
+    induction n.
+    - exact idmap.
+    - exact IHn.
+  Defined.
+
+  Definition leq0 {n : nat} : n <= 0 -> n =n 0.
+  Proof.
+    induction n; exact idmap.
+  Defined.
+
+  (* if both i<=j and j<=i, then they are equal *)
+  Definition leq_geq_to_eq (i j : nat) : (i <= j) -> (j <= i) -> i =n j.
+  Proof.
+    revert i.
+    induction j; intros i i_leq_j j_leq_i.
+    - exact (leq0 i_leq_j).
+    - destruct i.
+      + intros. destruct j_leq_i.
+      + simpl. intros.
+        apply (IHj _ i_leq_j j_leq_i).
+  Defined.
+
+  (* If i <= n, then i < n or i = n+1 *)
+  Definition leq_or_eq (i n : nat) : i <= n -> (i < n) + (i = n).
+  Proof.
+    intro i_leq_n.
+    destruct (leq_or_gt n i) as [n_leq_i | n_gt_i].
+    - apply inr. apply path_nat. exact (leq_geq_to_eq _  _ i_leq_n n_leq_i).
+    - exact (inl n_gt_i).
+  Defined.
+
+  (* Definition leq_to_lt_plus_eq (i j : nat) : i <= j -> (i < j) + (i = j). *)
+  (* Proof. *)
+  (*   intro i_leq_j. *)
+  (*   destruct (dec (i = j)). *)
+  (*   - exact (inr p). *)
+  (*   - apply inl. *)
+  (*     induction j. *)
+  (*     + simpl. rewrite (path_nat (leq0 i i_leq_j)) in n. apply n. reflexivity. *)
+  (*     + destruct i. exact tt. *)
+  (*       srapply (@leq_transd i.+2 j j.+1). *)
+  (*       * apply IHj. *)
+  (*         admit. *)
+           
+        
+  (*       simpl. *)
+
+        
+  (*       i. *)
+  (*     + simpl. *)
+    
+  (*   destruct j. *)
+  (*   apply inr. apply path_nat. apply (leq0  i (i_leq_j)). *)
+  (*   destruct i. *)
+  (*   - simpl. *)
+    
+  (*   apply inl. change (i < j.+1) with (i <= j). *)
+  (*   apply (leq_transd *)
+    
+    
+
+  (* Definition nlt_n0 (n : nat) : ~(n < 0) := idmap. *)
+  
+  Definition gt_to_notleq (i j : nat) : j > i -> ~(j <= i).
+  Proof.
+    intro i_lt_j.
+    intro j_leq_i.
+    apply (neq_succ i).
+    apply (leq_antisymd (leq_succ i)).
+    apply (leq_transd i_lt_j j_leq_i).
+    (* set (Si_leq_i := leq_transd i_lt_j j_leq_i). *)
+    (* set (Si_eq_i := leq_antisymd (leq_succ i) Si_leq_i). *)
+    (* apply (neq_succ i Si_eq_i). *)
+    (* induction i. *)
+    (* exact Si_eq_i. *)
+  Defined.
+
+  Definition not_i_lt_i (i : nat) : ~(i < i).
+  Proof.
+    unfold not.
+    induction i. exact idmap.
+    exact IHi.
+  Defined.
+  
+  (* Lemma notleq_to_gt (i j : nat) : ~(j <= i) -> j > i. *)
+  (* Proof. *)
+  (*   intro j_nleq_i. *)
+  (*   induction j. *)
+  (*   - apply j_nleq_i. *)
+  (*     apply leq0n. *)
+  (*   - change (i < j.+1) with (i <= j). *)
+  (*     destruct (dec (i =n j)). *)
+  (*     (* i = j *) *)
+  (*     + destruct (path_nat t). apply leq_refl. *)
+  (*     +  *)
+
+  (*     induction i. *)
+  (*     + exact tt. *)
+  (*     +  *)
+    
+  (*   induction i, j. *)
+  (*   - apply j_nleq_i. exact tt. *)
+  (*   - exact tt. *)
+  (*   - simpl. simpl in IHi. simpl in j_nleq_i. apply IHi. exact j_nleq_i. *)
+  (*   - change (i.+1 < j.+1) with (i < j). *)
+  (*     change (j < i.+1) with (j <= i) in j_nleq_i. *)
+  (*     change (i < j.+1) with (i <= j) in IHi. *)
+      
+    
+  (*   destruct (dec (~ (j <= i))). *)
+  (*   - set (f := j_nleq_i t). destruct f. *)
+  (*   -  *)
+  
+  (* If i <= j, then j is the sum of i and some natural number *)
+  Definition leq_to_sum {i j : nat} : i <= j -> {k : nat | j = i + k}%nat.
+  Proof.
+    revert j. induction i; intro j.
+    - intro. 
+      exists j. reflexivity.
+    - destruct j. intros [].
+      simpl. change (i < j.+1) with (i <= j).
+      intro i_leq_j.
+      apply (functor_sigma (A := nat) idmap (fun _ => ap S)).
+      apply (IHi j i_leq_j).
+      (* exists (IHi j i_leq_j).1. *)
+      (* apply (ap S). *)
+      (* apply (IHi j i_leq_j).2. *)
+  Defined.
+
+  (* If j > i, then j is a successor *)
+  Definition gt_is_succ {i j : nat} : i < j -> {k : nat | j = k.+1}.
+  Proof.
+    intro i_lt_j.
+    destruct (leq_to_sum i_lt_j) as [k H].
+    exact (i+k; H)%nat.
+  Defined.
+    
+End Inequalities.
+
+
+
+  
+
+
+
+Section Pointed_Finited.
+  Open Scope nat.
+  (* Canonical pointed finite sets as subsets of N *)
+  Definition pFin (n : nat) := {i : nat | i <= n}.
+  Global Instance ispointed_pFin {n : nat} : IsPointed (pFin n) := (0;tt).
+
+  (* The map sending 0 to [inl tt] *)
+  Definition equiv_pFin_succ (n : nat) : pFin (n.+1) <~> Unit + pFin n.
+  Proof.
+    srapply @equiv_adjointify.
+    - intros [i Hi].
+      destruct i.
+      + exact (inl tt).
+      + exact (inr (i; Hi)).
+    - intros [[] | i].
+      + exact (0; tt).
+      + destruct i as [i Hi].
+        exact (i.+1; Hi).
+    - unfold Sect.
+      intros [[] | [i Hi]]; reflexivity.
+    - unfold Sect.
+      intros [i Hi]. simpl.
+      induction i. simpl in Hi. destruct Hi. reflexivity.
+      reflexivity.
+  Defined.
+
+  (* The map sending n+1 to [inr tt] *)
+  Definition equiv_pFin_incl (n : nat) : pFin (n.+1) <~> pFin n + Unit.
+  Proof.
+    srapply @equiv_adjointify.
+    - intros [i i_leq_Sn].
+      destruct (leq_or_eq i (n.+1) i_leq_Sn) as [i_lt_Sn | eq_i_n].
+      (* Case when i<n+1 *)
+      + exact (inl (i; i_lt_Sn)).
+      (* Case when i=n *)
+      + exact (inr tt).
+    - intros [[i i_leq_n] | []].
+      + exists i.
+        apply (leq_transd i_leq_n). apply leq_succ.
+      + exists n.+1. apply leq_refl.
+    - unfold Sect.
+      (* I fell there should be a better way to do this. . . *)
+      intros [[i i_lt_n] |].      
+      + destruct (leq_or_eq i n.+1 (leq_transd i_lt_n (leq_succ n))) as [i_lt_Sn | i_eq_Sn].
+        * apply (ap inl).
+          apply path_sigma_hprop. reflexivity.
+          (* apply (ap (fun a : i <= n => (i; a))). *)
+          (* apply (istrunc_trunctype_type (i<=n)). *)
+        * assert (false : n.+1 <= n).
+          {rewrite <- i_eq_Sn. apply i_lt_n. }
+          destruct (not_i_lt_i n false).
+      + intros []. simpl.
+        destruct (leq_or_eq n.+1 n.+1 (leq_refl n)) as [i_lt_Sn | i_eq_Sn].
+        * destruct (not_i_lt_i n.+1 i_lt_Sn).
+        * exact idpath.
+    - unfold Sect.
+      intros [i i_leq_Sn].
+      destruct (leq_or_eq i n.+1 i_leq_Sn) as [i_lt_sn | i_eq_sn]; simpl.
+      + apply (path_sigma_hprop). reflexivity.
+      + apply (path_sigma_hprop). exact i_eq_sn^.
+  Defined.
+
+  (* Give better name if this works *)
+  Definition decidable_path_Sn : forall (n : trunc_index) (x : Sphere n.+2), Decidable (merely (x = North)).
+  Proof.
+    intros n x. unfold Decidable.
+    induction n.
+    revert x. srapply @Susp_ind; simpl.
+    + apply inl. apply tr. exact idpath.
+    +                           (* Trenger at merid er en ekvivalens? *)
+    
+    
+    
+        
+  (* I want a map (pFin n -> X) -> (pFin n -> X) moving all basepoints to the end, and else keeping the order *)
+  Definition movebptoend {n : nat} (X : Type) : (pFin n -> X + Unit) -> (pFin n -> X + Unit).
+  Proof.
+    induction n.
+    - exact idmap.
+    - 
+      intro x.
+      destruct (x (0;tt)). 
+      
+      destruct (merely (x (0; tt) = x0)) as [fst_is_bp | fst_is_not_bp].
+
+
+  (* General pointed finite sets of cardinality n *)
+  Definition Pointed_Finite (n : nat) := {A : Type & merely (A <~> pFin n)}.
+
+  (* Definition Canonical_Pointed_Finite (n : nat) : Pointed_Finite n:= *)
+  (*   (pFin n; tr 1%equiv). *)
+
+
+
+ 
+
+End Pointed_Finite.
+
+
+Section Cosimplicial_maps.
+   Notation "[ n ]" := {m : nat | m <= n}.
+  (* Definition pFin (n : nat) := { m : nat | m <= n }. *)
+  (* Definition pFin_include {n : nat} : pFin n -> nat := pr1. *)
+  (* Coercion pFin_include : pFin >-> nat. *)
+
+  (* The i'th coface *)
+  Definition coface {n : nat} (i : nat) (i_leq_n : i <= n) : [n] -> [n.+1].
+  Proof.
+    intros [j j_leq_n].
+    destruct (leq_or_gt i j).   (* destruct (dec (i <= j)).      *)
+    (* i <= j *)
+    - exists j.
+      apply (leq_trans _ n _ j_leq_n). apply leq_succ.
+    (* j > i *)
+    - exists j.+1.
+      apply j_leq_n.
+  Defined.
+
+  (* The i'th codegeneracy *)
+  (* s_i j =
+          j, if j <= i
+          j-1, if j > i  *)
+  Definition codegen {n : nat} (i : nat) (i_leq_n : i <= n) : [n.+1] -> [n].
+  Proof.
+    intros [j j_leq_Sn].
+    destruct (leq_or_gt j i).
+    (* j <= i *)
+    - exists j.
+      apply (leq_trans _ i _ t i_leq_n).
+    (* j > i *)
+    - destruct (gt_is_succ t) as [k H]. (* j is a successor *)
+      exists k.
+      change (k <= n) with (k.+1 <= n.+1).
+      apply (@leq_transd k.+1 j n.+1)%nat.
+      rewrite H. apply leq_refl.
+      apply j_leq_Sn.
+  Defined.
+
+End Cosimplicial_maps.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(* Older definition of pointed finite sets: *)
+(* (* The nonempty finite sets of n+1 elements *) *)
+(* Inductive pFin : forall (n : nat), Type := *)
+(*   | fin_zero {n : nat} : pFin n *)
+(*   | fin_succ {n : nat} : pFin n -> pFin n.+1. *)
+
+(* Definition fin_include {n : nat} : pFin n -> pFin n.+1. *)
+(* Proof. *)
+(*   intro i. induction i. *)
+(*   (* zero goes to zero *) *)
+(*   exact fin_zero. *)
+(*   (* i+1 goes to i+1 *) *)
+(*   exact (fin_succ IHi). *)
+(* Defined. *)
+
+(* (* pFin is equivalent to Fin *) *)
+(* Lemma equiv_pFin_Fin (n : nat) : pFin n <~> Fin n.+1. *)
+(* Proof. *)
+(*   srapply @equiv_adjointify. *)
+(*   - intro i. induction i. *)
+(*     (* i=0 *) exact (inr tt). *)
+(*     (* i+1 *) exact (inl IHi). *)
+(*   - induction n. *)
+(*     intro i. exact fin_zero.    (* n=0 *) *)
+(*     intros [i |]. *)
+(*     exact (fin_succ (IHn i)). (* i+1 *) *)
+(*     intro t. exact fin_zero.  (* i=0 *) *)
+(*   - intro i. simpl. *)
+(*     induction n. simpl. destruct i. contradiction. destruct u. reflexivity. *)
+(*     destruct i. *)
+(*     { simpl. exact (ap inl (IHn f)). } destruct u. reflexivity. *)
+(*   - intro i. induction i. *)
+(*     + simpl. induction n. reflexivity. reflexivity. *)
+(*     + simpl. simpl in IHi. exact (ap fin_succ IHi). *)
+(* Defined. *)
 
 
 (* (* Use my own definition of minus. . . *) *)

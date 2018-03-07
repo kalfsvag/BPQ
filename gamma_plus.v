@@ -5,40 +5,40 @@
 
 Require Import HoTT.
 Require Import UnivalenceAxiom.
+(* Load finite. *)
 Load stuff.
 Open Scope nat.
 
+Record Finite_Types (n : nat) :=
+  {finite_type : Type ; isfinite_finite_type : merely (finite_type <~> Fin n)}.
+Coercion finite_type : Finite_Types >-> Sortclass.
+
 (* The symmetric product (I think) *)
-Definition Symmetric_Product (n : nat) (X : Type) :=
+Definition hSymmetric_Product (n : nat) (X : Type) :=
   (* {n : nat & {A : Type & {h : merely (A <~> pFin n) | (A -> X)}}}. *)
-  {A : Pointed_Finite n & (A.1 -> X)}.
+  {A : Finite_Types n & (A -> X)}.
 
 (* Another way of defining the symmetric product *)
 (* I feel I have done this before, but I cannot find it. . . *)
 Definition equiv_other_SP {n : nat} {X : Type} :
-  Symmetric_Product n X <~> {A : Type & ((merely (A <~> pFin n)) * (A -> X))%type}.
+  hSymmetric_Product n X <~> {A : Type & ((merely (A <~> Fin n)) * (A -> X))%type}.
 Proof.
-  unfold Symmetric_Product. unfold Pointed_Finite.
+  unfold hSymmetric_Product.
   srapply @equiv_adjointify.
   - intros [[A Hx] x]. exists A. exact (Hx, x).
-  - intros [A [Hx x]]. exists (A; Hx). exact x.
+  - intros [A [Hx x]].
+    exact (Build_Finite_Types n A Hx; x).
   - unfold Sect. intros [A [Hx x]]. reflexivity.
   - unfold Sect. intros [[A Hx] x]. reflexivity.
 Defined.
 
-Definition prod_to_SP {n : nat} {X : Type} : (pFin n -> X) -> Symmetric_Product n X :=
-  fun x => ((pFin n; tr 1%equiv); x).  
+Definition prod_to_SP {n : nat} {X : Type} : (Fin n -> X) -> hSymmetric_Product n X :=
+  fun x => (Build_Finite_Types n (Fin n) (tr 1%equiv); x). 
 
 (* Given elements (A,x) (B,y) in the symmetric product, the identity type (A,x) = (B,y) should be the type
- {f : A<~>B & x o f = y}.*)
-
-(* (* This is a general statement that should perhaps go elsewhere *) *)
-(* Definition equiv_transport_prod {A : Type} {P Q : A -> Type} {a1 a2 : A} (p : a1 = a2) (z1 : P a1 * Q a1) (z2%type : *)
-(*   transport (fun a : A => P a * Q a)%type p z  *)
-
-
-Definition path_SM {n : nat} {X : Type} (x y : Symmetric_Product n X) :
-  x = y <~> {f : x.1.1 <~> y.1.1 & x.2 = y.2 o f}.
+ {f : A<~>B & x = y o f}.*)
+Definition path_SM {n : nat} {X : Type} (x y : hSymmetric_Product n X) :
+  x = y <~> {f : x.1 <~> y.1 & x.2 = y.2 o f}.
 Proof.
   refine (_ oE (equiv_ap equiv_other_SP x y)).
   refine (_ oE equiv_path_sigma _ _ _).
@@ -47,13 +47,13 @@ Proof.
   simpl.
   transitivity {p : A = B & transport (fun a : Type => a -> X) p x = y}.
   - apply equiv_functor_sigma_id. intro p.
-    transitivity ((transport (fun a : Type => merely (a <~> pFin n)) p Hx = Hy)*
+    transitivity ((transport (fun a : Type => merely (a <~> Fin n)) p Hx = Hy)*
                     (transport (fun a : Type => a -> X) p x = y))%type.
     + refine (_ oE (equiv_concat_l (transport_prod p _) _)^-1).
       apply equiv_inverse.
       (* For some reason, [apply equiv_path_prod] doesn't work here *)
       exact (equiv_path_prod
-               (transport (fun a : Type => Trunc (-1) (a <~> pFin n)) p Hx,
+               (transport (fun a : Type => Trunc (-1) (a <~> Fin n)) p Hx,
                 transport (fun a : Type => a -> X) p x) (Hy, y)).
     + refine ((prod_unit_l _) oE _).
       refine (equiv_functor_prod' _ 1%equiv).
@@ -63,15 +63,12 @@ Proof.
     intro e. simpl.
     change (fun x0 : A => y (e x0)) with (y o e).
     transitivity (x o e^-1 = y).
-    + 
-
-      admit.                    (* should be simple *)
+    + apply equiv_emoveR_fV.
     + apply equiv_concat_l.
-      apply transport_exp. 
+      apply transport_exp.
+Defined.
 
-(* Prove this first in a base case. *)
-Example path_SM' {n : nat}  {X : Type} (x y : pFin n -> X) :
-  prod_to_SP x = prod_to_SP y <~> {f : pFin n <~> pFin n & x o f = y}.
-Proof.
-  unfold prod_to_SP.
-  transitivity {f : pFin n = pFin n & transport  x = y}. 
+
+
+
+

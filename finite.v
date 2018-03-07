@@ -1,9 +1,138 @@
 Require Import HoTT.
 Load stuff.
+Context `{Funext}.
+
+(* A few results I didn't find *)
+Lemma dprop_equiv_unit (A : Type) (isprop_A : IsHProp A) (dec_A : Decidable A) : (A + ~A) <~> Unit.
+Proof.
+  srapply @equiv_adjointify.
+  - exact (const tt).
+  - intro t. exact (dec_A).
+  - intros []. reflexivity.
+  - intros [a | na].
+    destruct (dec_A) as [a' | na'].
+    apply (ap inl). apply (isprop_A a' a).
+    destruct (na' a).
+    destruct (dec_A) as [a' | na'].
+    destruct (na a').
+    apply (ap inr). apply path_arrow. intro a. destruct (na a).
+Defined.
+
+Lemma equiv_sigma_sum (A : Type) (B C : A -> Type) :
+   {a : A & B a} + {a : A & C a} <~> {a : A & B a + C a}.
+Proof.
+  srapply @equiv_adjointify.
+  - intros [[a b] | [a c]].
+    + exact (a; inl b).
+    + exact (a; inr c).
+  - intros [a [b | c]].
+    + exact (inl (a; b)).
+    + exact (inr (a; c)).
+  - intros [a [b | c]]; reflexivity.
+  - intros [[a b] | [a c]]; reflexivity.
+Defined.
+    
+  
+
+(* This is also in monoidal_1type.v *)
+(*Finite types are sets *)
+Definition isset_Fin (n : nat) : IsHSet (Fin n).
+Proof.
+  induction n.
+  - exact _.
+  - apply hset_sum.
+Defined.
+
+Definition isset_Finite (A : Type) :
+  Finite A -> IsHSet A.
+Proof.
+  intros [m finA]. strip_truncations.
+  apply (trunc_equiv' (Fin m) finA^-1).
+Defined.
+
+
+Section Factorize_Monomorphism.
+  Variables A B : Type.
+  Variable finite_A : Finite A.
+  Variable finite_B : Finite B.
+  Variable f : A-> B.
+  Variable ismono_f : forall a1 a2 : A, f a1 = f a2 -> a1 = a2.
+
+  (* First a lemma that the hfiber is a proposition *)
+  Lemma ishprop_hfiber (b : B) : IsHProp (hfiber f b).
+  Proof.
+    apply trunc_sigma'.
+    - intro a. srapply @isset_Finite.
+    - intros [a1 p1] [a2 p2]. simpl.
+      apply contr_inhabited_hprop.
+      + srapply @isset_Finite.
+      + apply ismono_f.
+        exact (p1 @ p2^).
+  Defined.
+
+  (* Since A is a set, the himage is the sum of the hfibers *)
+  Lemma himage_hfiber : (himage f) <~> {b : B & hfiber f b}.
+  Proof.
+    unfold himage. unfold TrM.image. simpl.
+    apply equiv_functor_sigma_id. intro a.
+    apply equiv_inverse. 
+    exists tr.
+    apply isequiv_tr.
+    apply ishprop_hfiber.
+  Defined.
+
+  (* Then a lemma the the hfiber is decidable. *)
+  Lemma decidable_hfiber (b : B) : Decidable (hfiber f b).
+  Proof.
+    apply detachable_finite_subset.
+    - apply ishprop_hfiber.
+    - apply (finite_equiv' (himage f) himage_hfiber).
+      apply finite_image.
+  Defined.
+
+  (* Now we can start factorizing *)
+  Theorem split_range : {b : B & hfiber f b} + {b : B & not (hfiber f b)} <~> B.
+  Proof.
+    transitivity (B*Unit).
+    transitivity {b : B & Unit}.
+    transitivity {b : B & hfiber f b + ~ hfiber f b}.
+    - apply equiv_sigma_sum.
+    - apply equiv_functor_sigma_id.
+      intro b.
+      apply (dprop_equiv_unit _ (ishprop_hfiber b) (decidable_hfiber b)).
+    - apply equiv_sigma_prod0.
+    - apply prod_unit_r.
+  Defined.
+
+  Theorem equiv_A_image : A <~> {b : B & hfiber f b}.
+  Proof.
+    transitivity {a : A & {b : B & f a =b}}.
+    transitivity {a : A & Unit}.
+    transitivity (A*Unit).
+    - apply equiv_inverse. apply prod_unit_r.
+    - apply equiv_inverse. apply equiv_sigma_prod0.
+    - apply equiv_functor_sigma_id.
+      intro a.
+      srapply @equiv_adjointify.
+      + intro t. exact (f a; idpath).
+      + exact (const tt).
+      + intros [b p].
+        srapply @path_sigma.
+        * exact p.
+        * transitivity (1@p).
+          apply transport_paths_r.
+          apply concat_1p.
+      + intros []. reflexivity.
+    - unfold hfiber.
+      apply equiv_sigma_symm.
+  Defined.
+End Factorize_Monomorphism.
+
+Open Scope nat.
 
 (* Comparing not_leq to gt *)
 Section Inequalities.
-  Open Scope nat.
+  
   (* For two natural numbers, one is either less than or equal the other, or it is greater. *)
   Definition leq_or_gt (i j : nat) : (i <= j) + (i > j).
   Proof.
@@ -176,7 +305,7 @@ End Inequalities.
 
 
 
-Section Pointed_Finited.
+Section Pointed_Finite.
   Open Scope nat.
   (* Canonical pointed finite sets as subsets of N *)
   Definition pFin (n : nat) := {i : nat | i <= n}.
@@ -238,28 +367,28 @@ Section Pointed_Finited.
       + apply (path_sigma_hprop). exact i_eq_sn^.
   Defined.
 
-  (* Give better name if this works *)
-  Definition decidable_path_Sn : forall (n : trunc_index) (x : Sphere n.+2), Decidable (merely (x = North)).
-  Proof.
-    intros n x. unfold Decidable.
-    induction n.
-    revert x. srapply @Susp_ind; simpl.
-    + apply inl. apply tr. exact idpath.
-    +                           (* Trenger at merid er en ekvivalens? *)
+  (* (* Give better name if this works *) *)
+  (* Definition decidable_path_Sn : forall (n : trunc_index) (x : Sphere n.+2), Decidable (merely (x = North)). *)
+  (* Proof. *)
+  (*   intros n x. unfold Decidable. *)
+  (*   induction n. *)
+  (*   revert x. srapply @Susp_ind; simpl. *)
+  (*   + apply inl. apply tr. exact idpath. *)
+  (*   +                           (* Trenger at merid er en ekvivalens? *) *)
     
     
     
-        
-  (* I want a map (pFin n -> X) -> (pFin n -> X) moving all basepoints to the end, and else keeping the order *)
-  Definition movebptoend {n : nat} (X : Type) : (pFin n -> X + Unit) -> (pFin n -> X + Unit).
-  Proof.
-    induction n.
-    - exact idmap.
-    - 
-      intro x.
-      destruct (x (0;tt)). 
+  (*     (* Do this for n-spheres directly? *) *)
+  (* (* I want a map (pFin n -> X) -> (pFin n -> X) moving all basepoints to the end, and else keeping the order *) *)
+  (* Definition movebptoend {n : nat} (X : Type) : (pFin n -> X + Unit) -> (pFin n -> X + Unit). *)
+  (* Proof. *)
+  (*   induction n. *)
+  (*   - exact idmap. *)
+  (*   -  *)
+  (*     intro x. *)
+  (*     destruct (x (0;tt)).  *)
       
-      destruct (merely (x (0; tt) = x0)) as [fst_is_bp | fst_is_not_bp].
+  (*     destruct (merely (x (0; tt) = x0)) as [fst_is_bp | fst_is_not_bp]. *)
 
 
   (* General pointed finite sets of cardinality n *)
@@ -268,9 +397,6 @@ Section Pointed_Finited.
   (* Definition Canonical_Pointed_Finite (n : nat) : Pointed_Finite n:= *)
   (*   (pFin n; tr 1%equiv). *)
 
-
-
- 
 
 End Pointed_Finite.
 
@@ -288,7 +414,7 @@ Section Cosimplicial_maps.
     destruct (leq_or_gt i j).   (* destruct (dec (i <= j)).      *)
     (* i <= j *)
     - exists j.
-      apply (leq_trans _ n _ j_leq_n). apply leq_succ.
+      apply (leq_transd j_leq_n)%nat. apply leq_succ.
     (* j > i *)
     - exists j.+1.
       apply j_leq_n.

@@ -95,9 +95,20 @@ Section Homotopy_Symmetric_Product.
   Definition prod_to_SP {n : nat} {X : Type} : (Fin n -> X) -> hSymmetric_Product n X :=
     fun x => ((Fin n; (tr 1%equiv)); x).
 
+  (* Definition path_SP {n : nat} {X : Type} {x y : hSymmetric_Product n X} : *)
+  (*   {f : x.1 <~> y.1 & x.2 = y.2 o f} -> x = y. *)
+  (* Proof. *)
+  (*   destruct x as [[A eA] x]. destruct y as [[B eB] y]. simpl. *)
+  (*   intros [f p]. *)
+  (*   srapply @path_sigma; simpl. *)
+  (*   - apply path_sigma_hprop. exact (path_universe_uncurried f). *)
+  (*   - refine (transport_exp _ _ _ f _ @ _). *)
+    
+    
+
   (* Given elements (A,x) (B,y) in the symmetric product, the identity type (A,x) = (B,y) should be the type
  {f : A<~>B & x = y o f}.*)
-  Definition path_SP {n : nat} {X : Type} (x y : hSymmetric_Product n X) :
+  Definition equiv_path_SP {n : nat} {X : Type} (x y : hSymmetric_Product n X) :
     x = y <~> {f : x.1 <~> y.1 & x.2 = y.2 o f}.
   Proof.
     refine (_ oE (equiv_ap equiv_other_SP x y)).
@@ -127,6 +138,13 @@ Section Homotopy_Symmetric_Product.
       + apply equiv_concat_l.
         apply transport_exp.
   Defined.
+
+  Definition path_SP {n : nat} {X : Type} {x y : hSymmetric_Product n X} (f : x.1 <~> y.1) (p : x.2 = y.2 o f) :
+    x=y.
+  Proof.
+    exact ((@equiv_path_SP n X x y)^-1 (f; p)).
+  Defined.
+  
 
   (* Given a point in X, we can add it to the end of the symmetric product *)
   Definition hSP_cons {n : nat} {X : Type} (x0 : X) : hSymmetric_Product n X -> hSymmetric_Product n.+1 X.
@@ -197,34 +215,193 @@ Module Export Gamma_Plus.
     refine (Gamma_Plus_ind_beta_d (fun _ => P) _ _ _).
   Defined.
 
-  Definition canon_const {X : pType} {n : nat} :
-    t (canon n; const x0) = t (canon 0; const x0) :> Gamma_Plus X.
-  Proof.
-    induction n.
-    - reflexivity.
-    - refine (_ @ IHn).
-      refine (_ @ d (canon n; const x0)).
-      apply (ap t).
-      apply path_SP.
-      exists 1%equiv.
-      apply path_arrow. intros [x |]; reflexivity.
-  Defined.
+  (* Definition canon_const {X : pType} {n : nat} : *)
+  (*   t (canon n; const x0) = t (canon 0; const x0) :> Gamma_Plus X. *)
+  (* Proof. *)
+  (*   induction n. *)
+  (*   - reflexivity. *)
+  (*   - refine (_ @ IHn). *)
+  (*     refine (_ @ d (canon n; const x0)). *)
+  (*     apply (ap t). *)
+  (*     apply path_SP. *)
+  (*     exists 1%equiv. *)
+  (*     apply path_arrow. intros [x |]; reflexivity. *)
+  (* Defined. *)
   
-  Definition contr_const {X : pType} {n : nat}:
-    forall B : Finite_Types n, Contr (t (B; const x0) = t (canon n; const x0) :> Gamma_Plus X).
+  (* Definition contr_const {X : pType} {n : nat}: *)
+  (*   forall B : Finite_Types n, Contr (t (B; const x0) = t (canon n; const x0) :> Gamma_Plus X). *)
+  (* Proof. *)
+  (*   intros [B e]. strip_truncations. *)
+  (*   assert (t ((B; tr e); const x0) = t(canon n; const x0):>Gamma_Plus X). *)
+  (*   apply (ap t). *)
+  (*   apply path_SP. simpl. *)
+  (*   exists e. reflexivity. *)
+  (*   refine (trunc_equiv (t (canon n; const x0) = (t (canon n; const x0))) (fun p => X0  @ p)). *)
+  (*   clear X0. *)
+  (*   refine (trunc_equiv (t (canon 0; const x0) = (t (canon 0; const x0))) (fun p => (canon_const @ p @ canon_const^))). *)
+  (*   srapply @BuildContr. *)
+  (*   - reflexivity. *)
+  (*   -                           (* TODO *) *)
+
+
+  (* When proving a proposition we only need to prove it for the symmetric products. *)
+  Definition Gamma_Plus_ind_hProp {X : pType} (P : Gamma_Plus X -> Type)
+             {isprop_P : forall g : Gamma_Plus X, IsHProp (P g)}
+             (t' : forall {n : nat} (x : hSymmetric_Product n X), P (t x)) :
+    forall g : Gamma_Plus X, P g.
   Proof.
-    intros [B e]. strip_truncations.
-    assert (t ((B; tr e); const x0) = t(canon n; const x0):>Gamma_Plus X).
-    apply (ap t).
-    apply path_SP. simpl.
-    exists e. reflexivity.
-    refine (trunc_equiv (t (canon n; const x0) = (t (canon n; const x0))) (fun p => X0  @ p)).
-    clear X0.
-    refine (trunc_equiv (t (canon 0; const x0) = (t (canon 0; const x0))) (fun p => (canon_const @ p @ canon_const^))).
-    srapply @BuildContr.
-    - reflexivity.
-    -                           (* TODO *)
+    apply (Gamma_Plus_ind P t').
+    intros n A. apply isprop_P.
+  Defined.  
+End Gamma_Plus.
+
+(* I want to prove that Gamma_Plus S0 <~> {n : nat & Finite_Sets} *)
+Section Gamma_Plus_S0.
+  Context (X : pType).
+  Context (isprop_basedpath : forall x : X, IsHProp (x = x0)).
+
+  Definition code_Gamma_Plus : Gamma_Plus X -> Type.
+  Proof.
+    srapply @Gamma_Plus_rec.
+    - intro n. intros [A x].
+      exact (forall a : A, x a = x0).
+    - intro n. intros [A x]. simpl. destruct A as [A eA].
+      apply path_universe_uncurried.
+      refine (_ oE (equiv_sum_ind _)^-1). simpl.
+      refine (prod_unit_r _ oE _).
+      apply (equiv_functor_prod' 1%equiv).
+      apply (@equiv_contr_unit (Unit -> x0 = x0)).
+      apply (@contr_arrow _ Unit).
+      apply (@contr_inhabited_hprop _ (isprop_basedpath x0)). exact idpath.
+  Defined.
+
+  Definition isprop_code : forall g : Gamma_Plus X, IsHProp (code_Gamma_Plus g).
+  Proof.
+    apply Gamma_Plus_ind_hProp.
+    - intros. apply hprop_trunc.
+    - intros n [A x]. simpl.
+      apply trunc_forall.
+  Defined.
+
+  Definition encode_Gamma_Plus :
+    forall g : Gamma_Plus X, (g = t(canon 0; const x0)) -> code_Gamma_Plus g.
+  Proof.
+    intro g. intro p. destruct p^. unfold code_Gamma_Plus. simpl. intros [].
+  Defined.
+    (* assert (isprop_P : forall g : Gamma_Plus X, IsHProp ((g = t(canon 0; const x0)) -> code_Gamma_Plus g)). *)
+    (* - intro g. *)
+    (*   apply (trunc_arrow (H0:=(isprop_code g))). *)
+    (* - srapply (@Gamma_Plus_ind_hProp X _ isprop_P). *)
+    (*   intros n [[A eA] x]. *)
+    (*   revert x. revert eA. srapply @Trunc_ind. simpl. *)
+    (*   intros eA x. intro p. *)
+      
+    (* srapply (@Gamma_Plus_ind_hProp X). *)
+    (* - intro g. *)
+    (*   assert (isprop_stuff : forall g : Gamma_Plus X, IsHProp (g = t (canon 0; const x0) -> code_Gamma_Plus g)). *)
+    (*   { intro g0. apply (trunc_arrow (H0 := isprop_code g0)). } *)
+    (*   apply (trunc_forall (H0 := isprop_stuff)). *)
+    (* - intros n [[A eA] x]. *)
+    (*   apply (@Gamma_Plus_ind_hProp X). *)
+    (*   + intro g. apply (trunc *)
+        
+        
+    (*   refine (@trunc_forall _ (Gamma_Plus X) _ _ _). *)
+    (*   apply (@trunc_arrow _ (. *)
+
+  Definition isequiv_encode_Gamma_Plus :
+    forall g : Gamma_Plus X, IsEquiv (encode_Gamma_Plus g).
+  Proof.
+    (* srapply (@Gamma_Plus_ind_hProp X (fun g => IsEquiv (encode_Gamma_Plus g))). simpl. *)
+    srapply (@Gamma_Plus_ind X (fun g => IsEquiv (encode_Gamma_Plus g))).
+    (* Must do inverse before destructing x? *)
+    intros n A. simpl.
+    srapply @isequiv_adjointify.
+    - 
+
+    
+    intros n [[A eA] x]. revert eA x.
+    srapply @Trunc_ind. intros eA x. simpl in x.
+    srapply @isequiv_adjointify.
+    (* Inverse *)
+    - simpl. intro const_x.
+      transitivity (t (X := X) (canon n; const x0)).
+      + apply (ap t). srapply @path_SP; simpl.
+        * exact eA.
+        * apply path_arrow. intro a. apply const_x.
+      + clear eA.
+        induction n. reflexivity.
+        refine (_ @ IHn).
+        refine (_ @ d (canon n; const x0)).
+        unfold hSP_cons. apply (ap t).
+        srapply @path_SP. exact 1%equiv.
+        apply path_arrow. intros [i | t]; reflexivity.
+
+    - intro xxx. simpl in xxx.
+      assert (isprop_this : IsHProp (forall a : A, x a = x0)).
+      + apply trunc_forall.
+      + apply isprop_this.        
+    - intro p.
+      induction n.
+      
+
+      apply isprop_code
+    - intro p.
+        * reflexivity. * simpl.
+        simpl.
+        simpl.
+        apply (path_SP 1%equiv).
+        simpl.
+        Check (
+        p
+        srapply @d.
+        check
+        apply d.
+        
+        exact (d (canon n; const x0) @ IHn).
+      refine ((path_SP eA _ @ _)).
     
 
-  
-End Gamma_Plus.
+  Definition decode_Gamma_plus :
+    forall g : Gamma_Plus X, code_Gamma_Plus g -> g = t (canon 0; const x0).
+  Proof.
+    
+
+  Definition based_path_Gamma_Plus :
+    forall g : Gamma_Plus X,
+      (g = t (canon 0; const x0)) <~> code_Gamma_Plus g.
+  Proof.
+    apply Gamma_Plus_ind_hProp.
+    - intro g.
+      srapply @istrunc_equiv.
+      apply isprop_code.
+    - intros n [[A eA] x].
+      revert x. revert eA.
+      srapply @Trunc_ind.
+      intro eA. simpl. intro x.
+      transitivity (t (canon n; x o eA^-1) = t (canon 0; const x0)).
+      + apply equiv_concat_l.
+        apply (ap t). apply inverse.
+        srapply @path_SP.
+        * simpl. exact eA.
+        * simpl. apply path_arrow. intro a. apply (ap x).
+          apply inverse. apply (eissect eA).
+      + induction n.
+        * transitivity (t (canon 0; const x0) = t (canon 0; const x0) :> Gamma_Plus X).
+          {apply equiv_concat_l. apply (ap t).
+           srapply @path_SP.
+           - exact 1%equiv.
+           - simpl. apply path_arrow. intros [].
+          }
+          transitivity Unit.
+          { srapply @equiv_contr_unit.
+            apply contr_inhabited_hprop.
+            - 
+          
+           
+          refine (_ oE (equiv_concat_l _ _)).
+          admit.
+        * simpl.
+      
+
+End Gamma_Plus_S0.

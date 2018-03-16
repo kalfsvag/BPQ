@@ -22,6 +22,23 @@ Definition canon (n : nat) : Finite_Types n :=
   (* (Fin n; tr idpath). *)
   (Fin n; tr 1%equiv).
 
+(* This is also in monoidal_1type.v *)
+(*Finite types are sets *)
+Definition isset_Fin (n : nat) : IsHSet (Fin n).
+Proof.
+  induction n.
+  - exact _.
+  - apply hset_sum.
+Defined.
+
+Definition isset_Finite (A : Type) {n : nat}:
+  merely (A <~> Fin n) -> IsHSet A.
+Proof.
+  intro finA. strip_truncations.
+  apply (trunc_equiv' (Fin n) finA^-1).
+Defined.
+
+
 (* Record Finite_Types (n : nat) := *)
 (*   {finite_type : Type ; isfinite_finite_type : merely (finite_type <~> Fin n)}. *)
 (* Coercion finite_type : Finite_Types >-> Sortclass. *)
@@ -69,6 +86,8 @@ Defined.
 
       
 
+
+
   
            
 
@@ -111,6 +130,160 @@ Defined.
 (*   set (H2 := trunc_forall  *)
 (*   revert H. intro. *)
 (*   apply (@functor_forall  *)
+
+
+
+
+
+  
+  
+
+(* This is just copied from fin_equiv_hfiber, but I wanted it as its own result *)
+
+(* TODO : One of the Fin n's should be generalized. *)
+Local Lemma is_inl_restrict_equiv_notfixlast {n : nat} {A : Type}
+      (e : A+Unit <~> Fin n.+1) (y : Fin n) (p : e (inr tt) = inl y) :
+  forall a : A, is_inl ((fin_transpose_last_with n (inl y) oE e) (inl a)).
+Proof.
+  intro a. ev_equiv.
+  assert (q : inl y <> e (inl a))
+    by exact (fun z => inl_ne_inr _ _ (equiv_inj e (z^ @ p^))).
+  set (z := e (inl a)) in *.
+  destruct z as [z|[]].
+  - rewrite fin_transpose_last_with_rest;
+      try exact tt; try assumption.
+  - rewrite fin_transpose_last_with_last; exact tt.
+Qed.
+
+Local Lemma is_inr_restrict_equiv_notfixlast {n : nat} {A : Type}
+      (e : A + Unit <~> Fin n.+1) (y : Fin n) (p : e (inr tt) = inl y) :
+  forall b : Unit, is_inr ((fin_transpose_last_with n (inl y) oE e) (inr b)).
+Proof.
+  intros []. ev_equiv.
+  rewrite p.
+  rewrite fin_transpose_last_with_with; exact tt.
+Qed.
+
+Local Lemma is_inl_restrict_equiv_last_fixed {A B: Type} (e : A + Unit <~> B + Unit) (p : e (inr tt) = inr tt)
+  : forall a : A, is_inl (e (inl a)).
+Proof.
+  intro a.
+  destruct (is_inl_or_is_inr (e (inl a))) as [l|r].
+  - exact l.
+  - assert (q := inr_un_inr (e (inl a)) r).
+    apply moveR_equiv_V in q.
+    assert (s := q^ @ ap (e^-1 o inr) (path_unit _ _) @ (moveL_equiv_V _ _ p)^).
+    elim (inl_ne_inr _ _ s).
+Qed.
+
+Local Lemma is_inr_restrict_equiv_last_fixed {A B : Type} (e : A+Unit <~> B+Unit) (p : e (inr tt) = inr tt) :
+  forall b : Unit, is_inr (e (inr b)).
+Proof.
+  intros []; exact (p^ # tt).
+Defined.
+
+(* Definition equiv_restrict {n : nat} {A B: Type} (e : A+Unit <~> B+1) :  <~> Fin n. *)
+(* Proof. *)
+(*   simpl in e. *)
+(*   recall (e (inr tt)) as y eqn:p. *)
+(*   assert (p' := (moveL_equiv_V _ _ p)^). *)
+(*   destruct y as [y | []]. *)
+(*   (*  *) *)
+(*   - apply (equiv_unfunctor_sum_l (fin_transpose_last_with n (inl y) oE e) *)
+(*                                  (is_inl_transpose1 e y p) (is_inr_transpose1 e y p)). *)
+(*   - apply (equiv_unfunctor_sum_l e (is_inl_transpose2 e p) (is_inr_transpose2 e p)). *)
+(* Defined. *)
+
+(* Definition almost_natural {n : nat} (e : Fin n.+1 <~> Fin n.+1) : *)
+(*   inl o equiv_restrict e == (fin_transpose_last_with n (e (inr tt)) oE e) o inl. *)
+(* Proof. *)
+(*   intro a. simpl. *)
+(*   recall (e (inl a)) as x eqn:px. *)
+(*   recall (e (inr tt)) as y eqn:py. destruct y as [y | []]. *)
+(*   - rewrite p. simpl.  *)
+(*     assert (q : inl y <> e (inl a)) *)
+(*       by exact (fun z => inl_ne_inr _ _ (equiv_inj e (z^ @ p^))). *)
+(*     rewrite fin_transpose_last_with_rest. *)
+(*   destruct (e (inr tt)) as [y | []]. *)
+
+(*   refine (unfunctor_sum_l_beta _ _ a @ _).  *)
+(*   intro a. simpl in e. *)
+(*   unfunctor_sum_l_beta *)
+(*   recall (e (inr tt)) as y eqn:p. *)
+(*   assert (p' := (moveL_equiv_V _ _ p)^). rewrite p. *)
+(*   destruct y as [y | []]. *)
+(*   - assert (q : inl y <> e (inl a)) *)
+(*         by exact (fun z => inl_ne_inr _ _ (equiv_inj e (z^ @ p^))). *)
+(*     ev_equiv. recall (e (inl a)) as z eqn:pz. *)
+(*     (* set (z := e (inl a)) in *. *) *)
+(*     destruct z as [z | z[]]. *)
+(*     (* { rewrite pz. rewrite fin_transpose_last_with_rest. apply (ap inl). *)
+ (*      *) *)
+(*     Admitted. *)
+
+
+Definition equiv_restrict_last_fixed {A B : Type} (e : A+Unit <~> B+Unit) (p : e (inr tt) = inr tt):
+  A <~> B.   (* {e' : Fin n <~> Fin n & e o inl = inl o e'}. *)
+Proof.
+  exact (equiv_unfunctor_sum_l e (is_inl_restrict_equiv_last_fixed e p) (is_inr_restrict_equiv_last_fixed e p)).  
+Defined.
+
+(* Definition equiv_restrict_notfixlast {n : nat} {A : Type}  *)
+(*            (e : A + Unit <~> Fin n.+1) (y : Fin n) (p : e (inr tt) = inl y) : *)
+(*   A <~> Fin n. *)
+(* Proof. *)
+(*   exact (equiv_unfunctor_sum_l e (is_inl_restrict_equiv_notfixlast e y p) (is_inr_restrict_equiv_last_fixed e y p)). *)
+
+(* Definition equiv_restrict_not_fix_last {n : nat} (e : Fin n.+1 <~> Fin n.+1) (ne : e (inr tt) <> inr tt) : *)
+(*   Fin n <~> Fin n. *)
+(* Proof. *)
+(*   set (k := e^-1 (inr tt)). *)
+(*   assert (k <> inr tt). *)
+(*   { intro q. apply ne. *)
+(*     refine (ap e q^ @ _). unfold k. apply eisretr. } *)
+
+
+(*   apply (equiv_unfunctor_sum  *)
+
+
+(*   apply (equiv_unfunctor_sum_l e). *)
+(*   - apply (is_inl_transpose2 e p). *)
+(*     intro a. *)
+(*     destruct (is_inl_or_is_inr (e (inl a))) as [l|r]. *)
+(*     + exact l. *)
+(*     + assert (q := inr_un_inr (e (inl a)) r). *)
+(*       apply moveR_equiv_V in q. *)
+(*       assert (s := q^ @ ap (e^-1 o inr) (path_unit _ _) @ (moveL_equiv_V _ _ p)^). *)
+(*       elim (inl_ne_inr _ _ s). *)
+(*   - intros []. rewrite p. exact tt. *)
+(* Defined. *)
+
+Definition natural_equiv_restrict {A B : Type} (e : A+Unit <~> B+Unit) (p : e (inr tt) = inr tt) :
+  inl o (equiv_restrict_last_fixed e p) == e o inl.
+Proof.
+  intro x. apply unfunctor_sum_l_beta.
+Defined.
+
+(* Definition swap_const {n : nat} (k : Fin n.+1) (x : Fin n.+1 -> X) (p : x k = x (inr tt)) : *)
+(*   x o (fin_transpose_last_with n k) == x. *)
+(* Proof. *)
+(*   intro i. *)
+(*   destruct i as [i | []]. *)
+(*   - destruct (dec (k = inl i)). *)
+(*     + rewrite <- p0. exact (ap x (fin_transpose_last_with_with n k) @ p^). *)
+(*     + exact (ap x (fin_transpose_last_with_rest n k i n0)). *)
+(*   - exact (ap x (fin_transpose_last_with_last n k) @ p). *)
+(* Defined. *)
+
+
+
+
+
+
+
+
+
+
   
 
 (* Open Scope nat. *)
@@ -167,7 +340,26 @@ Section Homotopy_Symmetric_Product.
         refine (transport_exp X (Fin n) (Fin n) e (x o e) @ _).
         apply path_arrow. intro i. apply (ap x). apply (eisretr e).
   Defined.
-      
+
+  Definition hSP_ind_hprop {n : nat} {X : pType} (P : hSymmetric_Product n X -> Type)
+             {isprop_Pn : forall x : Fin n -> X, IsHProp (P (canon n; x))}
+             (* {isset_P : IsHSet (P (canon n; const (point X)))} *)
+             (f : forall x : Fin n -> X, P (canon n; x))
+    : forall x : hSymmetric_Product n X, P x.
+  Proof.
+    intros [s x]. revert s x.
+    assert (p : forall e : Fin n <~> Fin n, tr (n:=-1) e = tr (1%equiv)).
+    { intro e. apply (istrunc_truncation -1). }
+    assert (isprop_P : forall x : hSymmetric_Product n X, IsHProp (P x)).    
+    { intros [[A eA] x]. revert x. strip_truncations. destruct (path_universe eA)^.
+      simpl.
+      destruct (p eA)^. exact isprop_Pn.
+    }
+    intros [A eA]. strip_truncations.
+    destruct (path_universe eA)^. destruct (p eA)^. exact f.
+  Defined.
+
+
 
     
   (* transport_arrow_toconst *)
@@ -238,8 +430,177 @@ Section Homotopy_Symmetric_Product.
   Proof.
     exact ((@equiv_path_hSP n X x y)^-1 (f; p)).
   Defined.
-  
 
+  Definition transport_equiv_plus1 {A B1 B2: Type} (e : B1 <~> B2) (f : B1 + Unit <~> A) :
+    transport (fun B => B + Unit <~> A) (path_universe_uncurried e) f = f oE
+                                                                  (equiv_inverse (equiv_functor_sum' e 1%equiv)).
+  Proof.
+    transitivity (f oE (((equiv_inverse (equiv_path_universe _ _)) (path_universe_uncurried e)) +E 1)^-1).
+    { destruct (path_universe_uncurried e). simpl.
+      apply emoveL_eV. 
+      apply path_equiv. apply path_arrow. intro b. simpl.
+      destruct b as [b | []]; reflexivity. }
+    apply path_equiv.
+    apply (ap (fun g => f o g)). simpl.
+    apply path_arrow. intros [b | []]. simpl.
+    { apply (ap inl).
+      apply (moveR_transport_V idmap (path_universe e) b _). apply inverse.
+      refine (ap10 (transport_idmap_path_universe e) (e^-1 b) @ _).
+      apply eisretr. }
+    reflexivity.
+  Defined.
+
+  Definition prop_choice_minus1 {n : nat} (A : Finite_Types n.+1) :
+    IsHProp {B : Type & B + Unit <~> A}.
+  Proof.
+    intros [B1 f1] [B2 f2].
+    srapply @BuildContr.
+    srapply @path_sigma.
+    - simpl. apply path_universe_uncurried.
+      admit.
+    - simpl.
+      refine (transport_equiv_plus1 _ f1 @ _).
+
+    simpl.
+    intros a b.
+
+  Definition contr_choice_minus1 {n : nat} (A : Finite_Types n.+1) :
+    Contr {B : Type & B + Unit <~> A}.
+  Proof.
+    destruct A as [A eA]. strip_truncations. destruct (path_universe eA)^. simpl.
+    srapply @BuildContr.
+    - exists (canon n).
+      exact 1%equiv.
+    - intros [B e].
+      (* two cases: e (inr tt) is (inr tt) or not *)
+      recall (e (inr tt)) as i eqn:p.
+      destruct i as [i | []].
+      (* e (inr tt) is inl i *)
+      + srapply @path_sigma.
+        * simpl. srapply @path_universe_uncurried. 
+          (* want an equivalence that fixes the endpoint *)
+          srapply @equiv_restrict_last_fixed.
+          { exact (equiv_inverse (fin_transpose_last_with n (e (inr tt)) oE e)). }
+          simpl.
+          apply moveR_equiv_V. apply moveR_equiv_V. apply inverse.
+          apply (fin_transpose_last_with_with).
+        * refine (transport_equiv_plus1 _ 1 @ _). simpl.
+          apply path_equiv. apply path_arrow.
+          intros [b | []].
+          { simpl.
+            refine (unfunctor_sum_l_beta _ _ b @ _).
+            admit. }
+          simpl.                (* argh *)
+          
+          admit.
+
+      + (srapply @path_sigma). simpl.
+        srapply @path_universe_uncurried.
+        { apply equiv_inverse. exact (equiv_restrict_last_fixed e p). }
+        simpl.
+        refine (transport_equiv_plus1 _ 1 @ _).
+        apply path_equiv. apply path_arrow.
+        intros [b | []].
+        * simpl.
+          apply (unfunctor_sum_l_beta e _ b).
+        * simpl. exact p^.
+        
+        
+        
+          
+          destruct (path_universe e)^.
+        
+      
+      destruct (e (inr tt)).
+      srapply @path_sigma.
+      
+      + simpl. destruct B as [B eB].
+        apply path_finite_types.  simpl.
+        
+        apply equiv_unfunctor_sum_l
+        
+      apply path_finite_types.
+      apply (path_finite_types _ _).
+  
+  (* Trying to be able to choose an equivalence A <~> B + Unit *)
+  Definition isprop_choice_minus1 {n : nat} (A : Finite_Types n.+1) (a : A) :
+    (* IsHProp {B : (hSymmetric_Product n A) & IsEquiv (* (functor_sum B.2 (fun t : Unit => a))}. *) *)
+    (*                                           (A := B.1+Unit) (B:=A) *)
+    (*                                           (fun b => match b with *)
+    (*                                                     |(inl b) => B.2 b *)
+    (*                                                     |(inr tt) => a end)} . *)
+    IsHProp {B : Finite_Types n & {e : B+Unit <~> A & e (inr tt) = a}}.
+  Proof.
+    srefine (trunc_equiv' {B : (hSymmetric_Product n A) & IsEquiv 
+                                              (A := B.1+Unit) (B:=A)
+                                              (fun b => match b with
+                                                        |(inl b) => B.2 b
+                                                        |(inr tt) => a end)} _ (H:= _)).
+    { transitivity {B : Finite_Types n & {f : B -> A & IsEquiv (A := B+Unit) (B:=A)
+                                                               (fun b => match b with
+                                                                         |(inl b) => f b
+                                                                         |(inr tt) => a end)}}.
+      { apply equiv_inverse. srapply @equiv_sigma_assoc. }
+      apply equiv_functor_sigma_id. intro B.
+      transitivity {f : B + Unit -> A & IsEquiv f & f (inr tt) = a}.
+      { srefine (equiv_functor_sigma _ _).
+
+      _ (H:= _)
+                                                                                              admit.
+    destruct A as [A eA]. simpl. revert a. (* strip_truncations. destruct (path_universe eA)^. *) intro a.
+    apply trunc_sigma'.
+    - intro b.
+      apply hprop_isequiv.
+    - intros [B1 equiv_1] [B2 equiv_2]. simpl.
+      srapply (@contr_equiv'  _ _ (equiv_path_hSP B1 B2)^-1).
+      destruct B1 as [B1 f1]. destruct B2 as [B2 f2]. simpl. simpl in a.
+      simpl in equiv_1. simpl in equiv_2.
+      set (e1 := BuildEquiv _ _ (fun b : B1 + Unit => match b with
+                                                      | inl b0 => f1 b0
+                                                      | inr tt => a
+                                                      end)
+                            equiv_1).
+      set (e2 := BuildEquiv _ _ (fun b : B2 + Unit => match b with
+                                                      | inl b0 => f2 b0
+                                                      | inr tt => a
+                                                      end)
+                            equiv_2).
+      change f1 with (e1 o inl). change f2 with (e2 o inl).
+      set (e := e2^-1 oE e1).
+      assert (p : e (inr tt) = inr tt). { unfold e. apply moveR_equiv_V. reflexivity. }
+                                        
+                                        srapply @BuildContr.
+      + exists (equiv_restrict_last_fixed e p).
+        apply path_arrow. intro b.
+        transitivity (e2 (e (inl b))). unfold e. apply inverse. apply (eisretr e2).
+        apply (ap e2). apply inverse. apply (natural_equiv_restrict).
+      + intros [e' wd].
+        assert (i_t : IsHSet (B1 -> A)).
+        { srefine (trunc_arrow (H0 := _)).
+          apply (isset_Finite A eA). }
+        srefine (path_sigma_hprop (H := fun _ => i_t _ _) _ _ _). simpl.
+        apply path_equiv. apply path_arrow. intro b.
+        apply (path_sum_inl  (Unit)).
+        refine (natural_equiv_restrict e p b @ _). unfold e. apply moveR_equiv_V.
+        exact (ap10 wd b).
+  Defined.
+
+  (* Definition finite_minus1 {n : nat} {A : Finite_Types n.+1} (a : A) : {B : Finite_Types n & B + Unit <~> A}. *)
+  (* Proof. *)
+  (*   apply (equiv_functor_sigma_id (fun B : (Finite_Types n) => issig_equiv (B + Unit) A)). *)
+  (*   apply (functor_sigma idmap  *)
+  (*    *)
+    
+  (*   ikke helt. . . *)
+    
+  (*   equiv_sigma_assoc *)
+
+  (*   issig_equiv *)
+          
+    
+
+
+  
   (* Given a point in X, we can add it to the end of the symmetric product *)
   Definition hSP_cons {n : nat} {X : Type} (x0 : X) (x : Fin n -> X) : hSymmetric_Product n.+1 X.
   Proof.
@@ -359,6 +720,17 @@ Section Gamma_Plus_S0.
   Context (isdprop_basedpath : forall x : X, IsHProp (x = x0)).
   Context (isdec_basedpath : forall x : X, Decidable (x = x0)).
 
+  Definition swap_const {n : nat} (k : Fin n.+1) (x : Fin n.+1 -> X) (p : x k = x (inr tt)) :
+    x o (fin_transpose_last_with n k) == x.
+  Proof.
+    intro i.
+    destruct i as [i | []].
+    - destruct (dec (k = inl i)).
+      + rewrite <- p0. exact (ap x (fin_transpose_last_with_with n k) @ p^).
+      + exact (ap x (fin_transpose_last_with_rest n k i n0)).
+    - exact (ap x (fin_transpose_last_with_last n k) @ p).
+  Defined.
+
   Definition code_tuple {n : nat} : (Fin n -> X + Unit) -> hProp.
   Proof.
     intro x.
@@ -371,7 +743,7 @@ Section Gamma_Plus_S0.
   Defined.
 
   
-  TODO(* Better for X_+ ?*)
+  TODO(* Better for X_+ ?*) 
   
   (* Define code on functions Fin n -> X first *)
   Definition code_tuple {n : nat} : (Fin n -> X) -> hProp.
@@ -382,136 +754,7 @@ Section Gamma_Plus_S0.
     - exact (if (dec (x (inr tt) = x0)) then (IHn (x o inl)) else False).
   Defined.
 
-  
-  
-  (* A result needed for showing that this is well defined *)
-  (* This is just copied from fin_equiv_hfiber, but I wanted it as its own result *)
-  Local Lemma is_inl_transpose1 {n : nat} (e : Fin n.+1 <~> Fin n.+1) (y : Fin n) (p : e (inr tt) = inl y) :
-        forall a : Fin n, is_inl ((fin_transpose_last_with n (inl y) oE e) (inl a)).
-  Proof.
-    intro a. ev_equiv.
-    assert (q : inl y <> e (inl a))
-      by exact (fun z => inl_ne_inr _ _ (equiv_inj e (z^ @ p^))).
-    set (z := e (inl a)) in *.
-    destruct z as [z|[]].
-    - rewrite fin_transpose_last_with_rest;
-        try exact tt; try assumption.
-    - rewrite fin_transpose_last_with_last; exact tt.
-  Qed.
 
-  Local Lemma is_inr_transpose1 {n : nat} (e : Fin n.+1 <~> Fin n.+1) (y : Fin n) (p : e (inr tt) = inl y) :
-    forall b : Unit, is_inr ((fin_transpose_last_with n (inl y) oE e) (inr b)).
-  Proof.
-    intros []. ev_equiv.
-    rewrite p.
-    rewrite fin_transpose_last_with_with; exact tt.
-  Qed.
-
-  Local Lemma is_inl_transpose2 {n : nat} (e : Fin n.+1 <~> Fin n.+1) (p : e (inr tt) = inr tt)
-    : forall a : Fin n, is_inl (e (inl a)).
-  Proof.
-    intro a.
-    destruct (is_inl_or_is_inr (e (inl a))) as [l|r].
-    - exact l.
-    - assert (q := inr_un_inr (e (inl a)) r).
-      apply moveR_equiv_V in q.
-      assert (s := q^ @ ap (e^-1 o inr) (path_unit _ _) @ (moveL_equiv_V _ _ p)^).
-      elim (inl_ne_inr _ _ s).
-  Qed.
-
-  Local Lemma is_inr_transpose2 {n : nat} (e : Fin n.+1 <~> Fin n.+1) (p : e (inr tt) = inr tt) :
-    forall b : Unit, is_inr (e (inr b)).
-  Proof.
-    intros []; exact (p^ # tt).
-  Defined.
-  
-  Definition equiv_restrict {n : nat} (e : Fin n.+1 <~> Fin n.+1) : Fin n <~> Fin n.
-  Proof.
-    simpl in e.
-    recall (e (inr tt)) as y eqn:p.
-    assert (p' := (moveL_equiv_V _ _ p)^).
-    destruct y as [y | []].
-    (*  *)
-    - apply (equiv_unfunctor_sum_l (fin_transpose_last_with n (inl y) oE e)
-                                   (is_inl_transpose1 e y p) (is_inr_transpose1 e y p)).
-    - apply (equiv_unfunctor_sum_l e (is_inl_transpose2 e p) (is_inr_transpose2 e p)).
-  Defined.
-
-  (* Definition almost_natural {n : nat} (e : Fin n.+1 <~> Fin n.+1) : *)
-  (*   inl o equiv_restrict e == (fin_transpose_last_with n (e (inr tt)) oE e) o inl. *)
-  (* Proof. *)
-  (*   intro a. simpl. *)
-  (*   recall (e (inl a)) as x eqn:px. *)
-  (*   recall (e (inr tt)) as y eqn:py. destruct y as [y | []]. *)
-  (*   - rewrite p. simpl.  *)
-  (*     assert (q : inl y <> e (inl a)) *)
-  (*       by exact (fun z => inl_ne_inr _ _ (equiv_inj e (z^ @ p^))). *)
-  (*     rewrite fin_transpose_last_with_rest. *)
-  (*   destruct (e (inr tt)) as [y | []]. *)
-
-  (*   refine (unfunctor_sum_l_beta _ _ a @ _).  *)
-  (*   intro a. simpl in e. *)
-  (*   unfunctor_sum_l_beta *)
-  (*   recall (e (inr tt)) as y eqn:p. *)
-  (*   assert (p' := (moveL_equiv_V _ _ p)^). rewrite p. *)
-  (*   destruct y as [y | []]. *)
-  (*   - assert (q : inl y <> e (inl a)) *)
-  (*         by exact (fun z => inl_ne_inr _ _ (equiv_inj e (z^ @ p^))). *)
-  (*     ev_equiv. recall (e (inl a)) as z eqn:pz. *)
-  (*     (* set (z := e (inl a)) in *. *) *)
-  (*     destruct z as [z | z[]]. *)
-  (*     (* { rewrite pz. rewrite fin_transpose_last_with_rest. apply (ap inl). *)
-  (*      *) *)
-  (*     Admitted. *)
-        
-
-  Definition equiv_restrict_fix_last {n : nat} (e : Fin n.+1 <~> Fin n.+1) (p : e (inr tt) = inr tt):
-    Fin n <~> Fin n.   (* {e' : Fin n <~> Fin n & e o inl = inl o e'}. *)
-  Proof.
-    exact (equiv_unfunctor_sum_l e (is_inl_transpose2 e p) (is_inr_transpose2 e p)).
-    
-  Defined.
-    
-  (* Definition equiv_restrict_not_fix_last {n : nat} (e : Fin n.+1 <~> Fin n.+1) (ne : e (inr tt) <> inr tt) : *)
-  (*   Fin n <~> Fin n. *)
-  (* Proof. *)
-  (*   set (k := e^-1 (inr tt)). *)
-  (*   assert (k <> inr tt). *)
-  (*   { intro q. apply ne. *)
-  (*     refine (ap e q^ @ _). unfold k. apply eisretr. } *)
-    
-    
-  (*   apply (equiv_unfunctor_sum  *)
-  
-  
-  (*   apply (equiv_unfunctor_sum_l e). *)
-  (*   - apply (is_inl_transpose2 e p). *)
-  (*     intro a. *)
-  (*     destruct (is_inl_or_is_inr (e (inl a))) as [l|r]. *)
-  (*     + exact l. *)
-  (*     + assert (q := inr_un_inr (e (inl a)) r). *)
-  (*       apply moveR_equiv_V in q. *)
-  (*       assert (s := q^ @ ap (e^-1 o inr) (path_unit _ _) @ (moveL_equiv_V _ _ p)^). *)
-  (*       elim (inl_ne_inr _ _ s). *)
-  (*   - intros []. rewrite p. exact tt. *)
-  (* Defined. *)
-
-  Definition natural_equiv_restrict {n : nat} (e : Fin n.+1 <~> Fin n.+1) (p : e (inr tt) = inr tt) :
-    inl o (equiv_restrict_fix_last e p) == e o inl.
-  Proof.
-    intro x. apply unfunctor_sum_l_beta.
-  Defined.
-
-  Definition swap_const {n : nat} (k : Fin n.+1) (x : Fin n.+1 -> X) (p : x k = x (inr tt)) :
-    x o (fin_transpose_last_with n k) == x.
-  Proof.    
-    intro i.
-    destruct i as [i | []].
-    - destruct (dec (k = inl i)).
-      + rewrite <- p0. exact (ap x (fin_transpose_last_with_with n k) @ p^).
-      + exact (ap x (fin_transpose_last_with_rest n k i n0)).
-    - exact (ap x (fin_transpose_last_with_last n k) @ p).
-  Defined.    
 
   (* Now we want to prove that forall g : Gamma_Plus X, g = point Gamma_Plus X is a proposition.  *)
   (* This proposition is True if x only hits x0, else it is false *)

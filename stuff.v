@@ -122,7 +122,65 @@ Proof.
   intro x. apply inverse. apply (eissect e).
   apply equiv_path_arrow.
 Defined.
-  
+
+
+(* In Spheres, ~(X = North) is decidable *)
+Fixpoint pSphere (n : nat) : Type :=
+  match n with
+    |O => Unit + Unit
+    |S n => Susp (pSphere n)
+  end.
+
+Instance ispointed_psphere {n : nat} : IsPointed (pSphere n)  
+  :=
+    match n with
+    |O => inr tt
+    |S n => North
+    end.
+
+Lemma IsProp_not `{Funext} {A : Type}  : IsHProp (not A).
+Proof.
+  apply trunc_arrow.
+Defined.
+
+Import TrM.
+Definition connected_psphere {n : nat} : IsConnected 0 (pSphere n.+1).
+Proof.
+  unfold IsConnected. srapply @BuildContr.
+  - apply tr. exact North.
+  - intro x.
+    strip_truncations.
+    revert x. srapply @Susp_ind.
+    + reflexivity.
+    + apply (ap tr). exact (merid (point (pSphere n))).
+    + intro x. apply (istrunc_truncation 0).
+Defined.
+
+(* Should be generalized to all connected types? *)
+(* Definition not_eq_bp_conn `{Funext} {X : pType} (isconn_X : IsConnected 0 X) (x : X) : *)
+(*   ~ (~ x = point X). *)
+(* Proof. *)
+(*   destruct isconn_X. intro. *)
+(* Abort. *)
+
+(* Can this be generalized to all connected types? *)
+Definition n_neq_bp_Sphere `{Funext} {X : Type} (x : X) : forall s : Susp X, ~ ~ s = North.
+Proof.
+  srapply @Susp_ind.
+  - intro ne. exact (ne idpath).
+  - intro ne. exact (ne (merid x)^).
+  - intro x1. apply IsProp_not.
+Defined.    
+
+Definition decidable_ne_bp `{Funext} (n : nat) (x : pSphere n) : Decidable (~ x = point (pSphere n)).
+Proof.
+  unfold Decidable.
+  destruct n.
+  - destruct x as [ | []].
+    + apply inl. apply inl_ne_inr.
+    + apply inr. unfold point. unfold ispointed_psphere. intro ne. exact (ne idpath).
+  - apply inr. apply (n_neq_bp_Sphere (point (pSphere n))).
+Defined.
 
 (* This was already implemented as equiv_sigma_prod0. *)
 (* Definition sig_const (A B : Type) : *)

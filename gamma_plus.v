@@ -11,16 +11,17 @@ Load stuff.
 (* Definition Finite_Types (n : nat) := *)
 (*   BAut (Fin n). *)
 (* Use BAut instead? *)
-Definition Finite_Types (n : nat) :=
-  {A : Type & merely (A <~> Fin n)}.
+Definition Finite_Types  :=
+  {A : Type & Finite A}.
 
-Definition type_of {n : nat} (A : Finite_Types n) := pr1 A.
+Definition type_of (A : Finite_Types) := pr1 A.
 Coercion type_of : Finite_Types >-> Sortclass.
 
+Definition card_of (A : Finite_Types) := @fcard (A.1) (A.2) : nat.
+
 (* Canonical finite types *)
-Definition canon (n : nat) : Finite_Types n :=
-  (* (Fin n; tr idpath). *)
-  (Fin n; tr 1%equiv).
+Definition canon (n : nat) : Finite_Types :=
+  (Fin n; Build_Finite (Fin n) n (tr 1%equiv)).
 
 (* This is also in monoidal_1type.v *)
 (*Finite types are sets *)
@@ -44,42 +45,49 @@ Defined.
 (* Coercion finite_type : Finite_Types >-> Sortclass. *)
 
 (* Plus one for finite types *)
-Definition add_one {n : nat} : Finite_Types n -> Finite_Types n.+1.
+Definition add_one : Finite_Types -> Finite_Types.
 Proof.
-  intros [A H].
+  intros [A [n H]].
   exists (A + Unit).
   strip_truncations.
+  apply (Build_Finite _ (n.+1)).
   apply tr. (* apply path_universe_uncurried. *)
   (* exact (equiv_functor_sum' ((equiv_path_universe A (Fin n))^-1 H) equiv_idmap). *)
   exact (equiv_functor_sum' H equiv_idmap).
 Defined.
 
-Definition path_finite_types {n : nat} (s t : Finite_Types n):
+Definition path_finite_types  (s t : Finite_Types):
   (s.1 <~> t.1) <~> s = t :=
   equiv_path_sigma_hprop _ _ oE equiv_path_universe _ _.
   
 
 (* This should more or less follow from baut_ind_hset (except that is only for P: Type -> Type*)
-Definition BSigma_ind_hSet (n : nat) (P : Finite_Types n -> Type)
-           {isset_P : forall s : Finite_Types n, IsHSet (P s)}
-           (pt : P (canon n))
-           (wd : forall e : Fin n <~> Fin n, transport P (path_finite_types (canon n) (canon n) e) pt = pt) :
-  forall s : Finite_Types n, P s.
+Definition BSigma_ind_hSet (P : Finite_Types -> Type)
+           {isset_P : forall s : Finite_Types, IsHSet (P s)}
+           (pt : forall n : nat, P (canon n))
+           (wd : forall (n : nat) (e : Fin n <~> Fin n),
+               transport P (path_finite_types (canon n) (canon n) e) (pt n) = pt n) :
+  forall s : Finite_Types, P s.
 Proof.
   intro s.
-  apply (@pr1 (P s) (fun p => forall e' : canon n <~> s, transport P (path_finite_types (canon n) s e') pt = p)).
-  assert (isprop_goal : forall s' : Finite_Types n,
-            IsHProp {p : P s' & forall e' : canon n <~> s', transport P ((path_finite_types (canon n) s') e') pt = p}).
-  { destruct s' as [A eA]. strip_truncations.
-    apply trunc_sigma'.
+  apply (@pr1 (P s) (fun p : P s => forall e' : Fin (card_of s) <~> s,
+                         transport P (path_finite_types (canon (card_of s)) s e') (pt (card_of s)) = p)).
+  assert (isprop_goal : forall s' : Finite_Types, IsHProp
+                          {p : P s' &
+                               forall e' : Fin (card_of s') <~> s',
+                                 transport P (path_sigma_hprop (canon (card_of s')) s' (path_universe_uncurried e'))
+                                           (pt (card_of s')) = p}).
+  { destruct s' as [A [m eA]].
+    strip_truncations. apply trunc_sigma'.
     - intro p. apply trunc_forall.
     - intros p q.
       apply (contr_inhabited_hprop _).
-      destruct p as [p fp]. destruct q as [q fq]. simpl. simpl in fp. simpl in fq.
+      destruct p as [p fp]. destruct q as [q fq]. simpl. simpl in fp. simpl in fq.      
       exact ((fp (equiv_inverse eA))^ @ (fq (equiv_inverse eA))). }
-  destruct s as [A eA]. strip_truncations.
-  destruct (path_finite_types (canon n) (A; tr eA) (equiv_inverse eA)).
-  exact (pt; wd).
+  destruct s as [A [m eA]]. strip_truncations.
+  destruct (path_finite_types (canon m) (A; Build_Finite A m (tr eA)) (equiv_inverse eA)).
+  change (card_of (canon m)) with m.
+  exact (pt m; wd m).
 Defined.
   
 
@@ -289,16 +297,16 @@ Defined.
 (* Open Scope nat. *)
 Section Homotopy_Symmetric_Product.
   (* The symmetric product (I think) *)
-  Definition hSymmetric_Product (n : nat) (X : Type) :=
-    {A : Finite_Types n & (A -> X)}.
+  Definition hSymmetric_Product (X : Type) :=
+    {A : Finite_Types & (A -> X)}.
 
   (* To get a function out of hSP n into a set, you need a function out of the product which does not depend on  *)
   (* permutations n <~> n *)
-  Definition hSP_rec_hset {n : nat} {X : pType} (P : Type)
+  Definition hSP_rec_hset {X : pType} (P : Type)
              {isset_P : IsHSet P}
-             (f : ((Fin n -> X) -> P))
-             (welldef : forall (x : Fin n -> X) (e : Fin n <~> Fin n), f (x o e) = f x)
-    : hSymmetric_Product n X -> P .
+             (f : forall n: nat, (Fin n -> X) -> P)
+             (welldef : forall (n : nat) (x : Fin n -> X) (e : Fin n <~> Fin n), f n (x o e) = f n x)
+    : hSymmetric_Product X -> P .
   Proof.
     intros [s x]. revert s x.
   (* (* Perhaps not right to call this induction, but. . . *) *)
@@ -312,27 +320,27 @@ Section Homotopy_Symmetric_Product.
 
     srapply @BSigma_ind_hSet.
     - simpl. exact f.
-    - intro e. apply path_arrow. intro.
-      change (fun s : Finite_Types n => (s -> X) -> P) with
-      (fun s : {A : Type  & merely (A <~> Fin n)} => (s.1 -> X)-> P).
-      refine (transport_arrow_toconst (path_sigma_hprop (canon n) (canon n) (path_universe_uncurried e)) f x @ _).
+    - intros n e. apply path_arrow. intro.
+      change (fun s : Finite_Types => (s -> X) -> P) with
+      (fun s : {A : Type  & Finite A} => (s.1 -> X)-> P).
+      refine (transport_arrow_toconst (path_sigma_hprop (canon n) (canon n) (path_universe_uncurried e)) (f n) x @ _).
       (* transitivity (f (x o e)). *)
       (* transitivity *)
       (*   (p (transport (fun x0 : {A : Type & merely (A <~> Fin n)} => x0.1 -> X) *)
       (*                 (path_sigma_hprop (canon n) (canon n) (path_universe_uncurried e))^ (x o e))). *)
-      refine (_ @ welldef x e).
-      apply (ap f).
+      refine (_ @ welldef n x e).
+      apply (ap (f n)).
       unfold path_sigma_hprop.
       
-      apply (moveR_transport_V (fun x0 : {A : Type & Trunc (-1) (A <~> Fin n)} => x0.1 -> X)
-            (path_sigma_uncurried (fun A : Type => merely (A <~> Fin n)) (canon n) (canon n)
+      apply (moveR_transport_V (fun x0 : {A : Type & Finite A} => x0.1 -> X)
+            (path_sigma_uncurried (fun A : Type => Finite A) (canon n) (canon n)
                                   (pr1^-1 (path_universe_uncurried e)))).
       apply inverse.
       transitivity (transport (fun A : Type => A -> X)
                               (pr1^-1 (path_universe_uncurried e)).1 (x o e)).
       + apply ap10. refine (@transport_pr1_path_sigma_uncurried
                               (Type)
-                              (fun A => Trunc (-1) (A <~> Fin n))
+                              (fun A => Finite A)
                               (canon n) (canon n)
                               (pr1^-1 (path_universe_uncurried e))
                               (fun A => A -> X)).
@@ -341,95 +349,192 @@ Section Homotopy_Symmetric_Product.
         apply path_arrow. intro i. apply (ap x). apply (eisretr e).
   Defined.
 
-  Definition hSP_ind_hprop {n : nat} {X : pType} (P : hSymmetric_Product n X -> Type)
-             {isprop_Pn : forall x : Fin n -> X, IsHProp (P (canon n; x))}
+  Definition hSP_ind_hprop {X : pType} (P : hSymmetric_Product X -> Type)
+             {isprop_Pn : forall (n : nat) (x : Fin n -> X), IsHProp (P (canon n; x))}
              (* {isset_P : IsHSet (P (canon n; const (point X)))} *)
-             (f : forall x : Fin n -> X, P (canon n; x))
-    : forall x : hSymmetric_Product n X, P x.
+             (f : forall (n : nat) (x : Fin n -> X), P (canon n; x))
+    : forall x : hSymmetric_Product X, P x.
   Proof.
     intros [s x]. revert s x.
-    assert (p : forall e : Fin n <~> Fin n, tr (n:=-1) e = tr (1%equiv)).
-    { intro e. apply (istrunc_truncation -1). }
-    assert (isprop_P : forall x : hSymmetric_Product n X, IsHProp (P x)).    
-    { intros [[A eA] x]. revert x. strip_truncations. destruct (path_universe eA)^.
+    assert (p : forall (n : nat) (e : Fin n <~> Fin n), tr (n:=-1) e = tr (1%equiv)).
+    { intros n e. apply (istrunc_truncation -1). }
+    assert (isprop_P : forall x : hSymmetric_Product X, IsHProp (P x)).    
+    { intros [[A [n eA]] x]. revert x. strip_truncations. destruct (path_universe eA)^.
       simpl.
-      destruct (p eA)^. exact isprop_Pn.
+      destruct (p n eA)^. exact (isprop_Pn n).
     }
-    intros [A eA]. strip_truncations.
-    destruct (path_universe eA)^. destruct (p eA)^. exact f.
+    intros [A [n eA]]. strip_truncations.
+    destruct (path_universe eA)^. destruct (p n eA)^. exact (f n).
   Defined.
 
-
-
-    
+  Definition transport_exp_finite {X : Type} {A B : Finite_Types} (e : A <~> B) (x : A -> X) :
+    transport (fun I : Finite_Types => I -> X) (path_finite_types A B e) x = x o e^-1.
+  Proof.
+    refine (ap10 (transport_pr1_path_sigma_uncurried (pr1^-1 (path_universe_uncurried e))
+                                                     (fun A : Type => A -> X)) x @ _).
+    exact (transport_exp X A B e x).
+  Defined.
+  
   (* transport_arrow_toconst *)
 
   (* Another way of defining the symmetric product *)
-  (* I feel I have done this before, but I cannot find it. . . *)
-  Definition equiv_other_SP {n : nat} {X : Type} :
-    hSymmetric_Product n X <~> {A : Type & ((merely (A <~> Fin n)) * (A -> X))%type}.
+  Definition equiv_other_SP {X : Type} :
+    hSymmetric_Product X <~> {A : Type & (Finite A) * (A -> X)%type}.
   Proof.
-    unfold hSymmetric_Product.
-    srapply @equiv_adjointify.
-    - intros [[A Hx] x]. exists A. exact (Hx, x).
-    - intros [A [Hx x]].
-      exact ((A; Hx) ; x).
-    - unfold Sect. intros [A [Hx x]]. reflexivity.
-    - unfold Sect. intros [[A Hx] x]. reflexivity.
+    unfold hSymmetric_Product. unfold Finite_Types.
+    apply equiv_inverse.
+    refine (equiv_sigma_assoc _ _ oE _).
+    apply equiv_functor_sigma_id. intro A.
+    simpl. apply equiv_inverse.
+    apply equiv_sigma_prod0.
   Defined.
 
-  Definition prod_to_SP {n : nat} {X : Type} : (Fin n -> X) -> hSymmetric_Product n X :=
-    fun x => ((Fin n; (tr 1%equiv)); x).
+  Definition prod_to_SP {X : Type} {n : nat} : (Fin n -> X) -> hSymmetric_Product X :=
+    fun x => (canon n; x).
 
-  (* Definition path_SP {n : nat} {X : Type} {x y : hSymmetric_Product n X} : *)
-  (*   {f : x.1 <~> y.1 & x.2 = y.2 o f} -> x = y. *)
+  Definition path_hSP {X : Type} (x y : hSymmetric_Product X) :
+    {e : x.1 <~> y.1 & x.2 o e^-1 = y.2} -> x = y.
+  Proof.
+    intros [e p].
+    srapply @path_sigma.
+    - exact (path_finite_types x.1 y.1 e).
+    - refine (transport_exp_finite e x.2 @ p).
+      (* apply equiv_emoveR_fV. exact p. *)
+  Defined.
+
+  (* Definition isequiv_path_SP {X : Type} {x y : hSymmetric_Product X} : *)
+  (*   IsEquiv (path_SP x y). *)
   (* Proof. *)
-  (*   destruct x as [[A eA] x]. destruct y as [[B eB] y]. simpl. *)
-  (*   intros [f p]. *)
-  (*   srapply @path_sigma; simpl. *)
-  (*   - apply path_sigma_hprop. exact (path_universe_uncurried f). *)
-  (*   - refine (transport_exp _ _ _ f _ @ _). *)
+  (*   srapply @isequiv_adjointify. *)
+  (*   - refine (_ o (path_sigma_uncurried _ x y)^-1). *)
+  (*     srapply @functor_sigma. *)
+  (*     + apply (path_finite_types x.1 y.1)^-1. *)
+  (*     + simpl. intros p q. *)
+
+
+  (*       Check transport_exp_finite (path_universe (equiv_path x.1 y.1 p)). *)
+  (*       refine (_ @ q). *)
+  (*       apply path_arrow. intro. *)
+  (*       refine (transport_exp_finite *)
+
+        
+  (*       apply (equiv_path x.1 y.1). *)
+      
+  (*     intro p. *)
+  (*     exists ((path_finite_types x.1 y.1)^-1 p..1). *)
+  (*     destruct p. reflexivity. *)
+  (*   - intro.  unfold path_SP. rewrite (eisretr (path_finite_types x.1 y.1)). *)
+  (*     simpl. destruct x as [A x]. destruct y as [B y]. simpl. *)
+      
+  (*     apply path_arrow. intro b. *)
+  (*     refine (_ @ transport_exp_finite *)
+
+  (*     destruct p. *)
+  (*     exists (1%equiv). reflexivity. *)
+  (*   - intro p. destruct p. *)
+  (*     unfold path_SP. rewrite concat_p1. *)
+  (*     change (path_sigma *)
+  (*               (fun A : Finite_Types => A -> X) x x *)
+  (*               ((path_finite_types x.1 x.1) 1%equiv) (transport_exp_finite 1 x.2)) with *)
+  (*     (path_sigma_uncurried *)
+  (*        (fun A : Finite_Types => A -> X) x x *)
+  (*        ((path_finite_types x.1 x.1) 1%equiv; transport_exp_finite 1 x.2)).         *)
+  (*     apply (moveR_equiv_M). simpl. *)
+  (*     srapply @path_sigma. *)
+  (*     + simpl. *)
+  (*       unfold path_universe_uncurried. *)
+  (*       refine (_ @ path_sigma_hprop_1 _). *)
+  (*       apply (ap (path_sigma_hprop x.1 x.1)). *)
+  (*       apply moveR_equiv_V. reflexivity. *)
+  (*     + simpl. *)
+
+      
+  (*     change  *)
+      
+  (*     refine (_ @ eta_path_sigma idpath). simpl. *)
+
+
+  (*     isequiv_path_sigma *)
+
+  (*     simpl. unfold path_finite_types. *)
+  (*     destruct p.  *)
+  (*     unfold path_SP. *)
+  (*     unfold path_finite_types. simpl. unfold path_universe_uncurried. *)
+  (*     destruct x as [A x]. simpl. *)
+  (*     rewrite concat_p1. *)
+
+  (*     simpl. *)
+  (*     assert (forall A : Type, ((equiv_path A A)^-1 1%equiv) = idpath). *)
+  (*     { intro A'. apply moveR_equiv_V. reflexivity. } *)
+  (*     apply (apD010 (path_sigma (fun A0 : Finite_Types => A0 -> X) (A; x) (A; x))). *)
+  (*     rewrite X0. *)
+      
+      
+      
+  (*     change (equiv_path A.1 A.1)^-1 with (@path_universe_uncurried _ A.1 A.1). *)
+  (*     rewrite concat_p1. unfold path_universe_uncurried. *)
+  (*     change (path_universe_uncurried 1) with (@path_universe _ A.1 A.1 idmap). *)
+  (*     rewrite path_universe_1. *)
+      
+      
+  (*     rewrite <- equiv_path_V. *)
+      
+  (*     transitivity *)
+  (*       (path_sigma (fun A : Finite_Types => A -> X) x x idpath (transport_exp_finite 1 x.2 @ 1)). *)
+      
+  (*     unfold transport_exp_finite. simpl. *)
+
+  (*     destruct x as [A x]. destruct y as [B y]. simpl. *)
+  (*     intro p. *)
+  (*     recall ((path_sigma_uncurried _ _ _)^-1 p) as p' eqn:h. *)
+  (*     destruct p' as [p1 p2]. *)
+  (*     destruct ((path_sigma_uncurried _ _ _)^-1 p) as [p1 p2]. simpl. clear p. *)
+
+
+      
+  (*     exists ((path_finite_types _ _)^-1 p1). *)
+      
+  (*     simpl. *)
+  (*     refine (_ @ p2). *)
+  (*     refine (_ @ (transport_exp_finite *)
+  (*     simpl. *)
+
+  (*     transitivity *)
+
+  (*     destruct x as [A x]. destruct y as [B y]. simpl. *)
+  (*     intro p. destruct *)
+  (*     unfold hSymmetric_Product in x, y. *)
     
     
 
   (* Given elements (A,x) (B,y) in the symmetric product, the identity type (A,x) = (B,y) should be the type
  {f : A<~>B & x = y o f}.*)
-  Definition equiv_path_hSP {n : nat} {X : Type} (x y : hSymmetric_Product n X) :
-    x = y <~> {f : x.1 <~> y.1 & x.2 = y.2 o f}.
+  Definition equiv_path_hSP {X : Type} (x y : hSymmetric_Product X)  :
+    x = y <~> {e : x.1 <~> y.1 & x.2 o e^-1 = y.2}.
   Proof.
-    refine (_ oE (equiv_ap equiv_other_SP x y)).
+    (* refine (_ oE (equiv_ap equiv_other_SP x y)). *)
     refine (_ oE equiv_path_sigma _ _ _).
-    destruct x as [[A Hx] x]. simpl in x.
-    destruct y as [[B Hy] y]. simpl in y.
-    simpl.
-    transitivity {p : A = B & transport (fun a : Type => a -> X) p x = y}.
-    - apply equiv_functor_sigma_id. intro p.
-      transitivity ((transport (fun a : Type => merely (a <~> Fin n)) p Hx = Hy)*
-                    (transport (fun a : Type => a -> X) p x = y))%type.
-      + refine (_ oE (equiv_concat_l (transport_prod p _) _)^-1).
-        apply equiv_inverse.
-        (* For some reason, [apply equiv_path_prod] doesn't work here *)
-        exact (equiv_path_prod
-                 (transport (fun a : Type => Trunc (-1) (a <~> Fin n)) p Hx,
-                  transport (fun a : Type => a -> X) p x) (Hy, y)).
-      + refine ((prod_unit_l _) oE _).
-        refine (equiv_functor_prod' _ 1%equiv).
-        apply equiv_contr_unit.
-    - apply equiv_inverse.
-      refine (equiv_functor_sigma'(equiv_path_universe A B) _).
-      intro e. simpl.
-      change (fun x0 : A => y (e x0)) with (y o e).
-      transitivity (x o e^-1 = y).
-      + apply equiv_emoveR_fV.
-      + apply equiv_concat_l.
-        apply transport_exp.
+    destruct x as [A x]. simpl in x.
+    destruct y as [B y]. simpl in y. simpl.
+    transitivity {p : A.1 = B.1 & transport (fun A : Type => A -> X) p x = y}.
+    { srapply @equiv_functor_sigma'.
+      - apply equiv_inverse. apply equiv_path_sigma_hprop.
+      - intro p.
+        destruct p. reflexivity. }
+    apply equiv_inverse.
+    refine (equiv_functor_sigma'(equiv_path_universe A B) _).
+    intro e. simpl. apply equiv_concat_l.
+    apply transport_exp.
   Defined.
 
-  Definition path_hSP {n : nat} {X : Type} {x y : hSymmetric_Product n X} (f : x.1 <~> y.1) (p : x.2 = y.2 o f) :
-    x=y.
-  Proof.
-    exact ((@equiv_path_hSP n X x y)^-1 (f; p)).
-  Defined.
+  (* (* Sanity check *) *)
+  (* Definition check {X : Type} (x y : hSymmetric_Product X) : *)
+  (*   (path_hSP x y) = (equiv_path_hSP x y)^-1. *)
+  (* Proof. *)
+  (*   apply path_arrow. intros [e p]. *)
+  (*   apply moveL_equiv_V. destruct x as [A x]. destruct y as [B y]. simpl in p. destruct p. simpl. *)
+  (*   unfold path_hSP. *)
+
 
   Definition transport_equiv_plus1 {A B1 B2: Type} (e : B1 <~> B2) (f : B1 + Unit <~> A) :
     transport (fun B => B + Unit <~> A) (path_universe_uncurried e) f = f oE
@@ -450,140 +555,158 @@ Section Homotopy_Symmetric_Product.
     reflexivity.
   Defined.
 
-  Definition prop_choice_minus1 {n : nat} (A : Finite_Types n.+1) :
-    IsHProp {B : Type & B + Unit <~> A}.
+  (* The normalized form of a tuple *)
+  Definition norm {X : pType} {dec_ne : forall x : X, Decidable (~ x = point X)}  :
+    hSymmetric_Product X -> hSymmetric_Product X.
   Proof.
-    intros [B1 f1] [B2 f2].
-    srapply @BuildContr.
-    srapply @path_sigma.
-    - simpl. apply path_universe_uncurried.
-      admit.
-    - simpl.
-      refine (transport_equiv_plus1 _ f1 @ _).
-
-    simpl.
-    intros a b.
-
-  Definition contr_choice_minus1 {n : nat} (A : Finite_Types n.+1) :
-    Contr {B : Type & B + Unit <~> A}.
-  Proof.
-    destruct A as [A eA]. strip_truncations. destruct (path_universe eA)^. simpl.
-    srapply @BuildContr.
-    - exists (canon n).
-      exact 1%equiv.
-    - intros [B e].
-      (* two cases: e (inr tt) is (inr tt) or not *)
-      recall (e (inr tt)) as i eqn:p.
-      destruct i as [i | []].
-      (* e (inr tt) is inl i *)
-      + srapply @path_sigma.
-        * simpl. srapply @path_universe_uncurried. 
-          (* want an equivalence that fixes the endpoint *)
-          srapply @equiv_restrict_last_fixed.
-          { exact (equiv_inverse (fin_transpose_last_with n (e (inr tt)) oE e)). }
-          simpl.
-          apply moveR_equiv_V. apply moveR_equiv_V. apply inverse.
-          apply (fin_transpose_last_with_with).
-        * refine (transport_equiv_plus1 _ 1 @ _). simpl.
-          apply path_equiv. apply path_arrow.
-          intros [b | []].
-          { simpl.
-            refine (unfunctor_sum_l_beta _ _ b @ _).
-            admit. }
-          simpl.                (* argh *)
-          
-          admit.
-
-      + (srapply @path_sigma). simpl.
-        srapply @path_universe_uncurried.
-        { apply equiv_inverse. exact (equiv_restrict_last_fixed e p). }
-        simpl.
-        refine (transport_equiv_plus1 _ 1 @ _).
-        apply path_equiv. apply path_arrow.
-        intros [b | []].
-        * simpl.
-          apply (unfunctor_sum_l_beta e _ b).
-        * simpl. exact p^.
-        
-        
-        
-          
-          destruct (path_universe e)^.
-        
-      
-      destruct (e (inr tt)).
-      srapply @path_sigma.
-      
-      + simpl. destruct B as [B eB].
-        apply path_finite_types.  simpl.
-        
-        apply equiv_unfunctor_sum_l
-        
-      apply path_finite_types.
-      apply (path_finite_types _ _).
-  
-  (* Trying to be able to choose an equivalence A <~> B + Unit *)
-  Definition isprop_choice_minus1 {n : nat} (A : Finite_Types n.+1) (a : A) :
-    (* IsHProp {B : (hSymmetric_Product n A) & IsEquiv (* (functor_sum B.2 (fun t : Unit => a))}. *) *)
-    (*                                           (A := B.1+Unit) (B:=A) *)
-    (*                                           (fun b => match b with *)
-    (*                                                     |(inl b) => B.2 b *)
-    (*                                                     |(inr tt) => a end)} . *)
-    IsHProp {B : Finite_Types n & {e : B+Unit <~> A & e (inr tt) = a}}.
-  Proof.
-    srefine (trunc_equiv' {B : (hSymmetric_Product n A) & IsEquiv 
-                                              (A := B.1+Unit) (B:=A)
-                                              (fun b => match b with
-                                                        |(inl b) => B.2 b
-                                                        |(inr tt) => a end)} _ (H:= _)).
-    { transitivity {B : Finite_Types n & {f : B -> A & IsEquiv (A := B+Unit) (B:=A)
-                                                               (fun b => match b with
-                                                                         |(inl b) => f b
-                                                                         |(inr tt) => a end)}}.
-      { apply equiv_inverse. srapply @equiv_sigma_assoc. }
-      apply equiv_functor_sigma_id. intro B.
-      transitivity {f : B + Unit -> A & IsEquiv f & f (inr tt) = a}.
-      { srefine (equiv_functor_sigma _ _).
-
-      _ (H:= _)
-                                                                                              admit.
-    destruct A as [A eA]. simpl. revert a. (* strip_truncations. destruct (path_universe eA)^. *) intro a.
-    apply trunc_sigma'.
-    - intro b.
-      apply hprop_isequiv.
-    - intros [B1 equiv_1] [B2 equiv_2]. simpl.
-      srapply (@contr_equiv'  _ _ (equiv_path_hSP B1 B2)^-1).
-      destruct B1 as [B1 f1]. destruct B2 as [B2 f2]. simpl. simpl in a.
-      simpl in equiv_1. simpl in equiv_2.
-      set (e1 := BuildEquiv _ _ (fun b : B1 + Unit => match b with
-                                                      | inl b0 => f1 b0
-                                                      | inr tt => a
-                                                      end)
-                            equiv_1).
-      set (e2 := BuildEquiv _ _ (fun b : B2 + Unit => match b with
-                                                      | inl b0 => f2 b0
-                                                      | inr tt => a
-                                                      end)
-                            equiv_2).
-      change f1 with (e1 o inl). change f2 with (e2 o inl).
-      set (e := e2^-1 oE e1).
-      assert (p : e (inr tt) = inr tt). { unfold e. apply moveR_equiv_V. reflexivity. }
-                                        
-                                        srapply @BuildContr.
-      + exists (equiv_restrict_last_fixed e p).
-        apply path_arrow. intro b.
-        transitivity (e2 (e (inl b))). unfold e. apply inverse. apply (eisretr e2).
-        apply (ap e2). apply inverse. apply (natural_equiv_restrict).
-      + intros [e' wd].
-        assert (i_t : IsHSet (B1 -> A)).
-        { srefine (trunc_arrow (H0 := _)).
-          apply (isset_Finite A eA). }
-        srefine (path_sigma_hprop (H := fun _ => i_t _ _) _ _ _). simpl.
-        apply path_equiv. apply path_arrow. intro b.
-        apply (path_sum_inl  (Unit)).
-        refine (natural_equiv_restrict e p b @ _). unfold e. apply moveR_equiv_V.
-        exact (ap10 wd b).
+    intros [[A fA] x]. 
+    set (B := {a : A & x a <> point X}).
+    exists (B; (@finite_detachable_subset A fA (fun a => x a <> point X) _ _)).
+    exact (x o pr1).
   Defined.
+
+  (* The inclusion of the underlying set of ther normalized tuple *)
+  Definition inclusion_of_norm {X : pType} {dec_ne : forall x : X, Decidable (~ x = point X)}
+             (x : hSymmetric_Product X) := pr1 :
+                                               (norm x).1 -> x.1.
+
+
+
+  
+  (* Definition prop_choice_minus1 {n : nat} (A : Finite_Types n.+1) : *)
+  (*   IsHProp {B : Type & B + Unit <~> A}. *)
+  (* Proof. *)
+  (*   intros [B1 f1] [B2 f2]. *)
+  (*   srapply @BuildContr. *)
+  (*   srapply @path_sigma. *)
+  (*   - simpl. apply path_universe_uncurried. *)
+  (*     admit. *)
+  (*   - simpl. *)
+  (*     refine (transport_equiv_plus1 _ f1 @ _). *)
+
+  (*   simpl. *)
+  (*   intros a b. *)
+
+  (* Definition contr_choice_minus1 {n : nat} (A : Finite_Types n.+1) : *)
+  (*   Contr {B : Type & B + Unit <~> A}. *)
+  (* Proof. *)
+  (*   destruct A as [A eA]. strip_truncations. destruct (path_universe eA)^. simpl. *)
+  (*   srapply @BuildContr. *)
+  (*   - exists (canon n). *)
+  (*     exact 1%equiv. *)
+  (*   - intros [B e]. *)
+  (*     (* two cases: e (inr tt) is (inr tt) or not *) *)
+  (*     recall (e (inr tt)) as i eqn:p. *)
+  (*     destruct i as [i | []]. *)
+  (*     (* e (inr tt) is inl i *) *)
+  (*     + srapply @path_sigma. *)
+  (*       * simpl. srapply @path_universe_uncurried.  *)
+  (*         (* want an equivalence that fixes the endpoint *) *)
+  (*         srapply @equiv_restrict_last_fixed. *)
+  (*         { exact (equiv_inverse (fin_transpose_last_with n (e (inr tt)) oE e)). } *)
+  (*         simpl. *)
+  (*         apply moveR_equiv_V. apply moveR_equiv_V. apply inverse. *)
+  (*         apply (fin_transpose_last_with_with). *)
+  (*       * refine (transport_equiv_plus1 _ 1 @ _). simpl. *)
+  (*         apply path_equiv. apply path_arrow. *)
+  (*         intros [b | []]. *)
+  (*         { simpl. *)
+  (*           refine (unfunctor_sum_l_beta _ _ b @ _). *)
+  (*           admit. } *)
+  (*         simpl.                (* argh *) *)
+          
+  (*         admit. *)
+
+  (*     + (srapply @path_sigma). simpl. *)
+  (*       srapply @path_universe_uncurried. *)
+  (*       { apply equiv_inverse. exact (equiv_restrict_last_fixed e p). } *)
+  (*       simpl. *)
+  (*       refine (transport_equiv_plus1 _ 1 @ _). *)
+  (*       apply path_equiv. apply path_arrow. *)
+  (*       intros [b | []]. *)
+  (*       * simpl. *)
+  (*         apply (unfunctor_sum_l_beta e _ b). *)
+  (*       * simpl. exact p^. *)
+        
+        
+        
+          
+  (*         destruct (path_universe e)^. *)
+        
+      
+  (*     destruct (e (inr tt)). *)
+  (*     srapply @path_sigma. *)
+      
+  (*     + simpl. destruct B as [B eB]. *)
+  (*       apply path_finite_types.  simpl. *)
+        
+  (*       apply equiv_unfunctor_sum_l *)
+        
+  (*     apply path_finite_types. *)
+  (*     apply (path_finite_types _ _). *)
+  
+  (* (* Trying to be able to choose an equivalence A <~> B + Unit *) *)
+  (* Definition isprop_choice_minus1 {n : nat} (A : Finite_Types n.+1) (a : A) : *)
+  (*   (* IsHProp {B : (hSymmetric_Product n A) & IsEquiv (* (functor_sum B.2 (fun t : Unit => a))}. *) *) *)
+  (*   (*                                           (A := B.1+Unit) (B:=A) *) *)
+  (*   (*                                           (fun b => match b with *) *)
+  (*   (*                                                     |(inl b) => B.2 b *) *)
+  (*   (*                                                     |(inr tt) => a end)} . *) *)
+  (*   IsHProp {B : Finite_Types n & {e : B+Unit <~> A & e (inr tt) = a}}. *)
+  (* Proof. *)
+  (*   srefine (trunc_equiv' {B : (hSymmetric_Product n A) & IsEquiv  *)
+  (*                                             (A := B.1+Unit) (B:=A) *)
+  (*                                             (fun b => match b with *)
+  (*                                                       |(inl b) => B.2 b *)
+  (*                                                       |(inr tt) => a end)} _ (H:= _)). *)
+  (*   { transitivity {B : Finite_Types n & {f : B -> A & IsEquiv (A := B+Unit) (B:=A) *)
+  (*                                                              (fun b => match b with *)
+  (*                                                                        |(inl b) => f b *)
+  (*                                                                        |(inr tt) => a end)}}. *)
+  (*     { apply equiv_inverse. srapply @equiv_sigma_assoc. } *)
+  (*     apply equiv_functor_sigma_id. intro B. *)
+  (*     transitivity {f : B + Unit -> A & IsEquiv f & f (inr tt) = a}. *)
+  (*     { srefine (equiv_functor_sigma _ _). *)
+
+  (*     _ (H:= _) *)
+  (*                                                                                             admit. *)
+  (*   destruct A as [A eA]. simpl. revert a. (* strip_truncations. destruct (path_universe eA)^. *) intro a. *)
+  (*   apply trunc_sigma'. *)
+  (*   - intro b. *)
+  (*     apply hprop_isequiv. *)
+  (*   - intros [B1 equiv_1] [B2 equiv_2]. simpl. *)
+  (*     srapply (@contr_equiv'  _ _ (equiv_path_hSP B1 B2)^-1). *)
+  (*     destruct B1 as [B1 f1]. destruct B2 as [B2 f2]. simpl. simpl in a. *)
+  (*     simpl in equiv_1. simpl in equiv_2. *)
+  (*     set (e1 := BuildEquiv _ _ (fun b : B1 + Unit => match b with *)
+  (*                                                     | inl b0 => f1 b0 *)
+  (*                                                     | inr tt => a *)
+  (*                                                     end) *)
+  (*                           equiv_1). *)
+  (*     set (e2 := BuildEquiv _ _ (fun b : B2 + Unit => match b with *)
+  (*                                                     | inl b0 => f2 b0 *)
+  (*                                                     | inr tt => a *)
+  (*                                                     end) *)
+  (*                           equiv_2). *)
+  (*     change f1 with (e1 o inl). change f2 with (e2 o inl). *)
+  (*     set (e := e2^-1 oE e1). *)
+  (*     assert (p : e (inr tt) = inr tt). { unfold e. apply moveR_equiv_V. reflexivity. } *)
+                                        
+  (*                                       srapply @BuildContr. *)
+  (*     + exists (equiv_restrict_last_fixed e p). *)
+  (*       apply path_arrow. intro b. *)
+  (*       transitivity (e2 (e (inl b))). unfold e. apply inverse. apply (eisretr e2). *)
+  (*       apply (ap e2). apply inverse. apply (natural_equiv_restrict). *)
+  (*     + intros [e' wd]. *)
+  (*       assert (i_t : IsHSet (B1 -> A)). *)
+  (*       { srefine (trunc_arrow (H0 := _)). *)
+  (*         apply (isset_Finite A eA). } *)
+  (*       srefine (path_sigma_hprop (H := fun _ => i_t _ _) _ _ _). simpl. *)
+  (*       apply path_equiv. apply path_arrow. intro b. *)
+  (*       apply (path_sum_inl  (Unit)). *)
+  (*       refine (natural_equiv_restrict e p b @ _). unfold e. apply moveR_equiv_V. *)
+  (*       exact (ap10 wd b). *)
+  (* Defined. *)
 
   (* Definition finite_minus1 {n : nat} {A : Finite_Types n.+1} (a : A) : {B : Finite_Types n & B + Unit <~> A}. *)
   (* Proof. *)
@@ -601,36 +724,40 @@ Section Homotopy_Symmetric_Product.
 
 
   
-  (* Given a point in X, we can add it to the end of the symmetric product *)
-  Definition hSP_cons {n : nat} {X : Type} (x0 : X) (x : Fin n -> X) : hSymmetric_Product n.+1 X.
-  Proof.
-    exists (canon n.+1).
-    exact (sum_rect _ x (fun _ => x0)).
-  Defined.
+  (* (* Given a point in X, we can add it to the end of the symmetric product *) *)
+  (* Definition hSP_cons {X : Type} (x0 : X) (x : Fin n -> X) : hSymmetric_Product X. *)
+  (* Proof. *)
+  (*   exists (canon n.+1). *)
+  (*   exact (sum_rect _ x (fun _ => x0)). *)
+  (* Defined. *)
 End Homotopy_Symmetric_Product.
 
 
 Module Export Gamma_Plus.
+  Context (X : pType).
+  Context {dec_ne_bp : forall x : X, Decidable (x <> point X)}.
   (* Defining Gamma_Plus as a HIT*)
   (* This is shamelessly copied from the definition of Coeq. *)
-  Private Inductive Gamma_Plus (X : pType) :=
-    t (n : nat) : hSymmetric_Product n X -> Gamma_Plus X.
+  Private Inductive Gamma_Plus :=
+    t : hSymmetric_Product X -> Gamma_Plus.
 
-  Arguments t {X} {n} _.
-  (* This is perhaps stupid, but from here, x0 is always the basepoint of something. *)
-  Local Notation "'x0'" := (point _).
+  Definition x0 := (point X).
 
-  (* We want a path (A,x) = (A+1, (x,x0)) *)
-  (* Axiom d : forall {X : pType} {n} (x : hSymmetric_Product n X), t (hSP_cons x0 x) = t x. *)
-  Axiom d : forall {X : pType} {n} (x : Fin n -> X), t (hSP_cons (point X) x) = t (canon n; x).
+  (* A tuple should be equal to its normalization, i.e. removing all instances of the basepoint. *)
+  Axiom d : forall (x : hSymmetric_Product X), card_of x.1 <> card_of (norm x).1 -> t x = t (norm x).
+
+  (* (* If a tuple is already equal its normalized form, then we should kill the extra path *) *)
+  (* Axiom x : forall {n} (x : hSymmetric_Product n X), IsEquiv (inclusion_of_norm x) *)
+
+  
 
   (* The induction principle for Gamma_Plus *)
-  Definition Gamma_Plus_ind {X} (P : Gamma_Plus X -> Type)
-                                  (t' : forall {n : nat} (x : hSymmetric_Product n X), P (t x))
-                                  (d' : forall {n : nat} (x : Fin n -> X),
-                                      transport P (d x) (t' (hSP_cons x0 x)) = t' (canon n; x)) :
-      forall g : Gamma_Plus X, P g :=
-    fun g => (match g with | @t _ n x => t' x end).
+  Definition Gamma_Plus_ind (P : Gamma_Plus -> Type)
+                                  (t' : forall (x : hSymmetric_Product X), P (t x))
+                                  (d' : forall (x : hSymmetric_Product X) (ne : card_of x.1 <> card_of (norm x).1),
+                                      transport P (d x ne) (t' x) = t' (norm x)) :
+      forall g : Gamma_Plus, P g :=
+    fun g => (match g with | t x => t' x end).
     
 
     (* Definition Gamma_Plus_ind_beta_d_test : forall {X} {P : Gamma_Plus X -> Type} *)
@@ -670,6 +797,9 @@ Module Export Gamma_Plus.
     refine (Gamma_Plus_ind_beta_d (fun _ => P) _ _ _).
   Defined.
 
+
+    
+  
   (* Definition canon_const {X : pType} {n : nat} : *)
   (*   t (canon n; const x0) = t (canon 0; const x0) :> Gamma_Plus X. *)
   (* Proof. *)

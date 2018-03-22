@@ -43,37 +43,35 @@ Defined.
 Definition leq_card_subset (A : Finite_Types) (P : A -> Type)
            (isprop_P : forall a : A, IsHProp (P a)) (isdec_P : forall a : A, Decidable (P a)) :
   (card_of ({a : A & P a}; (@finite_detachable_subset A.1 A.2 P isprop_P isdec_P)) <= card_of A)%nat.
-Proof.
-  
-  
+Proof.  
   destruct A as [A fA]. simpl in P, isprop_P, isdec_P. simpl.
-  (* set (i := (card_of ({a : A & P a}; finite_detachable_subset P))). *)
   unfold card_of. simpl.
   apply (leq_inj_finite pr1).
   unfold IsEmbedding. intro a.
-  unfold hfiber.
-  assert (equiv_P : {x : {x : A & P x} & x.1 = a} <~> P a).
-  { srapply @BuildEquiv.
-    intros [[a1 p] q]. exact (transport P q p).
-    srapply @BuildIsEquiv.
-    - intro p. exact ((a; p); idpath).
-    - unfold Sect. apply transport_1.
-    - unfold Sect. intros [[a1 p] q].
-      srapply @path_sigma.
-      srapply @path_sigma.
-      + exact q^.
-      + apply transport_Vp.
-      + destruct q. reflexivity.
-        (* simpl. simpl in q. change (fun x : A => P x) with P. *)
-        (* destruct q. simpl. *)
-        (* refine (ap10 (transport_pr1_path_sigma *)
-        (*                 (A := A) (P := P) *)
-        (*                 (u := (a; transport P q p)) *)
-        (*                 (v := (a1; p)) *)
-        (*                 q^ (transport_Vp (fun x : A => P x) q p) (fun a' => a' = a)) 1 @ _). *)
-        (* refine (transport_paths_l _ _ @ _). *)
-    - intros [[a1 p] q]. destruct q. reflexivity. }
-  apply (trunc_equiv' (P a) (equiv_P^-1)).
+  apply (trunc_equiv' (P a) ).
+  apply hfiber_fibration. apply isprop_P.
+  (* assert (equiv_P : {x : {x : A & P x} & x.1 = a} <~> P a). (* This is more general. . . *) *)
+  (* { srapply @BuildEquiv. *)
+  (*   intros [[a1 p] q]. exact (transport P q p). *)
+  (*   srapply @BuildIsEquiv. *)
+  (*   - intro p. exact ((a; p); idpath). *)
+  (*   - unfold Sect. apply transport_1. *)
+  (*   - unfold Sect. intros [[a1 p] q]. *)
+  (*     srapply @path_sigma. *)
+  (*     srapply @path_sigma. *)
+  (*     + exact q^. *)
+  (*     + apply transport_Vp. *)
+  (*     + destruct q. reflexivity. *)
+  (*       (* simpl. simpl in q. change (fun x : A => P x) with P. *) *)
+  (*       (* destruct q. simpl. *) *)
+  (*       (* refine (ap10 (transport_pr1_path_sigma *) *)
+  (*       (*                 (A := A) (P := P) *) *)
+  (*       (*                 (u := (a; transport P q p)) *) *)
+  (*       (*                 (v := (a1; p)) *) *)
+  (*       (*                 q^ (transport_Vp (fun x : A => P x) q p) (fun a' => a' = a)) 1 @ _). *) *)
+  (*       (* refine (transport_paths_l _ _ @ _). *) *)
+  (*   - intros [[a1 p] q]. destruct q. reflexivity. } *)
+  (* apply (trunc_equiv' (P a) (equiv_P^-1)). *)
 Qed.
 
 (* Plus one for finite types *)
@@ -457,16 +455,155 @@ Section Homotopy_Symmetric_Product.
 
       
       (* isequiv_compose *)
-  (* A lemma that should be elsewhere *)
-  Definition ap_pred {m n : nat} : S m = S n -> m = n := ap pred.
+  (* (* A lemma that should be elsewhere *) *)
+  (* Definition ap_pred {m n : nat} : S m = S n -> m = n := ap pred. *)
+
+  (* If the length of x and norm x are equal, then none of the points of x are x0 *)
+  Definition eq_len_no_basept {X : pType} {dec_ne : forall x : X, Decidable (x <> point X)}
+             (x : hSymmetric_Product X) :
+    len x = len (norm x) -> forall a : x.1, x.2 a <> point X.
+  Proof.
+    destruct x as [[A fA] x]. simpl in x. unfold len. simpl.
+    destruct fA as [n eA]. strip_truncations.
+    (* First some tricking to assume that A is Fin n *)
+    assert (frompath_eA : eA = equiv_inverse (equiv_path _ _ (path_universe_uncurried eA)^)).
+    { apply inverse.
+      refine ((equiv_path_V _ _ (path_universe_uncurried eA)^)^ @ _).
+      refine (_ @ equiv_path_path_universe_uncurried eA).
+      apply (ap (equiv_path A (Fin n))). apply inv_V. }
+    destruct (frompath_eA)^.
+    destruct (path_universe_uncurried eA)^. clear frompath_eA. clear eA.
+    intro p.
+    (* Now we can do induction on n *)
+    induction n.
+    - intros [].                (* The base case is trivial *)
+    - assert (equiv_sum :
+                {a : Fin n.+1 & x a <> point X} <~> {a : Fin n & x (inl a) <> point X} + (x (inr tt) <> point X)).
+      { refine (_ oE equiv_sigma_sum _ _ _).
+        srapply @equiv_functor_sum'.
+        - exact equiv_idmap.
+        - srapply @equiv_adjointify.
+          + intros [[] ne]. exact ne.
+          + intro ne. exact (tt; ne).
+          + intro. reflexivity.
+          + intros [[] ne]. reflexivity. }
+      destruct (dec_ne (x (inr tt))).
+      (* If (x (inr tt)) <> x0, then norm (Fin n+1, x) <~> norm (Fin n, x o inl) + 1 *)
+      (* and the result follows from induction *)
+      + intros [a | []].
+        * apply (IHn (x o inl)).
+          (set (ap_pred := (fun m n => @ap nat nat pred (S m) (S n) ): forall {m n : nat}, S m = S n -> m = n)).
+          apply (ap_pred).
+          refine (p @ _).
+          assert (equiv_sum' : {a : Fin n.+1 & x a <> point X} <~> {a : Fin n & x (inl a) <> point X} + Unit).
+          { refine (_ oE equiv_sum).
+            apply equiv_functor_sum_l.
+            apply if_hprop_then_equiv_Unit. exact _. exact n0. }
+          refine (fcard_equiv' equiv_sum').
+        * exact n0.
+      (* If not (x (inr tt)) <> x0, then norm (Fin n+1, x) <~> norm (Fin n, x o inl) *)
+      (* But then len (norm (Fin n, x o inl)) = n+1 > n by assumption, so we get a contradiction *)
+      + apply Empty_rec.
+        assert (equiv_sum' : {a : Fin n.+1 & x a <> point X} <~> {a : Fin n & x (inl a) <> point X}).
+        { refine (_ oE equiv_sum).
+          refine (sum_empty_r _ oE _).
+          apply equiv_functor_sum_l.
+          apply if_not_hprop_then_equiv_Empty. exact _. exact n0. }
+        assert (p' : (n.+1 = card_of ({a : Fin n & x (inl a) <> point X};
+                                     finite_detachable_subset (fun a : Fin n => x (inl a) <> point X)))%nat).
+        { refine (p @ _).
+          exact (fcard_equiv' equiv_sum'). }
+        assert (leq : (card_of
+                        ({a : Fin n & x (inl a) <> point X};
+                         finite_detachable_subset (fun a : Fin n => x (inl a) <> point X)) <= n)%nat).
+        { change n with (card_of (canon n)). apply (leq_card_subset (canon n)). }
+        rewrite <- p' in leq.
+        apply (not_nltn n leq).
+  Defined.    
 
         
   (* If the length of x and norm x are equal, then the inclusion is an equivalence *)
   (* This can be generalized to all decidable propositions over hSP X *)
-  Definition eq_len_isequiv {X : pType} {dec_ne : forall x : X, Decidable (~ x = point X)}
+  Definition eq_len_isequiv_incl {X : pType} {dec_ne : forall x : X, Decidable (~ x = point X)}
              (x : hSymmetric_Product X) :
     len x = len (norm x) -> IsEquiv (inclusion_from_norm x.2).
   Proof.
+    intro p.
+    srapply @isequiv_pr1_contr. intro a.
+    apply contr_inhabited_hprop. exact _.
+    apply (eq_len_no_basept x p).
+  Defined.
+
+  Definition equiv_eq_len_isequiv_incl
+        {X : pType}
+        {dec_ne : forall x : X, Decidable (~ x = point X)}
+        (x : hSymmetric_Product X) :
+    len x = len (norm x) <~> IsEquiv (inclusion_from_norm x.2).
+  Proof.
+    apply equiv_iff_hprop_uncurried.
+    unfold iff.
+    apply pair.
+    - apply eq_len_isequiv_incl.
+    - intro isequiv. apply (ap len). apply inverse.
+      apply path_hSP.  exists (BuildEquiv _ _ (inclusion_from_norm x.2) isequiv).
+      apply equiv_emoveR_fV. apply path_arrow. intro a.  reflexivity.
+  Defined.
+
+
+  Definition isequiv_norm {X : pType} (x : hSymmetric_Product X) := IsEquiv (inclusion_from_norm x.2).
+  Global Instance decidable_isequiv_norm {X : pType} {dec_ne : forall x : X, Decidable (x <> point X)}
+        (x : hSymmetric_Product X) :
+    Decidable (isequiv_norm x).
+  Proof.
+    apply (decidable_equiv' (len x = len (norm x)) (equiv_eq_len_isequiv_incl x)).
+    apply decidable_paths_nat.
+  Qed.
+
+  Definition isequiv_norm_to_id {X : pType}
+             {dec_ne : forall x : X, Decidable (~ x = point X)}
+             (x : hSymmetric_Product X) :
+    isequiv_norm x -> norm x = x.
+  Proof.
+    unfold isequiv_norm.
+    intro H.
+    apply path_hSP.
+    exists (BuildEquiv _ _ (inclusion_from_norm x.2) H).
+    apply equiv_emoveR_fV. apply path_arrow. intro a. reflexivity.
+  Defined.
+
+  Definition isequiv_norm_norm {X : pType}  {dec_ne : forall x : X, Decidable (x <> point X)}
+        (x : hSymmetric_Product X) :
+    isequiv_norm (norm x).
+  Proof.
+    srapply @isequiv_pr1_contr. intros [a ne]. apply contr_inhabited_hprop. exact _. exact ne.
+  Defined.
+
+
+  (* The norm of a norm is a norm *)
+  Definition fixpoint_norm {X : pType} {dec_ne : forall x : X, Decidable (x <> point X)}
+             (x : hSymmetric_Product X) :
+    norm (norm x) = norm x.
+  Proof.
+    apply path_hSP.
+    (* destruct x as [[A fA] x]. simpl in x. simpl. *)
+    srapply @exist.
+    - apply (BuildEquiv _ _ (inclusion_from_norm (norm x).2)).
+      apply isequiv_norm_norm.
+    - reflexivity.
+  Defined.    
+    
+    
+    (* intro p.  *)
+    (* destruct x as [[A fA] x]. simpl in x, p. *)
+    (* srapply @isequiv_pr1_contr. simpl. *)
+    (* intro a. *)
+    (* destruct (dec (x a <> point X)). *)
+    (* - apply contr_inhabited_hprop. exact _. exact n. *)
+    (* - unfold norm in p. unfold len in p. simpl in p. *)
+    (*   apply Empty_rec. apply n. *)
+      
+
+    
     (* destruct x as [A x]. *)
     (* destruct A as [A [n eA]]. revert x. strip_truncations. intros x p.     *)
     (* induction n. *)
@@ -477,157 +614,89 @@ Section Homotopy_Symmetric_Product.
     (*   revert x. strip_truncations. intros x p. destruct (path_universe eA)^. simpl in IHn. *)
     (*   intro x. *)
     
-    destruct x as [[A fA] x]. simpl. unfold len. simpl in x. simpl.
-    destruct fA as [n eA]. strip_truncations.
-    assert (frompath_eA : eA = equiv_inverse (equiv_path _ _ (path_universe_uncurried eA)^)).
-    { apply inverse.
-      refine ((equiv_path_V _ _ (path_universe_uncurried eA)^)^ @ _).
-      refine (_ @ equiv_path_path_universe_uncurried eA).
-      apply (ap (equiv_path A (Fin n))). apply inv_V. }
-    destruct (frompath_eA)^.
-    destruct (path_universe_uncurried eA)^. clear frompath_eA. clear eA.
-    induction n.
-    - intro p. apply all_to_empty_isequiv.      
-    - intro p. rewrite (path_arrow _ _ (isfunctor_sum_incl x)).
-      change (fun x0 : {x0 : Fin n + Unit & x x0 <> point X} =>
-     functor_sum (inclusion_from_norm (fun x1 : Fin n => x (inl x1)))
-       (fun _ : {b : Unit & x (inr b) <> point X} => tt)
-       ((equiv_sigma_sum (Fin n) Unit (fun a : Fin n + Unit => x a <> point X)) x0)) with
-            (functor_sum (inclusion_from_norm (x o inl)) (fun t => tt)
-                         o equiv_sigma_sum (Fin n) Unit (fun a => x a <> point X)).
-      apply (isequiv_compose' (equiv_sigma_sum (Fin n) Unit (fun a : Fin n + Unit => x a <> point X)) _).
-      destruct (dec (x (inr tt) <> point X)).
-      (* If the last term is not the base point then*)
-      (* {a : Fin n+1 & x a <> x0} <~> {a : Fin n & x (inl a) <> x0} + Unit   *)
-      + assert (isequiv_const : IsEquiv (fun t : {b : Unit & x (inr b) <> point X} => tt)).
-        { srapply @isequiv_adjointify.
-          - intros []. exact (tt ; n0).
-          - intros[]; reflexivity.
-          - intros [[] ne]. simpl.
-            apply (path_sigma_hprop _ _). reflexivity. }
-        assert (p' :
-                  card_of (Fin n; {| fcard := n; merely_equiv_fin := tr ((equiv_path (Fin n) (Fin n) 1)^-1)%equiv |})
-                  =
-                  card_of ({a : Fin n & x (inl a) <> point X};
-                           finite_detachable_subset (fun a : Fin n => x (inl a) <> point X))).
-        { apply ap_pred.
-          refine (p @ _).
-          transitivity
-            (((card_of
-                 ({a : Fin n & x (inl a) <> point X};
-                  finite_detachable_subset (fun a : Fin n => x (inl a) <> point X)))
-              +
-              card_of ({b : Unit & x (inr b) <> point X};
-                       finite_equiv Unit (fun _ : {b : Unit & x (inr b) <> point X} => tt)^-1 finite_unit)
-             )%nat).
-          - refine (_ @ fcard_sum _ _).
-            apply fcard_equiv'.
-            apply equiv_sigma_sum.
-          - apply nat_plus_comm. }
-        srapply @isequiv_functor_sum.
-        apply IHn. exact p'.
-      + assert (isempty : {b : Unit & x (inr b) <> point X} <~> Empty).
-        { srapply @BuildEquiv. intros [[] ne]. apply n0. exact ne. }
-        assert (n.+1 = (card_of
-                          ({a : Fin n & x (inl a) <> point X};
-                           finite_detachable_subset (fun a : Fin n => x (inl a) <> point X))))%nat.
-        { refine (p @ _).
-          unfold card_of. simpl.
-          apply fcard_equiv'.
-          transitivity ({a : Fin n & x (inl a) <> point X} + Empty).
-          { apply (@equiv_functor_sum {a : Fin n & x (inl a) <> point X} _ idmap _ _ Empty isempty _). }
-          apply uiv_sum_empty.
-            srapply (@equiv_functor_sum 1%equiv).
-          
-          transitivity
-            (card_of
-                 ({a : Fin n & x (inl a) <> point X};
-                  finite_detachable_subset (fun a : Fin n => x (inl a) <> point X))).
-          { admit. }
-          unfold card_of.
-              
-
-            
-
-        
-        apply ap_pred.
-        refine (p @ _).
-        transitivity
-          (((card_of
-               ({a : Fin n & x (inl a) <> point X};
-                finite_detachable_subset (fun a : Fin n => x (inl a) <> point X)))
-            +
-            card_of ({b : Unit & x (inr b) <> point X};
-                     finite_equiv Unit (fun _ : {b : Unit & x (inr b) <> point X} => tt)^-1 finite_unit)
-           )%nat).
-        { refine (_ @ fcard_sum _ _).
-          apply fcard_equiv'.
-          apply equiv_sigma_sum. } 
-        apply nat_plus_comm.
-      + 
-
-        
-            refine (_ @ nat_plus_comm _ 1). reflexivity.
-            unfold card_of. simpl.
-            change {x0 : Fin (fcard (Fin n)) & x (inl (1%equiv^-1 x0)) <> point X} with
-            {x0 : Fin (fcard n) & x (inl x0) <> point X}.
-            apply (ap (fun m : nat => fcard {a : Fin (n) & x (inl a) <> point X})%nat).
-            simpl.
-
-          apply
-            (ap pred
-                (x := S (card_of (Fin n; {| fcard := n;
-                                            merely_equiv_fin := tr ((equiv_path (Fin n) (Fin n) 1)^-1)%equiv |})))
-                (y := S (card_of ({a : Fin n & x (inl a) <> point X}; finite_detachable_subset (fun a : Fin n => x (inl a) <> point X))))).
-                    
-                ).
-
-        
-        (* Speeds things a little up below *)
-        set (finite_a :=
-               finite_detachable_subset (fun x0 : Fin n => x (inl x0) <> point X)
-               : Finite {a : Fin n & x (inl a) <> point X}).
-        set (finite_b :=
-               (finite_detachable_subset (fun x0 : Unit => x (inr x0) <> point X) :
-                  Finite {b : Unit & x (inr b) <> point X})).
-        set (m := fcard {b : Unit & x (inr b) <> point X}).
-        assert (p' : m = 1%nat).
-        { refine (fcard_equiv (fun _ : {b : Unit & x (inr b) <> point X} => tt) @ _). reflexivity. }
-        set (n' := fcard {a : Fin n & x (inl a) <> point X}).
-        assert (p'' : fcard ({a : Fin n & x (inl a) <> point X} + {b : Unit & x (inr b) <> point X}) =
-               (n'.+1)%nat).
-        { refine (_ @ nat_plus_comm n' 1).
-          refine (fcard_sum _ _ @ _).
-          change (fcard {a : Fin n & x (inl a) <> point X}) with n'.
-          apply (ap (fun i => n' + i)%nat p'). }
-        
-        Check (ap pred (p @ p'')).
-        assert 
-          
-          transitivity ((fcard {a : Fin n & x (inl a) <> point X}) + 1)%nat.
-          { apply (ap (fun m => (fcard {a : Fin n & x (inl a) <> point X}) + m)%nat).
-
-                  fcard_sum
-          apply path_nat.
-          change 
-
-        
-        rewrite (path_universe (fun t : {b : Unit & x (inr b) <> point X} => tt)) in p.
-        
-
-            apply path_sigma_1.
-
-            
-        srapply @isequiv_functor_sum (H := IHn (x o inl)
-        srapply @isequiv_functor_sum. (* For some reason this takes ages. . . *)
+  (*   destruct x as [[A fA] x]. simpl. unfold len. simpl in x. simpl. *)
+  (*   destruct fA as [n eA]. strip_truncations. *)
+  (*   assert (frompath_eA : eA = equiv_inverse (equiv_path _ _ (path_universe_uncurried eA)^)). *)
+  (*   { apply inverse. *)
+  (*     refine ((equiv_path_V _ _ (path_universe_uncurried eA)^)^ @ _). *)
+  (*     refine (_ @ equiv_path_path_universe_uncurried eA). *)
+  (*     apply (ap (equiv_path A (Fin n))). apply inv_V. } *)
+  (*   destruct (frompath_eA)^. *)
+  (*   destruct (path_universe_uncurried eA)^. clear frompath_eA. clear eA. *)
+  (*   (* intro p. srapply @isequiv_pr1_contr. *) *)
+  (*   induction n. *)
+  (*     intro p. apply all_to_empty_isequiv.       *)
+  (*   - intro p. *)
+  (*     rewrite (path_arrow _ _ (isfunctor_sum_incl x)). *)
+  (*     change (fun x0 : {x0 : Fin n + Unit & x x0 <> point X} => *)
+  (*    functor_sum (inclusion_from_norm (fun x1 : Fin n => x (inl x1))) *)
+  (*      (fun _ : {b : Unit & x (inr b) <> point X} => tt) *)
+  (*      ((equiv_sigma_sum (Fin n) Unit (fun a : Fin n + Unit => x a <> point X)) x0)) with *)
+  (*           (functor_sum (inclusion_from_norm (x o inl)) (fun t => tt) *)
+  (*                        o equiv_sigma_sum (Fin n) Unit (fun a => x a <> point X)). *)
+  (*     apply (isequiv_compose' (equiv_sigma_sum (Fin n) Unit (fun a : Fin n + Unit => x a <> point X)) _). *)
+  (*     assert (equiv_sum : *)
+  (*               {a : Fin n.+1 & x a <> point X} <~> {a : Fin n & x (inl a) <> point X} + (x (inr tt) <> point X)). *)
+  (*     { refine (_ oE equiv_sigma_sum _ _ _). *)
+  (*       srapply @equiv_functor_sum'. *)
+  (*       - exact equiv_idmap. *)
+  (*       - srapply @equiv_adjointify. *)
+  (*         + intros [[] ne]. exact ne. *)
+  (*         + intro ne. exact (tt; ne). *)
+  (*         + intro. reflexivity. *)
+  (*         + intros [[] ne]. reflexivity. } *)
+  (*     assert (p' : (n.+1 = card_of *)
+  (*                      ({a : Fin n & x (inl a) <> point X}; *)
+  (*                       finite_detachable_subset (fun a : Fin n => x (inl a) <> point X)) + *)
+  (*                    card_of ((x (inr tt) <> point X); finite_decidable_hprop _ ))%nat). *)
+  (*     { refine (p @ _). *)
+  (*       refine (_ @ fcard_sum _ _). *)
+  (*       apply fcard_equiv'. apply equiv_sum. } clear equiv_sum. clear p. rename p' into p. *)
       
-      unfold inclusion_of_norm.
-      simpl in IHn.
-      
-    
-    
-    unfold inclusion_of_norm.
+  (*     destruct (dec (x (inr tt) <> point X)). *)
+  (*     (* If the last term is not the base point then*) *)
+  (*     (* {a : Fin n+1 & x a <> x0} <~> {a : Fin n & x (inl a) <> x0} + Unit   *) *)
+  (*     + assert (isequiv_const : IsEquiv (fun t : {b : Unit & x (inr b) <> point X} => tt)). *)
+  (*       { (* if_hprop_then_equiv_Unit *) *)
+  (*         srapply @isequiv_adjointify. *)
+  (*         - intros []. exact (tt ; n0). *)
+  (*         - intros[]; reflexivity. *)
+  (*         - intros [[] ne]. simpl. *)
+  (*           apply (path_sigma_hprop _ _). reflexivity. } *)
+  (*       assert (p' : *)
+  (*                 n = *)
+  (*                 card_of ({a : Fin n & x (inl a) <> point X}; *)
+  (*                          finite_detachable_subset (fun a : Fin n => x (inl a) <> point X))). *)
+  (*       { apply ap_pred. *)
+  (*         refine (_ @ nat_plus_comm _ 1). *)
+  (*         refine (p @ _).           *)
+  (*         assert (card_of (x (inr tt) <> point X; finite_decidable_hprop (x (inr tt) <> point X)) = 1)%nat. *)
+  (*         { change 1%nat with (fcard Unit). *)
+  (*           apply (fcard_equiv'). simpl. *)
+  (*           apply (if_hprop_then_equiv_Unit _ n0). } *)
+  (*         rewrite X0. reflexivity. } *)
+  (*       srefine (@isequiv_functor_sum _ _ _ (IHn (x o inl) p') _ _ _ isequiv_const). *)
+  (*     + assert (isempty : x (inr tt) <> point X <~> Empty). *)
+  (*       { apply if_not_hprop_then_equiv_Empty. exact _. exact n0. } *)
+  (*       assert (p' : (n.+1 = (card_of *)
+  (*                         ({a : Fin n & x (inl a) <> point X}; *)
+  (*                          finite_detachable_subset (fun a : Fin n => x (inl a) <> point X))))%nat). *)
+  (*       { refine (p @ _). *)
+  (*         assert (card_of (x (inr tt) <> point X; finite_decidable_hprop (x (inr tt) <> point X)) = O). *)
+  (*         { change 0%nat with (fcard Empty). *)
+  (*           apply (fcard_equiv'). exact isempty. } *)
+  (*         rewrite X0. *)
+  (*         exact (nat_plus_n_O _)^. } *)
+  (*       assert (leq : (card_of *)
+  (*                       ({a : Fin n & x (inl a) <> point X}; *)
+  (*                        finite_detachable_subset (fun a : Fin n => x (inl a) <> point X)) <= n)%nat). *)
+  (*       { change n with (card_of (canon n)). apply (leq_card_subset (canon n)). } *)
+  (*       rewrite <- p' in leq. *)
+  (*       destruct (not_nltn n leq). *)
+  (* Qed. *)
 
+
+  
     
   (* (* Trying to be able to choose an equivalence A <~> B + Unit *) *)
   (* Definition isprop_choice_minus1 {n : nat} (A : Finite_Types n.+1) (a : A) : *)
@@ -706,6 +775,11 @@ End Homotopy_Symmetric_Product.
 Module Export Gamma_Plus.
   Context (X : pType).
   Context {dec_ne_bp : forall x : X, Decidable (x <> point X)}.
+
+
+  
+
+  
   (* Defining Gamma_Plus as a HIT*)
   (* This is shamelessly copied from the definition of Coeq. *)
   Private Inductive Gamma_Plus :=
@@ -716,7 +790,7 @@ Module Export Gamma_Plus.
   (* A tuple should be equal to its normalization, i.e. removing all instances of the basepoint. *)
   (* We need an argument that the length of x and its normalized form are not equal to ensure that we don't   *)
   (* add paths that are already there. *)
-  Axiom d : forall (x : hSymmetric_Product X), len x <> len (norm x) -> t x = t (norm x).
+  Axiom d : forall (x : hSymmetric_Product X), ~(isequiv_norm x) -> t x = t (norm x).
 
   (* (* If a tuple is already equal its normalized form, then we should kill the extra path *) *)
   (* Axiom x : forall {n} (x : hSymmetric_Product n X), IsEquiv (inclusion_of_norm x) *)
@@ -726,7 +800,7 @@ Module Export Gamma_Plus.
   (* The induction principle for Gamma_Plus *)
   Definition Gamma_Plus_ind (P : Gamma_Plus -> Type)
                                   (t' : forall (x : hSymmetric_Product X), P (t x))
-                                  (d' : forall (x : hSymmetric_Product X) (ne : len x <> len (norm x)),
+                                  (d' : forall (x : hSymmetric_Product X) (ne : ~(isequiv_norm x)),
                                       transport P (d x ne) (t' x) = t' (norm x)) :
       forall g : Gamma_Plus, P g :=
     fun g => (match g with | t x => t' x end).
@@ -736,23 +810,23 @@ Module Export Gamma_Plus.
   Axiom Gamma_Plus_ind_beta_d : forall (P : Gamma_Plus -> Type)
                                        (t' : forall (x : hSymmetric_Product X), P (t x))
                                        (d' : forall (x : hSymmetric_Product X)
-                                                    (ne : len x <> len (norm x)),
+                                                    (ne : ~(isequiv_norm x)),
                                            transport P (d x ne) (t' x) = t' (norm x))
-                                       (x : hSymmetric_Product X) (ne : len x <> len (norm x)),
+                                       (x : hSymmetric_Product X) (ne : ~(isequiv_norm x)),
       apD (Gamma_Plus_ind P t' d') (d x ne) = d' x ne.
 
   Definition Gamma_Plus_rec (P : Type)
              (t' : hSymmetric_Product X -> P)
              (d' : forall (x : hSymmetric_Product X),
-                          (len x <> len (norm x)) -> t' x = t' (norm x))
-    := Gamma_Plus_ind (fun _ => P) t' (fun  (x : hSymmetric_Product X) (ne : len x <> len (norm x))
+                          (~(isequiv_norm x)) -> t' x = t' (norm x))
+    := Gamma_Plus_ind (fun _ => P) t' (fun  (x : hSymmetric_Product X) (ne : ~(isequiv_norm x))
                                        => transport_const (d x ne) _ @ d' x ne).
 
   Definition Gamma_rec_beta_d (P : Type)
              (t' : hSymmetric_Product X -> P)
              (d' : forall (x : hSymmetric_Product X),
-                          (len x <> len (norm x)) -> t' x = t' (norm x))
-             (x : hSymmetric_Product X) (ne : len x <> len (norm x))
+                          (~(isequiv_norm x)) -> t' x = t' (norm x))
+             (x : hSymmetric_Product X) (ne : ~(isequiv_norm x))
     : ap (Gamma_Plus_rec P t' d') (d x ne) = d' x ne.
   Proof.
     unfold Gamma_Plus_rec.
@@ -760,6 +834,41 @@ Module Export Gamma_Plus.
     refine ((apD_const (@Gamma_Plus_ind (fun _ => P) t' _) (d x ne))^ @ _).
     refine (Gamma_Plus_ind_beta_d (fun _ => P) _ _ _ _).
   Defined.
+
+  (* Norm is well defined om Gamma_Plus *)
+  Definition N : Gamma_Plus -> Gamma_Plus.
+  Proof.
+    srapply @Gamma_Plus_rec.
+    - exact (t o norm).
+    - intro x.
+      (* intros [[A fA] x]. simpl in x. *)
+      intro ne.
+      apply (ap t). apply inverse.
+      apply fixpoint_norm.
+  Defined.
+  
+  (* Now we want a proof that everything in Gamma_Plus is equal to its norm *)
+  Definition d' : forall x : Gamma_Plus, x = N x.
+  Proof.
+    srapply @Gamma_Plus_ind.
+    - intro x. simpl.
+      destruct (dec (isequiv_norm x)).
+      + apply (ap t). apply inverse. apply (isequiv_norm_to_id x i).
+      + apply (d x n).
+    - intros.
+      refine (transport_paths_FlFr _ _ @ _).      
+      destruct (dec (isequiv_norm x));
+      destruct (dec (isequiv_norm (norm x))).
+      (*  *)
+      + simpl. admit.
+        (* unfold N. *)
+      + destruct (n (isequiv_norm_norm x)).
+      + simpl.
+
+        admit.
+      + destruct (n0 (isequiv_norm_norm x)).
+       
+        
 
 
     
@@ -793,18 +902,21 @@ Module Export Gamma_Plus.
   (*   -                           (* TODO *) *)
 
   (* The basepoint of Gamma Plus is the point coming from the empty set *)
-  Definition ispointed_gamma_plus {X : pType} : IsPointed (Gamma_Plus X) :=
+  Definition ispointed_gamma_plus {X : pType} : IsPointed (Gamma_Plus) :=
     t (canon 0; const x0).      (* Any function would suffice, but const x0 is the shortest to write. *)
 
   (* When proving a proposition we only need to prove it for the symmetric products. *)
-  Definition Gamma_Plus_ind_hProp {X : pType} (P : Gamma_Plus X -> Type)
-             {isprop_P : forall g : Gamma_Plus X, IsHProp (P g)}
-             (t' : forall {n : nat} (x : hSymmetric_Product n X), P (t x)) :
-    forall g : Gamma_Plus X, P g.
+  Definition Gamma_Plus_ind_hProp (P : Gamma_Plus -> Type)
+             {isprop_P : forall g : Gamma_Plus, IsHProp (P g)}
+             (t' : forall (x : hSymmetric_Product X), P (t x)) :
+    forall g : Gamma_Plus, P g.
   Proof.
     apply (Gamma_Plus_ind P t').
     intros n A. apply isprop_P.
-  Defined.  
+  Defined.
+
+  
+  
 End Gamma_Plus.
 
 (* I want to prove that Gamma_Plus S0 <~> {n : nat & Finite_Sets} *)

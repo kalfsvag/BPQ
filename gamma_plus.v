@@ -17,7 +17,7 @@ Definition Finite_Types  :=
 Definition type_of (A : Finite_Types) := pr1 A.
 Coercion type_of : Finite_Types >-> Sortclass.
 
-Definition card_of (A : Finite_Types) := @fcard (A.1) (A.2) : nat.
+Definition card_of (A : Finite_Types) := @fcard (pr1 A) (pr2 A) : nat.
 
 (* Canonical finite types *)
 Definition canon (n : nat) : Finite_Types :=
@@ -42,7 +42,7 @@ Defined.
 (* A detachable subset of a finite set has smaller cardinal *)
 Definition leq_card_subset (A : Finite_Types) (P : A -> Type)
            (isprop_P : forall a : A, IsHProp (P a)) (isdec_P : forall a : A, Decidable (P a)) :
-  (card_of ({a : A & P a}; (@finite_detachable_subset A.1 A.2 P isprop_P isdec_P)) <= card_of A)%nat.
+  (card_of ({a : A & P a}; (@finite_detachable_subset (pr1 A) (pr2 A) P isprop_P isdec_P)) <= card_of A)%nat.
 Proof.  
   destruct A as [A fA]. simpl in P, isprop_P, isdec_P. simpl.
   unfold card_of. simpl.
@@ -87,7 +87,7 @@ Proof.
 Defined.
 
 Definition path_finite_types  (s t : Finite_Types):
-  (s.1 <~> t.1) <~> s = t :=
+  (pr1 s <~> pr1 t) <~> s = t :=
   equiv_path_sigma_hprop _ _ oE equiv_path_universe _ _.
   
 
@@ -301,7 +301,7 @@ Section Homotopy_Symmetric_Product.
     - simpl. exact f.
     - intros n e. apply path_arrow. intro.
       change (fun s : Finite_Types => (s -> X) -> P) with
-      (fun s : {A : Type  & Finite A} => (s.1 -> X)-> P).
+      (fun s : {A : Type  & Finite A} => (pr1 s -> X)-> P).
       refine (transport_arrow_toconst (path_sigma_hprop (canon n) (canon n) (path_universe_uncurried e)) (f n) x @ _).
       (* transitivity (f (x o e)). *)
       (* transitivity *)
@@ -372,7 +372,7 @@ Section Homotopy_Symmetric_Product.
     fun x => (canon n; x).
 
   Definition path_hSP {X : Type} (x y : hSymmetric_Product X) :
-    {e : x.1 <~> y.1 & x.2 o e^-1 = y.2} -> x = y.
+    {e : pr1 x <~> pr1 y & pr2 x o e^-1 = pr2 y} -> x = y.
   Proof.
     intros [e p].
     srapply @path_sigma.
@@ -463,18 +463,21 @@ Section Homotopy_Symmetric_Product.
              (x : hSymmetric_Product X) :
     len x = len (norm x) -> forall a : x.1, x.2 a <> point X.
   Proof.
-    destruct x as [[A fA] x]. simpl in x. unfold len. simpl.
-    destruct fA as [n eA]. strip_truncations.
-    (* First some tricking to assume that A is Fin n *)
-    assert (frompath_eA : eA = equiv_inverse (equiv_path _ _ (path_universe_uncurried eA)^)).
-    { apply inverse.
-      refine ((equiv_path_V _ _ (path_universe_uncurried eA)^)^ @ _).
-      refine (_ @ equiv_path_path_universe_uncurried eA).
-      apply (ap (equiv_path A (Fin n))). apply inv_V. }
-    destruct (frompath_eA)^.
-    destruct (path_universe_uncurried eA)^. clear frompath_eA. clear eA.
+    revert x.
+    srapply @hSP_ind_hprop.
+    intros n x. simpl.    
+    (* destruct x as [[A fA] x]. simpl in x. unfold len. simpl. *)
+    (* destruct fA as [n eA]. strip_truncations. *)
+    (* (* First some tricking to assume that A is Fin n *) *)
+    (* assert (frompath_eA : eA = equiv_inverse (equiv_path _ _ (path_universe_uncurried eA)^)). *)
+    (* { apply inverse. *)
+    (*   refine ((equiv_path_V _ _ (path_universe_uncurried eA)^)^ @ _). *)
+    (*   refine (_ @ equiv_path_path_universe_uncurried eA). *)
+    (*   apply (ap (equiv_path A (Fin n))). apply inv_V. } *)
+    (* destruct (frompath_eA)^. *)
+    (* destruct (path_universe_uncurried eA)^. clear frompath_eA. clear eA. *)
     intro p.
-    (* Now we can do induction on n *)
+    (* Now we can do induction on n *)    
     induction n.
     - intros [].                (* The base case is trivial *)
     - assert (equiv_sum :
@@ -482,18 +485,22 @@ Section Homotopy_Symmetric_Product.
       { refine (_ oE equiv_sigma_sum _ _ _).
         srapply @equiv_functor_sum'.
         - exact equiv_idmap.
-        - srapply @equiv_adjointify.
+        - apply equiv_iff_hprop_uncurried.
+          apply pair.
           + intros [[] ne]. exact ne.
-          + intro ne. exact (tt; ne).
-          + intro. reflexivity.
-          + intros [[] ne]. reflexivity. }
+          + intro ne. exact (tt; ne). }
+          (* srapply @equiv_adjointify. *)
+          (* +  *)
+          (* +  *)
+          (* + intro. reflexivity. *)
+          (* + intros [[] ne]. reflexivity. } *)
       destruct (dec_ne (x (inr tt))).
       (* If (x (inr tt)) <> x0, then norm (Fin n+1, x) <~> norm (Fin n, x o inl) + 1 *)
       (* and the result follows from induction *)
       + intros [a | []].
         * apply (IHn (x o inl)).
           (set (ap_pred := (fun m n => @ap nat nat pred (S m) (S n) ): forall {m n : nat}, S m = S n -> m = n)).
-          apply (ap_pred).
+          apply (ap_pred). clear ap_pred.
           refine (p @ _).
           assert (equiv_sum' : {a : Fin n.+1 & x a <> point X} <~> {a : Fin n & x (inl a) <> point X} + Unit).
           { refine (_ oE equiv_sum).
@@ -517,8 +524,8 @@ Section Homotopy_Symmetric_Product.
                         ({a : Fin n & x (inl a) <> point X};
                          finite_detachable_subset (fun a : Fin n => x (inl a) <> point X)) <= n)%nat).
         { change n with (card_of (canon n)). apply (leq_card_subset (canon n)). }
-        rewrite <- p' in leq.
-        apply (not_nltn n leq).
+        apply (not_nltn n). 
+        rewrite <- p' in leq. exact leq.
   Defined.    
 
         
@@ -775,6 +782,8 @@ End Homotopy_Symmetric_Product.
 Module Export Gamma_Plus.
   Context (X : pType).
   Context {dec_ne_bp : forall x : X, Decidable (x <> point X)}.
+  (* Should perhabs be Decidable (merely (x = point X))? *)
+  (* Context {dec_me_bp : forall x : X, Decidable (merely (x = point X)) *)
 
 
   
@@ -790,7 +799,10 @@ Module Export Gamma_Plus.
   (* A tuple should be equal to its normalization, i.e. removing all instances of the basepoint. *)
   (* We need an argument that the length of x and its normalized form are not equal to ensure that we don't   *)
   (* add paths that are already there. *)
-  Axiom d : forall (x : hSymmetric_Product X), ~(isequiv_norm x) -> t x = t (norm x).
+  (* Also we want this to depend on a choice of path x a = x0 wherever this is possible, or else we end up killing *)
+  (* paths in X. *)
+  Axiom d : forall (x : hSymmetric_Product X),
+      (forall a : x.1, merely (x.2 a = x0) -> x.2 a = x0) -> ~(isequiv_norm x) -> t x = t (norm x).
 
   (* (* If a tuple is already equal its normalized form, then we should kill the extra path *) *)
   (* Axiom x : forall {n} (x : hSymmetric_Product n X), IsEquiv (inclusion_of_norm x) *)
@@ -800,8 +812,10 @@ Module Export Gamma_Plus.
   (* The induction principle for Gamma_Plus *)
   Definition Gamma_Plus_ind (P : Gamma_Plus -> Type)
                                   (t' : forall (x : hSymmetric_Product X), P (t x))
-                                  (d' : forall (x : hSymmetric_Product X) (ne : ~(isequiv_norm x)),
-                                      transport P (d x ne) (t' x) = t' (norm x)) :
+                                  (d' : forall (x : hSymmetric_Product X)
+                                               (c : forall a : pr1 x, merely (pr2 x a = x0) -> pr2 x a = x0)
+                                               (ne : ~(isequiv_norm x)),
+                                      transport P (d x c ne) (t' x) = t' (norm x)) :
       forall g : Gamma_Plus, P g :=
     fun g => (match g with | t x => t' x end).
     
@@ -810,29 +824,38 @@ Module Export Gamma_Plus.
   Axiom Gamma_Plus_ind_beta_d : forall (P : Gamma_Plus -> Type)
                                        (t' : forall (x : hSymmetric_Product X), P (t x))
                                        (d' : forall (x : hSymmetric_Product X)
+                                                    (c : forall a : pr1 x, merely (pr2 x a = x0) -> pr2 x a = x0)
                                                     (ne : ~(isequiv_norm x)),
-                                           transport P (d x ne) (t' x) = t' (norm x))
-                                       (x : hSymmetric_Product X) (ne : ~(isequiv_norm x)),
-      apD (Gamma_Plus_ind P t' d') (d x ne) = d' x ne.
+                                           transport P (d x c ne) (t' x) = t' (norm x))
+                                       (x : hSymmetric_Product X)
+                                       (c : forall a : pr1 x, merely (pr2 x a = x0) -> pr2 x a = x0)
+                                       (ne : ~(isequiv_norm x)),
+      apD (Gamma_Plus_ind P t' d') (d x c ne) = d' x c ne.
 
   Definition Gamma_Plus_rec (P : Type)
              (t' : hSymmetric_Product X -> P)
              (d' : forall (x : hSymmetric_Product X),
+                          (forall a : pr1 x, merely (pr2 x a = x0) -> pr2 x a = x0) ->
                           (~(isequiv_norm x)) -> t' x = t' (norm x))
-    := Gamma_Plus_ind (fun _ => P) t' (fun  (x : hSymmetric_Product X) (ne : ~(isequiv_norm x))
-                                       => transport_const (d x ne) _ @ d' x ne).
+    := Gamma_Plus_ind (fun _ => P) t' (fun  (x : hSymmetric_Product X)
+                                            (c : forall a : pr1 x, merely (pr2 x a = x0) -> pr2 x a = x0)
+                                            (ne : ~(isequiv_norm x))
+                                       => transport_const (d x c ne) _ @ d' x c ne).
 
   Definition Gamma_rec_beta_d (P : Type)
              (t' : hSymmetric_Product X -> P)
              (d' : forall (x : hSymmetric_Product X),
-                          (~(isequiv_norm x)) -> t' x = t' (norm x))
-             (x : hSymmetric_Product X) (ne : ~(isequiv_norm x))
-    : ap (Gamma_Plus_rec P t' d') (d x ne) = d' x ne.
+                 (forall a : pr1 x, merely (pr2 x a = x0) -> pr2 x a = x0) ->
+                 (~(isequiv_norm x)) -> t' x = t' (norm x))
+             (x : hSymmetric_Product X)
+             (c : forall a : pr1 x, merely (pr2 x a = x0) -> pr2 x a = x0)
+             (ne : ~(isequiv_norm x))
+    : ap (Gamma_Plus_rec P t' d') (d x c ne) = d' x c ne.
   Proof.
     unfold Gamma_Plus_rec.
-    eapply (cancelL (transport_const (d x ne) _)).
-    refine ((apD_const (@Gamma_Plus_ind (fun _ => P) t' _) (d x ne))^ @ _).
-    refine (Gamma_Plus_ind_beta_d (fun _ => P) _ _ _ _).
+    eapply (cancelL (transport_const (d x c ne) _)).
+    refine ((apD_const (@Gamma_Plus_ind (fun _ => P) t' _) (d x c ne))^ @ _).
+    refine (Gamma_Plus_ind_beta_d (fun _ => P) _ _ _ _ _).
   Defined.
 
   (* Norm is well defined om Gamma_Plus *)
@@ -842,32 +865,56 @@ Module Export Gamma_Plus.
     - exact (t o norm).
     - intro x.
       (* intros [[A fA] x]. simpl in x. *)
-      intro ne.
+      intros c ne.
       apply (ap t). apply inverse.
-      apply fixpoint_norm.
+      apply isequiv_norm_to_id. exact (isequiv_norm_norm x).
   Defined.
+
+  Arguments proj1_sig _ _  _ : simpl nomatch.
+  Arguments proj2_sig _ _  _ : simpl nomatch.
+
+  (* Being constantly x0 is well defined *)
+  Definition isconst : Gamma_Plus -> Type.
+  Proof.
+    srapply @Gamma_Plus_rec.
+    - intros [A x]. exact (forall a : A, x a = x0).
+    - intros [[A fA] x]. simpl.  intros c ne. simpl in x.
+      srapply @path_universe.
+      + intro eq.
+        intros [a neq]. destruct (neq (eq a)).
+      + srapply @BuildIsEquiv.
+        * intro eq. apply Empty_rec.
+          revert eq.
+
+          eq_len_no_basept
+          bruk hProp_ind over. . .
+    
   
-  (* Now we want a proof that everything in Gamma_Plus is equal to its norm *)
-  Definition d' : forall x : Gamma_Plus, x = N x.
+  (* If all x a are x0. then N x is empty *)
+  
+  (* Now we want a proof that everything in Gamma_Plus is equal to its norm if x = x0 is a proposition*)
+  Definition d' {isprop_eq : forall x : X, IsHProp (x = x0)} : forall x : Gamma_Plus, x = N x.
   Proof.
     srapply @Gamma_Plus_ind.
     - intro x. simpl.
       destruct (dec (isequiv_norm x)).
       + apply (ap t). apply inverse. apply (isequiv_norm_to_id x i).
-      + apply (d x n).
+      + apply (d x).
+        { intro a. apply Trunc_rec. exact idmap. } exact n.
     - intros.
-      refine (transport_paths_FlFr _ _ @ _).      
-      destruct (dec (isequiv_norm x));
-      destruct (dec (isequiv_norm (norm x))).
-      (*  *)
-      + simpl. admit.
-        (* unfold N. *)
-      + destruct (n (isequiv_norm_norm x)).
-      + simpl.
-
-        admit.
-      + destruct (n0 (isequiv_norm_norm x)).
-       
+      refine (transport_paths_FlFr _ _ @ _).
+      (* Now to get the correct cases. *)
+      assert (p : (inr ne) = dec (isequiv_norm x)).
+      { apply ishprop_decidable_hprop. apply hprop_isequiv. }
+      destruct p.
+      assert (p : (inl (isequiv_norm_norm x)) = dec (isequiv_norm (norm x))).
+      { apply ishprop_decidable_hprop. apply hprop_isequiv. } destruct p. simpl.
+      assert (p : c = (fun a : x.1 => Trunc_rec idmap)).
+      { apply (trunc_forall (n := -1)). }
+      destruct p.
+      rewrite ap_idmap. rewrite concat_Vp. rewrite concat_1p.
+      refine (Gamma_rec_beta_d _ _ _ _ _ _ ).
+  Qed.
         
 
 

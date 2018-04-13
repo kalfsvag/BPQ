@@ -18,7 +18,7 @@ Proof.
     apply (ap inr). apply path_arrow. intro a. destruct (na a).
 Defined.
 
-Lemma equiv_sigma_sum (A : Type) (B C : A -> Type) :
+Lemma equiv_sigma_sum' (A : Type) (B C : A -> Type) :
    {a : A & B a} + {a : A & C a} <~> {a : A & B a + C a}.
 Proof.
   srapply @equiv_adjointify.
@@ -52,11 +52,11 @@ Defined.
 
 
 Section Factorize_Monomorphism.
-  Variables A B : Type.
-  Variable finite_A : Finite A.
-  Variable finite_B : Finite B.
-  Variable f : A-> B.
-  Variable ismono_f : forall a1 a2 : A, f a1 = f a2 -> a1 = a2.
+  Context (A B : Type).
+  Context {finite_A : Finite A}.
+  Context {finite_B : Finite B}.
+  Context (f : A-> B).
+  Context {ismono_f : forall a1 a2 : A, f a1 = f a2 -> a1 = a2}.
 
   (* First a lemma that the hfiber is a proposition *)
   Lemma ishprop_hfiber (b : B) : IsHProp (hfiber f b).
@@ -81,8 +81,8 @@ Section Factorize_Monomorphism.
     apply ishprop_hfiber.
   Defined.
 
-  (* Then a lemma the the hfiber is decidable. *)
-  Lemma decidable_hfiber (b : B) : Decidable (hfiber f b).
+  (* Then a lemma that the the hfiber is decidable. *)
+  Global Instance decidable_hfiber (b : B) : Decidable (hfiber f b).
   Proof.
     apply detachable_finite_subset.
     - apply ishprop_hfiber.
@@ -96,7 +96,7 @@ Section Factorize_Monomorphism.
     transitivity (B*Unit).
     transitivity {b : B & Unit}.
     transitivity {b : B & hfiber f b + ~ hfiber f b}.
-    - apply equiv_sigma_sum.
+    - apply equiv_sigma_sum'.
     - apply equiv_functor_sigma_id.
       intro b.
       apply (dprop_equiv_unit _ (ishprop_hfiber b) (decidable_hfiber b)).
@@ -104,6 +104,7 @@ Section Factorize_Monomorphism.
     - apply prod_unit_r.
   Defined.
 
+  (* Could perhaps be simplified using isequiv_fcontr *)
   Theorem equiv_A_image : A <~> {b : B & hfiber f b}.
   Proof.
     transitivity {a : A & {b : B & f a =b}}.
@@ -128,11 +129,11 @@ Section Factorize_Monomorphism.
   Defined.
 End Factorize_Monomorphism.
 
-Open Scope nat.
+
 
 (* Comparing not_leq to gt *)
 Section Inequalities.
-  
+  Local Open Scope nat.
   (* For two natural numbers, one is either less than or equal the other, or it is greater. *)
   Definition leq_or_gt (i j : nat) : (i <= j) + (i > j).
   Proof.
@@ -183,7 +184,7 @@ Section Inequalities.
   Defined.
 
   (* If i <= n, then i < n or i = n+1 *)
-  Definition leq_or_eq (i n : nat) : i <= n -> (i < n) + (i = n).
+  Definition lt_or_eq (i n : nat) : i <= n -> (i < n) + (i = n).
   Proof.
     intro i_leq_n.
     destruct (leq_or_gt n i) as [n_leq_i | n_gt_i].
@@ -306,7 +307,7 @@ End Inequalities.
 
 
 Section Pointed_Finite.
-  Open Scope nat.
+  Local Open Scope nat.
   (* Canonical pointed finite sets as subsets of N *)
   Definition pFin (n : nat) := {i : nat | i <= n}.
   Global Instance ispointed_pFin {n : nat} : IsPointed (pFin n) := (0;tt).
@@ -336,7 +337,7 @@ Section Pointed_Finite.
   Proof.
     srapply @equiv_adjointify.
     - intros [i i_leq_Sn].
-      destruct (leq_or_eq i (n.+1) i_leq_Sn) as [i_lt_Sn | eq_i_n].
+      destruct (lt_or_eq i (n.+1) i_leq_Sn) as [i_lt_Sn | eq_i_n].
       (* Case when i<n+1 *)
       + exact (inl (i; i_lt_Sn)).
       (* Case when i=n *)
@@ -348,7 +349,7 @@ Section Pointed_Finite.
     - unfold Sect.
       (* I fell there should be a better way to do this. . . *)
       intros [[i i_lt_n] |].      
-      + destruct (leq_or_eq i n.+1 (leq_transd i_lt_n (leq_succ n))) as [i_lt_Sn | i_eq_Sn].
+      + destruct (lt_or_eq i n.+1 (leq_transd i_lt_n (leq_succ n))) as [i_lt_Sn | i_eq_Sn].
         * apply (ap inl).
           apply path_sigma_hprop. reflexivity.
           (* apply (ap (fun a : i <= n => (i; a))). *)
@@ -357,12 +358,12 @@ Section Pointed_Finite.
           {rewrite <- i_eq_Sn. apply i_lt_n. }
           destruct (not_i_lt_i n false).
       + intros []. simpl.
-        destruct (leq_or_eq n.+1 n.+1 (leq_refl n)) as [i_lt_Sn | i_eq_Sn].
+        destruct (lt_or_eq n.+1 n.+1 (leq_refl n)) as [i_lt_Sn | i_eq_Sn].
         * destruct (not_i_lt_i n.+1 i_lt_Sn).
         * exact idpath.
     - unfold Sect.
       intros [i i_leq_Sn].
-      destruct (leq_or_eq i n.+1 i_leq_Sn) as [i_lt_sn | i_eq_sn]; simpl.
+      destruct (lt_or_eq i n.+1 i_leq_Sn) as [i_lt_sn | i_eq_sn]; simpl.
       + apply (path_sigma_hprop). reflexivity.
       + apply (path_sigma_hprop). exact i_eq_sn^.
   Defined.
@@ -402,6 +403,7 @@ End Pointed_Finite.
 
 
 Section Cosimplicial_maps.
+  Local Open Scope nat.
    Notation "[ n ]" := {m : nat | m <= n}.
   (* Definition pFin (n : nat) := { m : nat | m <= n }. *)
   (* Definition pFin_include {n : nat} : pFin n -> nat := pr1. *)
@@ -597,7 +599,7 @@ End Cosimplicial_maps.
 (*   - exact (prod A IHn). *)
 (* Defined. *)
 
-(* Notation "A *^ n" := (iterated_prod A n) (at level 20). *)
+
 
 (* (* Decompose the iterated product, isolating the i'th component. *) *)
 (* Definition decompose_iterated_prod {A : Type} {n : nat} (i : Fin n) : *)

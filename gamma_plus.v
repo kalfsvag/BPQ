@@ -119,6 +119,72 @@ Proof.
   change (fcard (canon m)) with m.
   exact (pt m; wd m).
 Defined.
+
+(* (* See if we can take things one step further *) *)
+(* (* Do recursion first, but induction should be doable as well *) *)
+(* Definition BSigma_rec_1type (P : Type) *)
+(*            {is1Type_P : IsTrunc 1 P} *)
+(*            (pt : nat -> P) *)
+(*            (wd1 : forall {n : nat}, (Fin n <~> Fin n) -> pt n = pt n) *)
+(*            (wd2 : forall {n : nat} (e1 e2 : Fin n <~> Fin n), *)
+(*                wd1 (e2 oE e1) = wd1 e1 @ wd1 e2) : *)
+(*   Finite_Types -> P. *)
+(* Proof. *)
+(*   intro s. *)
+(*   apply (@pr1 P (fun p : P => forall n : nat, *)
+(*                      {q : Fin n <~> Fin n -> p = p *)
+(*                                              & forall e1 e2 : Fin n <~> Fin n, q (e2 oE e1) = q e1 @ q e2} *)
+(*                 )). *)
+(*   assert (isset_goal : IsHSet {p : P & *)
+(*                                     forall n : nat, Fin n <~> Fin n -> p = p}). *)
+(*   { srapply @trunc_sigma'. *)
+(*     intros [p1 q1] [p2 q2]. simpl. apply (is1Type_P p1 p2). *)
+
+    
+(*   assert (isprop_goal : IsHProp *)
+(*                           {p : P & *)
+(*                                forall n : nat, *)
+(*                                  {q : Fin n <~> Fin n -> p = p *)
+(*                                   & forall e1 e2 : Fin n <~> Fin n, q (e2 oE e1) = q e1 @ q e2}}). *)
+(*   { apply trunc_sigma'. *)
+(*     - intro p. *)
+(*       srefine (trunc_forall (n:=-1) (H0 := _)). intro n. simpl. *)
+(*       apply trunc_sigma'. *)
+(*       + intro q. apply trunc_forall. *)
+(*       + intros q1 q2. *)
+(*         apply (contr_inhabited_hprop _). apply path_arrow. intro e. *)
+         
+
+        
+(*       apply trunc_forall. *)
+
+  
+  
+  
+(*   apply (@pr1 nat (fun n : nat => *)
+(*                      {wd1 : Fin n <~> Fin n -> pt n = pt n & *)
+(*                                                forall (e1 e2 : Fin n <~> Fin n), wd1 (e2 oE e1) = wd1 e1 @ wd1 e2 *)
+(*                               })). *)
+  
+(*   apply (@pr1 (P s) (fun p : P s => forall e' : Fin (fcard s) <~> s, *)
+(*                          transport P (path_finite_types (canon (fcard s)) s e') (pt (fcard s)) = p)). *)
+(*   assert (isprop_goal : forall s' : Finite_Types, IsHProp *)
+(*                           {p : P s' & *)
+(*                                forall e' : Fin (fcard s') <~> s', *)
+(*                                  transport P (path_sigma_hprop (canon (fcard s')) s' (path_universe_uncurried e')) *)
+(*                                            (pt (fcard s')) = p}). *)
+(*   { destruct s' as [A [m eA]]. *)
+(*     strip_truncations. apply trunc_sigma'. *)
+(*     - intro p. apply trunc_forall. *)
+(*     - intros p q. *)
+(*       apply (contr_inhabited_hprop _). *)
+(*       destruct p as [p fp]. destruct q as [q fq]. simpl. simpl in fp. simpl in fq.       *)
+(*       exact ((fp (equiv_inverse eA))^ @ (fq (equiv_inverse eA))). } *)
+(*   destruct s as [A [m eA]]. strip_truncations. *)
+(*   destruct (path_finite_types (canon m) (A; Build_Finite A m (tr eA)) (equiv_inverse eA)). *)
+(*   change (fcard (canon m)) with m. *)
+(*   exact (pt m; wd m). *)
+(* Defined. *)
   
   
 
@@ -548,6 +614,8 @@ Section Homotopy_Symmetric_Product.
   Defined.
 
   End Homotopy_Symmetric_Product.
+
+
 
 Section Normalize.
   Context {X : pType}.

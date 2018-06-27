@@ -17,6 +17,36 @@ Proof.
 Defined.
 
 
+Definition functor_coeq `{Funext} {A1 A2 A3 B : Type} (f1 : A1 -> A2) (f2 : A2 -> A3) (g : A1 -> B) :
+  pushout (f2 o f1) g <~> pushout f2 (push (f := f1) (g := g) o inl).
+Proof.
+  srapply @equiv_adjointify.
+  - srapply @pushout_rec.
+    + intro ab.
+      apply push. destruct ab as [a | b].
+      * exact (inl a). * apply inr. apply push. exact (inr b).
+    + intro a. simpl.
+      refine (pp (f1 a) @ _). unfold pushr. apply (ap (push o inr)).
+      exact (pp a).
+  - srapply @pushout_rec.
+    + intros [a | c]. {exact (push (inl a)). }
+      revert c.
+      srapply @pushout_rec.
+      { intro ab. apply push. destruct ab as [a | b].
+        - exact (inl (f2 a)). - exact (inr b). }
+      intro a. simpl.
+      refine (pp a).
+    + intro a. reflexivity.
+  - srapply @pushout_ind.
+    + intros [a | c].
+      { reflexivity. }
+      revert c. srapply @pushout_ind.
+      intros [a | b].
+      { simpl. refine (pp a). } reflexivity.
+      intro a. simpl.
+      
+      refine (transport_paths_FlFr (pp a) (pp (f1 a)) @ _).
+      
 
 (* (*Want to show that Coequ commutes with product: *)
 (*    Coeq f g * Coeq f' g' <~> Coeq (functor_prod f f') (functor_prod g g') *)

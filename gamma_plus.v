@@ -232,17 +232,18 @@ Proof.
   intros []; exact (p^ # tt).
 Defined.
 
-(* Definition equiv_restrict {n : nat} {A B: Type} (e : A+Unit <~> B+1) :  <~> Fin n. *)
-(* Proof. *)
-(*   simpl in e. *)
-(*   recall (e (inr tt)) as y eqn:p. *)
-(*   assert (p' := (moveL_equiv_V _ _ p)^). *)
-(*   destruct y as [y | []]. *)
-(*   (*  *) *)
-(*   - apply (equiv_unfunctor_sum_l (fin_transpose_last_with n (inl y) oE e) *)
-(*                                  (is_inl_transpose1 e y p) (is_inr_transpose1 e y p)). *)
-(*   - apply (equiv_unfunctor_sum_l e (is_inl_transpose2 e p) (is_inr_transpose2 e p)). *)
-(* Defined. *)
+Definition equiv_restrict {n : nat} {A : Type} (e : A+Unit <~> Fin n.+1) :  A<~> Fin n.
+Proof.
+  simpl in e.
+  recall (e (inr tt)) as y eqn:p.
+  assert (p' := (moveL_equiv_V _ _ p)^).
+  destruct y as [y | []].
+  (*  *)
+  - apply (equiv_unfunctor_sum_l (fin_transpose_last_with n (inl y) oE e)).
+    + apply is_inl_restrict_equiv_notfixlast. exact p.
+    + apply is_inr_restrict_equiv_notfixlast. exact p.
+  - apply (equiv_unfunctor_sum_l e (is_inl_restrict_equiv_last_fixed e p) (is_inr_restrict_equiv_last_fixed e p)).
+Defined.
 
 (* Definition almost_natural {n : nat} (e : Fin n.+1 <~> Fin n.+1) : *)
 (*   inl o equiv_restrict e == (fin_transpose_last_with n (e (inr tt)) oE e) o inl. *)

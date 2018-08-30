@@ -134,7 +134,7 @@ Fixpoint pSphere (n : nat) : Type :=
 Instance ispointed_psphere {n : nat} : IsPointed (pSphere n)  
   :=
     match n with
-    |O => inr tt
+    |O => inr tt                (* todo: change with inl *)
     |S n => North
     end.
 

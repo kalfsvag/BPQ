@@ -50,6 +50,65 @@ Proof.
   apply (trunc_equiv' (Fin m) finA^-1).
 Defined.
 
+Section Restrict_Equivalence.
+        (* This is just copied from fin_equiv_hfiber, but I wanted it as its own result *)
+
+        (* My doing: One of the Fin n's is generalized. *)
+        Local Lemma is_inl_restrict_equiv_notfixlast {n : nat} {A : Type}
+        (e : A+Unit <~> Fin n.+1) (y : Fin n) (p : e (inr tt) = inl y) :
+  forall a : A, is_inl ((fin_transpose_last_with n (inl y) oE e) (inl a)).
+  Proof.
+    intro a. ev_equiv.
+    assert (q : inl y <> e (inl a))
+      by exact (fun z => inl_ne_inr _ _ (equiv_inj e (z^ @ p^))).
+    set (z := e (inl a)) in *.
+    destruct z as [z|[]].
+    - rewrite fin_transpose_last_with_rest;
+        try exact tt; try assumption.
+    - rewrite fin_transpose_last_with_last; exact tt.
+  Qed.
+
+  Local Lemma is_inr_restrict_equiv_notfixlast {n : nat} {A : Type}
+        (e : A + Unit <~> Fin n.+1) (y : Fin n) (p : e (inr tt) = inl y) :
+    forall b : Unit, is_inr ((fin_transpose_last_with n (inl y) oE e) (inr b)).
+  Proof.
+    intros []. ev_equiv.
+    rewrite p.
+    rewrite fin_transpose_last_with_with; exact tt.
+  Qed.
+
+  Local Lemma is_inl_restrict_equiv_last_fixed {A B: Type} (e : A + Unit <~> B + Unit) (p : e (inr tt) = inr tt)
+    : forall a : A, is_inl (e (inl a)).
+  Proof.
+    intro a.
+    destruct (is_inl_or_is_inr (e (inl a))) as [l|r].
+    - exact l.
+    - assert (q := inr_un_inr (e (inl a)) r).
+      apply moveR_equiv_V in q.
+      assert (s := q^ @ ap (e^-1 o inr) (path_unit _ _) @ (moveL_equiv_V _ _ p)^).
+      elim (inl_ne_inr _ _ s).
+  Qed.
+
+  Local Lemma is_inr_restrict_equiv_last_fixed {A B : Type} (e : A+Unit <~> B+Unit) (p : e (inr tt) = inr tt) :
+    forall b : Unit, is_inr (e (inr b)).
+  Proof.
+    intros []; exact (p^ # tt).
+  Defined.
+
+  Definition equiv_restrict {n : nat} {A : Type} (e : A+Unit <~> Fin n.+1) :  A<~> Fin n.
+  Proof.
+    simpl in e.
+    recall (e (inr tt)) as y eqn:p.
+    assert (p' := (moveL_equiv_V _ _ p)^).
+    destruct y as [y | []].
+    (*  *)
+    - apply (equiv_unfunctor_sum_l (fin_transpose_last_with n (inl y) oE e)).
+      + apply is_inl_restrict_equiv_notfixlast. exact p.
+      + apply is_inr_restrict_equiv_notfixlast. exact p.
+    - apply (equiv_unfunctor_sum_l e (is_inl_restrict_equiv_last_fixed e p) (is_inr_restrict_equiv_last_fixed e p)).
+  Defined.
+End Restrict_Equivalence.
+
 
 Section Factorize_Monomorphism.
   Context (A B : Type).

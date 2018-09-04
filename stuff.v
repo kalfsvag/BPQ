@@ -134,7 +134,7 @@ Fixpoint pSphere (n : nat) : Type :=
 Instance ispointed_psphere {n : nat} : IsPointed (pSphere n)  
   :=
     match n with
-    |O => inr tt                (* todo: change with inl *)
+    |O => inl tt                (* todo: change with inl *)
     |S n => North
     end.
 
@@ -176,9 +176,9 @@ Definition decidable_ne_bp `{Funext} (n : nat) (x : pSphere n) : Decidable (~ x 
 Proof.
   unfold Decidable.
   destruct n.
-  - destruct x as [ | []].
-    + apply inl. apply inl_ne_inr.
+  - destruct x as [[] |].
     + apply inr. unfold point. unfold ispointed_psphere. intro ne. exact (ne idpath).
+    + apply inl. apply inr_ne_inl.
   - apply inr. apply (n_neq_bp_Sphere (point (pSphere n))).
 Defined.
 

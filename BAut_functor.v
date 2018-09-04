@@ -2,7 +2,15 @@ Require Import HoTT.
 Require Import UnivalenceAxiom.
 Load finite.
 
-Definition smash (A : Type) (a0 : IsPointed A) (B : Type) (b0 : IsPointed B) : pType. Admitted.
+
+Definition smash (A : pType) (B : pType) : pType. Admitted.
+Definition pMap' (A B : pType) := Build_pType (pMap A B) (Build_pMap A B (fun a => point B) idpath).
+
+Definition universal_smash (A B C : pType) :
+  pEquiv (pMap' (smash A B) C) (pMap' A (pMap' B C)).
+Proof.
+  Admitted.
+
 
 
 Section Symmetric_Smash.
@@ -212,25 +220,79 @@ Section Symmetric_Smash.
   Defined.
 End Symmetric_Smash.
 
+Global Instance ispointed_SS (X : pType) (A : Type) : IsPointed (Symmetric_Smash X A) := ss_basepoint X A.
+Definition Symmetric_Smash' (X : pType) (A : Type) :=
+  Build_pType (Symmetric_Smash X A) _.
+
 
 Definition iterated_smash (X : pType) (n : nat) : pType.
 Proof.
   induction n.
   - exact (Build_pType (pSphere 0) _).
-  - exact (smash X _ IHn _).
+  - exact (smash X IHn).
 Defined.
 
 (* Want to prove this *)
 Definition iterated_SS (X : pType) (n : nat) :
-  iterated_smash X n <~> Symmetric_Smash X (Fin n).
+  pEquiv (iterated_smash X n) (Symmetric_Smash' X (Fin n)).
 Proof.
-  srapply @BuildEquiv.
+  srapply @Build_pEquiv.
   - induction n.
-    + cbn.
+    { cbn. srapply @Build_pMap.
       intros [[] | []].
       { exact (ss_basepoint X Empty). } (* Basepoint *)
       { exact (pt X). }                 (* Other point *)
-    +
+      cbn. reflexivity.
+    } 
+    apply (pequiv_inverse (universal_smash _ _ _)).
+    srapply (@Build_pMap).
+    + intro x. srapply @Build_pMap.
+      { cbn. intro y. apply ss_sum.
+        { apply IHn. exact y. }
+        { apply ss1. exact x. }
+      }
+      cbn.
+      transitivity (hub_r X (Fin n) Unit).        
+      refine (_ @ pointed_ss_sum_r X (Fin n) Unit (ss1 X x)).
+      apply (ap (fun y => ss_sum X y (ss1 X x))).
+      apply (point_eq IHn).
+      exact ((pointed_ss_sum_r X (Fin n) Unit (ss_basepoint X _))^ @
+                                                                     pointed_ss_sum_l X (Fin n) Unit (ss_basepoint X _)).
+    +  cbn.
+       apply path_pmap.
+       srapply @Build_pHomotopy.
+       { intro x. cbn.
+         transitivity (ss_sum X (IHn x) (ss_basepoint X Unit)).
+         apply (ap (ss_sum X (IHn x))).
+         apply pointed_ss1.
+         apply pointed_ss_sum_l.
+       }
+       cbn.
+       rewrite concat_p1.
+       assert (ap
+
+
+                 
+       
+       transitivity ((ap (fun y : Symmetric_Smash X (Fin n) => ss_sum X y (ss1 X (point X))) (point_eq IHn) @
+                        pointed_ss_sum_r X (Fin n) Unit (ss_basepoint X Unit)) @
+                    ((pointed_ss_sum_r X (Fin n) Unit (ss_basepoint X Unit))^ @
+                      pointed_ss_sum_l X (Fin n) Unit (ss_basepoint X (Fin n)))).
+       
+       admit.
+  - cbn.
+       transitivity (ap (ss_sum X (ss_basepoint X (Fin n))) (pointed_ss1 X) @
+                        pointed_ss_sum_l X (Fin n) Unit (ss_basepoint X (Fin n))).
+       rewrite (point_eq IHn).
+       unfold point.
+           
+
+           
+           apply (pointed_fun _ (Build_pType (Symmetric_Smash X (Fin n.+1)) _ )).
+         
+         apply ss_sum.
+         { cbn in x. apply IHn. admit. }
+         { 
 
 
 

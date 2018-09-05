@@ -1,9 +1,28 @@
 Require Import HoTT.
-Load stuff.
-Context `{Funext}.
+Require Import trunc_lemmas.
+Require Import sigma_lemmas.
+(* Context `{Funext}. *)
+
+(* A term in Magma A is a decomposition of A into a sum of Empty and Unit *)
+Section Magma.
+  Inductive Magma : Type -> Type :=
+    |m0 : Magma Empty
+    |m1 : Magma Unit
+    |m_sum (A B : Type) : Magma A -> Magma B -> Magma (A+B).
+
+  Definition magma_to_finite (A : Type) : Magma A -> Finite A.
+  Proof.
+    intro m.
+    induction m.
+    - exact finite_empty.
+    - exact finite_unit.
+    - apply finite_sum. exact IHm1. exact IHm2.
+  Defined.
+    
+End Magma.
 
 (* A few results I didn't find *)
-Lemma dprop_equiv_unit (A : Type) (isprop_A : IsHProp A) (dec_A : Decidable A) : (A + ~A) <~> Unit.
+Lemma dprop_equiv_unit `{Funext} (A : Type) (isprop_A : IsHProp A) (dec_A : Decidable A) : (A + ~A) <~> Unit.
 Proof.
   srapply @equiv_adjointify.
   - exact (const tt).
@@ -18,19 +37,6 @@ Proof.
     apply (ap inr). apply path_arrow. intro a. destruct (na a).
 Defined.
 
-Lemma equiv_sigma_sum' (A : Type) (B C : A -> Type) :
-   {a : A & B a} + {a : A & C a} <~> {a : A & B a + C a}.
-Proof.
-  srapply @equiv_adjointify.
-  - intros [[a b] | [a c]].
-    + exact (a; inl b).
-    + exact (a; inr c).
-  - intros [a [b | c]].
-    + exact (inl (a; b)).
-    + exact (inr (a; c)).
-  - intros [a [b | c]]; reflexivity.
-  - intros [[a b] | [a c]]; reflexivity.
-Defined.
     
   
 
@@ -43,7 +49,7 @@ Proof.
   - apply hset_sum.
 Defined.
 
-Definition isset_Finite (A : Type) :
+Definition isset_Finite `{Funext} (A : Type) :
   Finite A -> IsHSet A.
 Proof.
   intros [m finA]. strip_truncations.
@@ -116,6 +122,7 @@ Section Factorize_Monomorphism.
   Context {finite_B : Finite B}.
   Context (f : A-> B).
   Context {ismono_f : forall a1 a2 : A, f a1 = f a2 -> a1 = a2}.
+  Context `{Funext}.
 
   (* First a lemma that the hfiber is a proposition *)
   Lemma ishprop_hfiber (b : B) : IsHProp (hfiber f b).

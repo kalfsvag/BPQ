@@ -1,15 +1,15 @@
 Require Import HoTT.
 Require Import UnivalenceAxiom.
-Load finite.
+Require Import smash.
+Require Import pointed_lemmas.
+Require Import finite_lemmas.
 
+(* Definition pMap' (A B : pType) := Build_pType (pMap A B) (Build_pMap A B (fun a => point B) idpath). *)
 
-Definition smash (A : pType) (B : pType) : pType. Admitted.
-Definition pMap' (A B : pType) := Build_pType (pMap A B) (Build_pMap A B (fun a => point B) idpath).
-
-Definition universal_smash (A B C : pType) :
-  pEquiv (pMap' (smash A B) C) (pMap' A (pMap' B C)).
-Proof.
-  Admitted.
+(* Definition universal_smash (A B C : pType) : *)
+(*   pEquiv (pMap' (smash A B) C) (pMap' A (pMap' B C)). *)
+(* Proof. *)
+(*   Admitted. *)
 
 
 
@@ -56,7 +56,7 @@ Section Symmetric_Smash.
              (pointed_ss_sum_l' : forall (A B : Type) (x : Symmetric_Smash A),
                  transport (P (A + B)) (pointed_ss_sum_l A B x) (ss_sum' x (ss_basepoint B)) = ss_basepoint' (A + B))
              (pointed_ss_sum_r' : forall (A B : Type) (y : Symmetric_Smash B),
-                 transport (P (A + B)) (pointed_ss_sum_r A B y) (ss_sum' (ss_basepoint A) y) = hub_r' A B)
+                 transport (P (A + B)) (pointed_ss_sum_r A B y) (ss_sum' (ss_basepoint A) y ) = hub_r' A B)
                  : forall (A : Type) (x : Symmetric_Smash A), P A x.
     Proof.
       intros A a. destruct a.
@@ -78,7 +78,7 @@ Section Symmetric_Smash.
              (pointed_ss_sum_l' : forall (A B : Type) (x : Symmetric_Smash A),
                  transport (P (A + B)) (pointed_ss_sum_l A B x) (ss_sum' x (ss_basepoint B)) = ss_basepoint' (A + B))
              (pointed_ss_sum_r' : forall (A B : Type) (y : Symmetric_Smash B),
-                 transport (P (A + B)) (pointed_ss_sum_r A B y) (ss_sum' (ss_basepoint A) y) = hub_r' A B),
+                 transport (P (A + B)) (pointed_ss_sum_r A B y) (ss_sum' (ss_basepoint A) y ) = hub_r' A B),
       apD (SS_ind P ss_basepoint' pt' ss1' pointed_ss1' (@ss_sum') hub_r' pointed_ss_sum_l' pointed_ss_sum_r' Unit) pointed_ss1 = pointed_ss1'.
 
     Axiom SS_ind_beta_pointed_ss_sum_l :
@@ -224,13 +224,62 @@ Global Instance ispointed_SS (X : pType) (A : Type) : IsPointed (Symmetric_Smash
 Definition Symmetric_Smash' (X : pType) (A : Type) :=
   Build_pType (Symmetric_Smash X A) _.
 
+(* ss_sum induces a pointed map from the smash product *)
+Definition ss_sum_smash (X : pType) {A B : Type} :
+           smash (Symmetric_Smash' X A) (Symmetric_Smash' X B) ->* Symmetric_Smash' X (A+B).
+Proof.
+  srapply @Build_pMap. cbn.
+  srapply @smash_rec.
+  - apply ss_sum.               (* map on product *)
+  - apply ss_basepoint.         (* basepoint *)
+  - apply hub_r.                (* other hub *)
+  - intro b. apply (pointed_ss_sum_l X).
+    
+
 
 Definition iterated_smash (X : pType) (n : nat) : pType.
 Proof.
   induction n.
   - exact (Build_pType (pSphere 0) _).
-  - exact (smash X IHn).
+  - exact (Build_pType (smash X IHn) _). 
 Defined.
+
+Definition smash_over_magma (X : pType) (A : Type) (m : Magma A) : pType.
+Proof.
+  induction m.
+  - exact (Build_pType (pSphere 0) _).          (* A is empty *)
+  - exact X.                                    (* A is Unit *)
+  - exact (Build_pType (smash IHm1 IHm2) _).
+Defined.
+
+(* Want: forall A : Type, m : Magma A, then SS X A is smash_over_magma *)
+
+Definition som_to_SS (X : pType) (A : Type) (m : Magma A) :
+  smash_over_magma X A m ->* Symmetric_Smash X A.
+Proof.
+  induction m.
+  - srapply @Build_pMap. cbn.
+    intros [[]|[]].
+    + apply ss_basepoint. + apply pt.
+    + cbn. reflexivity.
+  - srapply @Build_pMap. cbn.
+    apply ss1. cbn.
+    apply pointed_ss1.
+  - transitivity (Build_pType (smash (Symmetric_Smash' X A) (Symmetric_Smash' X B)) _).
+    apply functor_smash.
+    { exact IHm1. } { exact IHm2. }
+    srapply @Build_pMap. cbn.
+    srapply @smash_rec.
+    + apply ss_sum.
+    + apply ss_basepoint.
+    + apply hub_r.
+    + cbn. intro y.
+      
+
+    cbn. intro x. apply ss_sum.
+    
+
+  
 
 (* Want to prove this *)
 Definition iterated_SS (X : pType) (n : nat) :

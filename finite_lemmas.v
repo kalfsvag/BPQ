@@ -8,7 +8,7 @@ Section Magma.
   Inductive Magma : Type -> Type :=
     |m0 : Magma Empty
     |m1 : Magma Unit
-    |m_sum (A B : Type) : Magma A -> Magma B -> Magma (A+B).
+    |m_sum {A B : Type} : Magma A -> Magma B -> Magma (A+B).
 
   Definition magma_to_finite (A : Type) : Magma A -> Finite A.
   Proof.
@@ -18,6 +18,22 @@ Section Magma.
     - exact finite_unit.
     - apply finite_sum. exact IHm1. exact IHm2.
   Defined.
+
+  (* Definition contr_magma0 : Contr (Magma Empty). *)
+  (* Proof. *)
+  (*   apply (BuildContr _ m0). *)
+  (*   recall Empty as A eqn:e. *)
+  (*   apply (transport (fun B => Contr (Magma B)) e^). *)
+  (*   srapply @BuildContr. *)
+  (*   - destruct e. exact m0. *)
+  (*   - intro m. induction m. *)
+      
+
+      
+  (*   recall Empty as A eqn:e. *)
+  (*   apply (transport (fun B => Contr (Magma B)) e^). *)
+
+  (*   -  *)
     
 End Magma.
 

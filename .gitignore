@@ -1,3 +1,7 @@
 
 # Ignore Emacs backup files
 *~
+# Ignore compiled files
+*.aux
+*.glob
+*.vo

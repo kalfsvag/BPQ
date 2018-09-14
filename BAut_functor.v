@@ -43,8 +43,9 @@ Section Symmetric_Smash.
     |hub_r (A B : Type) : Symmetric_Smash (A + B) (* An extra point needed to define the smash product as a HIT *).
 
   Axiom pointed_ss1 : ss1 (point X) = ss_basepoint Unit. (* ss1 is a pointed map *)
-  Axiom pointed_ss_sum_l : forall (A B : Type) (x : Symmetric_Smash A), ss_sum x (ss_basepoint B) = ss_basepoint (A+B).
-  Axiom pointed_ss_sum_r : forall (A B : Type) (y : Symmetric_Smash B), ss_sum (ss_basepoint A) y = hub_r A B.
+  Axiom pointed_ss_sum_l : forall (A B : Type) (y : Symmetric_Smash B), ss_sum (ss_basepoint A) y = ss_basepoint (A+B).
+  Axiom pointed_ss_sum_r : forall (A B : Type) (x : Symmetric_Smash A), ss_sum x (ss_basepoint B) = hub_r A B.
+  
 
   Definition SS_ind (P : forall A : Type, Symmetric_Smash A -> Type)
              (ss_basepoint' : forall A : Type, P A (ss_basepoint A))
@@ -53,10 +54,12 @@ Section Symmetric_Smash.
              (pointed_ss1' : transport (P Unit) (pointed_ss1) (ss1' (point X)) = ss_basepoint' Unit)
              (ss_sum' : forall {A B : Type} (x : Symmetric_Smash A) (y : Symmetric_Smash B), P (A+B) (ss_sum x y))
              (hub_r' : forall (A B : Type), P (A+B) (hub_r A B))
-             (pointed_ss_sum_l' : forall (A B : Type) (x : Symmetric_Smash A),
-                 transport (P (A + B)) (pointed_ss_sum_l A B x) (ss_sum' x (ss_basepoint B)) = ss_basepoint' (A + B))
-             (pointed_ss_sum_r' : forall (A B : Type) (y : Symmetric_Smash B),
-                 transport (P (A + B)) (pointed_ss_sum_r A B y) (ss_sum' (ss_basepoint A) y ) = hub_r' A B)
+             (pointed_ss_sum_l' : forall (A B : Type) (y : Symmetric_Smash B),
+                 transport (P (A + B)) (pointed_ss_sum_l A B y) (ss_sum' (ss_basepoint A) y ) = (ss_basepoint' (A+B)))
+             (pointed_ss_sum_r' : forall (A B : Type) (x : Symmetric_Smash A),
+                 transport (P (A + B)) (pointed_ss_sum_r A B x) (ss_sum' x (ss_basepoint B)) = hub_r' A B)
+             
+
                  : forall (A : Type) (x : Symmetric_Smash A), P A x.
     Proof.
       intros A a. destruct a.
@@ -67,6 +70,8 @@ Section Symmetric_Smash.
       - exact (hub_r' A B).
     Defined.
 
+
+
     Axiom SS_ind_beta_pointed_ss1 :
       forall (P : forall A : Type, Symmetric_Smash A -> Type)
              (ss_basepoint' : forall A : Type, P A (ss_basepoint A))
@@ -75,10 +80,10 @@ Section Symmetric_Smash.
              (pointed_ss1' : transport (P Unit) (pointed_ss1) (ss1' (point X)) = ss_basepoint' Unit)
              (ss_sum' : forall {A B : Type} (x : Symmetric_Smash A) (y : Symmetric_Smash B), P (A+B) (ss_sum x y))
              (hub_r' : forall (A B : Type), P (A+B) (hub_r A B))
-             (pointed_ss_sum_l' : forall (A B : Type) (x : Symmetric_Smash A),
-                 transport (P (A + B)) (pointed_ss_sum_l A B x) (ss_sum' x (ss_basepoint B)) = ss_basepoint' (A + B))
-             (pointed_ss_sum_r' : forall (A B : Type) (y : Symmetric_Smash B),
-                 transport (P (A + B)) (pointed_ss_sum_r A B y) (ss_sum' (ss_basepoint A) y ) = hub_r' A B),
+             (pointed_ss_sum_l' : forall (A B : Type) (y : Symmetric_Smash B),
+                 transport (P (A + B)) (pointed_ss_sum_l A B y) (ss_sum' (ss_basepoint A) y ) = (ss_basepoint' (A+B)))
+             (pointed_ss_sum_r' : forall (A B : Type) (x : Symmetric_Smash A),
+                 transport (P (A + B)) (pointed_ss_sum_r A B x) (ss_sum' x (ss_basepoint B)) = hub_r' A B),
       apD (SS_ind P ss_basepoint' pt' ss1' pointed_ss1' (@ss_sum') hub_r' pointed_ss_sum_l' pointed_ss_sum_r' Unit) pointed_ss1 = pointed_ss1'.
 
     Axiom SS_ind_beta_pointed_ss_sum_l :
@@ -89,13 +94,13 @@ Section Symmetric_Smash.
              (pointed_ss1' : transport (P Unit) (pointed_ss1) (ss1' (point X)) = ss_basepoint' Unit)
              (ss_sum' : forall {A B : Type} (x : Symmetric_Smash A) (y : Symmetric_Smash B), P (A+B) (ss_sum x y))
              (hub_r' : forall (A B : Type), P (A+B) (hub_r A B))
-             (pointed_ss_sum_l' : forall (A B : Type) (x : Symmetric_Smash A),
-                 transport (P (A + B)) (pointed_ss_sum_l A B x) (ss_sum' x (ss_basepoint B)) = ss_basepoint' (A + B))
-             (pointed_ss_sum_r' : forall (A B : Type) (y : Symmetric_Smash B),
-                 transport (P (A + B)) (pointed_ss_sum_r A B y) (ss_sum' (ss_basepoint A) y) = hub_r' A B)
-             (A B : Type) (x : Symmetric_Smash A),
+             (pointed_ss_sum_l' : forall (A B : Type) (y : Symmetric_Smash B),
+                 transport (P (A + B)) (pointed_ss_sum_l A B y) (ss_sum' (ss_basepoint A) y ) = (ss_basepoint' (A+B)))
+             (pointed_ss_sum_r' : forall (A B : Type) (x : Symmetric_Smash A),
+                 transport (P (A + B)) (pointed_ss_sum_r A B x) (ss_sum' x (ss_basepoint B)) = hub_r' A B)
+             (A B : Type) (y : Symmetric_Smash B),
         apD (SS_ind P ss_basepoint' pt' ss1' pointed_ss1' (@ss_sum') hub_r' pointed_ss_sum_l' pointed_ss_sum_r' (A+B))
-               (pointed_ss_sum_l A B x) = pointed_ss_sum_l' A B x.
+               (pointed_ss_sum_l A B y) = pointed_ss_sum_l' A B y.
 
     Axiom SS_ind_beta_pointed_ss_sum_r :
       forall (P : forall A : Type, Symmetric_Smash A -> Type)
@@ -105,13 +110,13 @@ Section Symmetric_Smash.
              (pointed_ss1' : transport (P Unit) (pointed_ss1) (ss1' (point X)) = ss_basepoint' Unit)
              (ss_sum' : forall {A B : Type} (x : Symmetric_Smash A) (y : Symmetric_Smash B), P (A+B) (ss_sum x y))
              (hub_r' : forall (A B : Type), P (A+B) (hub_r A B))
-             (pointed_ss_sum_l' : forall (A B : Type) (x : Symmetric_Smash A),
-                 transport (P (A + B)) (pointed_ss_sum_l A B x) (ss_sum' x (ss_basepoint B)) = ss_basepoint' (A + B))
-             (pointed_ss_sum_r' : forall (A B : Type) (y : Symmetric_Smash B),
-                 transport (P (A + B)) (pointed_ss_sum_r A B y) (ss_sum' (ss_basepoint A) y) = hub_r' A B)
-             (A B : Type) (y : Symmetric_Smash B),
+             (pointed_ss_sum_l' : forall (A B : Type) (y : Symmetric_Smash B),
+                 transport (P (A + B)) (pointed_ss_sum_l A B y) (ss_sum' (ss_basepoint A) y ) = (ss_basepoint' (A+B)))
+             (pointed_ss_sum_r' : forall (A B : Type) (x : Symmetric_Smash A),
+                 transport (P (A + B)) (pointed_ss_sum_r A B x) (ss_sum' x (ss_basepoint B)) = hub_r' A B)
+             (A B : Type) (x : Symmetric_Smash A),
         apD (SS_ind P ss_basepoint' pt' ss1' pointed_ss1' (@ss_sum') hub_r' pointed_ss_sum_l' pointed_ss_sum_r' (A+B))
-            (pointed_ss_sum_r A B y) = pointed_ss_sum_r' A B y.
+            (pointed_ss_sum_r A B x) = pointed_ss_sum_r' A B x.
 
 
     (* Things needed to prove: *)
@@ -130,18 +135,20 @@ Section Symmetric_Smash.
              (ss_sum' : forall {A B : Type},
                  Symmetric_Smash A -> Symmetric_Smash B -> P (A + B))
              (hub_r' : forall (A B : Type), P (A + B))
-             (pointed_ss_sum_l' : forall (A B : Type) (x : Symmetric_Smash A),
-                 ss_sum' x (ss_basepoint B) = ss_basepoint' (A + B))
-             (pointed_ss_sum_r' : forall (A B : Type) (y : Symmetric_Smash B),
-                 ss_sum' (ss_basepoint A) y = hub_r' A B)
+             (pointed_ss_sum_l' : forall (A B : Type) (y : Symmetric_Smash B),
+                 ss_sum' (ss_basepoint A) y = ss_basepoint' (A+B))
+             (pointed_ss_sum_r' : forall (A B : Type) (x : Symmetric_Smash A),
+                 ss_sum' x (ss_basepoint B) = hub_r' A B)
     : forall A : Type, Symmetric_Smash A -> P A.
   Proof.
     refine (SS_ind (fun A _ => P A) ss_basepoint' pt' ss1' _ (@ss_sum') hub_r' _ _);
       intros; refine (transport_const _ _ @ _).
     - exact pointed_ss1'.
-    - exact (pointed_ss_sum_l' A B x).
-    - exact (pointed_ss_sum_r' A B y).
+    - exact (pointed_ss_sum_l' A B y).
+    - exact (pointed_ss_sum_r' A B x).
   Defined.
+
+
 
   Definition SS_rec_beta_pointed_ss1
              (P : Type -> Type)
@@ -152,10 +159,10 @@ Section Symmetric_Smash.
              (ss_sum' : forall {A B : Type},
                  Symmetric_Smash A -> Symmetric_Smash B -> P (A + B))
              (hub_r' : forall (A B : Type), P (A + B))
-             (pointed_ss_sum_l' : forall (A B : Type) (x : Symmetric_Smash A),
-                 ss_sum' x (ss_basepoint B) = ss_basepoint' (A + B))
-             (pointed_ss_sum_r' : forall (A B : Type) (y : Symmetric_Smash B),
-                 ss_sum' (ss_basepoint A) y = hub_r' A B)
+             (pointed_ss_sum_l' : forall (A B : Type) (y : Symmetric_Smash B),
+                 ss_sum' (ss_basepoint A) y = ss_basepoint' (A+B))
+             (pointed_ss_sum_r' : forall (A B : Type) (x : Symmetric_Smash A),
+                 ss_sum' x (ss_basepoint B) = hub_r' A B)
     : ap (SS_rec P ss_basepoint' pt' ss1' pointed_ss1' (@ss_sum') hub_r'
                  pointed_ss_sum_l' pointed_ss_sum_r' Unit) (pointed_ss1) = (pointed_ss1').
   Proof.
@@ -176,22 +183,25 @@ Section Symmetric_Smash.
              (ss_sum' : forall {A B : Type},
                  Symmetric_Smash A -> Symmetric_Smash B -> P (A + B))
              (hub_r' : forall (A B : Type), P (A + B))
-             (pointed_ss_sum_l' : forall (A B : Type) (x : Symmetric_Smash A),
-                 ss_sum' x (ss_basepoint B) = ss_basepoint' (A + B))
-             (pointed_ss_sum_r' : forall (A B : Type) (y : Symmetric_Smash B),
-                 ss_sum' (ss_basepoint A) y = hub_r' A B)
-             (A B : Type) (x : Symmetric_Smash A)
+             (pointed_ss_sum_l' : forall (A B : Type) (y : Symmetric_Smash B),
+                 ss_sum' (ss_basepoint A) y = ss_basepoint' (A+B))
+             (pointed_ss_sum_r' : forall (A B : Type) (x : Symmetric_Smash A),
+                 ss_sum' x (ss_basepoint B) = hub_r' A B)
+             (A B : Type) (y : Symmetric_Smash B)
     : ap (SS_rec P ss_basepoint' pt' ss1' pointed_ss1' (@ss_sum') hub_r'
-                 pointed_ss_sum_l' pointed_ss_sum_r' (A+B)) (pointed_ss_sum_l A B x) =
-      pointed_ss_sum_l' A B x.
+                 pointed_ss_sum_l' pointed_ss_sum_r' (A+B)) (pointed_ss_sum_l A B y) =
+      pointed_ss_sum_l' A B y.
   Proof.
-    apply (cancelL (transport_const (pointed_ss_sum_l A B x) (ss_sum' A B x (ss_basepoint B)))).
+    apply (cancelL (transport_const (pointed_ss_sum_l A B y) (ss_sum' A B (ss_basepoint A) y ))).
     transitivity (apD (SS_rec P ss_basepoint' pt' ss1' pointed_ss1' (@ss_sum') hub_r'
-                              pointed_ss_sum_l' pointed_ss_sum_r' (A+B)) (pointed_ss_sum_l A B x)).
+                              pointed_ss_sum_l' pointed_ss_sum_r' (A+B)) (pointed_ss_sum_l A B y)).
     symmetry. refine (apD_const (SS_rec P ss_basepoint' pt' ss1' pointed_ss1' (@ss_sum') hub_r'
                                         pointed_ss_sum_l' pointed_ss_sum_r' (A+B)) _).
     refine (SS_ind_beta_pointed_ss_sum_l (fun A _ => P A) _ _ _ _ _ _ _ _ _ _ _).
   Defined.
+
+
+    
 
   Definition SS_rec_beta_pointed_ss_sum_r
              (P : Type -> Type)
@@ -202,18 +212,18 @@ Section Symmetric_Smash.
              (ss_sum' : forall {A B : Type},
                  Symmetric_Smash A -> Symmetric_Smash B -> P (A + B))
              (hub_r' : forall (A B : Type), P (A + B))
-             (pointed_ss_sum_l' : forall (A B : Type) (x : Symmetric_Smash A),
-                 ss_sum' x (ss_basepoint B) = ss_basepoint' (A + B))
-             (pointed_ss_sum_r' : forall (A B : Type) (y : Symmetric_Smash B),
-                 ss_sum' (ss_basepoint A) y = hub_r' A B)
-             (A B : Type) (y : Symmetric_Smash B)
+             (pointed_ss_sum_l' : forall (A B : Type) (y : Symmetric_Smash B),
+                 ss_sum' (ss_basepoint A) y = ss_basepoint' (A+B))
+             (pointed_ss_sum_r' : forall (A B : Type) (x : Symmetric_Smash A),
+                 ss_sum' x (ss_basepoint B) = hub_r' A B)
+             (A B : Type) (x : Symmetric_Smash A)
     : ap (SS_rec P ss_basepoint' pt' ss1' pointed_ss1' (@ss_sum') hub_r'
-                 pointed_ss_sum_l' pointed_ss_sum_r' (A+B)) (pointed_ss_sum_r A B y) =
-      pointed_ss_sum_r' A B y.
+                 pointed_ss_sum_l' pointed_ss_sum_r' (A+B)) (pointed_ss_sum_r A B x) =
+      pointed_ss_sum_r' A B x.
   Proof.
-    apply (cancelL (transport_const (pointed_ss_sum_r A B y) (ss_sum' A B (ss_basepoint A) y ))).
+    apply (cancelL (transport_const (pointed_ss_sum_r A B x) (ss_sum' A B x (ss_basepoint B)))).
     transitivity (apD (SS_rec P ss_basepoint' pt' ss1' pointed_ss1' (@ss_sum') hub_r'
-                              pointed_ss_sum_l' pointed_ss_sum_r' (A+B)) (pointed_ss_sum_r A B y)).
+                              pointed_ss_sum_l' pointed_ss_sum_r' (A+B)) (pointed_ss_sum_r A B x)).
     symmetry. refine (apD_const (SS_rec P ss_basepoint' pt' ss1' pointed_ss1' (@ss_sum') hub_r'
                                         pointed_ss_sum_l' pointed_ss_sum_r' (A+B)) _).
     refine (SS_ind_beta_pointed_ss_sum_r (fun A _ => P A) _ _ _ _ _ _ _ _ _ _ _).
@@ -233,9 +243,10 @@ Proof.
   - apply ss_sum.               (* map on product *)
   - apply ss_basepoint.         (* basepoint *)
   - apply hub_r.                (* other hub *)
-  - intro b. apply (pointed_ss_sum_l X).
-    
-
+  - intro y. apply (pointed_ss_sum_l X).
+  - intro x. apply (pointed_ss_sum_r X).
+  - cbn. reflexivity.
+Defined.
 
 Definition iterated_smash (X : pType) (n : nat) : pType.
 Proof.
@@ -265,18 +276,86 @@ Proof.
   - srapply @Build_pMap. cbn.
     apply ss1. cbn.
     apply pointed_ss1.
-  - transitivity (Build_pType (smash (Symmetric_Smash' X A) (Symmetric_Smash' X B)) _).
+  - refine ((ss_sum_smash X) o* _).
     apply functor_smash.
     { exact IHm1. } { exact IHm2. }
-    srapply @Build_pMap. cbn.
-    srapply @smash_rec.
-    + apply ss_sum.
-    + apply ss_basepoint.
-    + apply hub_r.
-    + cbn. intro y.
-      
+Defined.
 
-    cbn. intro x. apply ss_sum.
+(* (* Lets see if we can show that this is an equivalence *) *)
+(* Definition isequiv_som_to_SS (X: pType) (A : Type) (m : Magma A) : *)
+(*   IsEquiv (som_to_SS X A m). *)
+(* Proof. *)
+(*   apply isequiv_fcontr. cbn. *)
+(*   intro x. *)
+(*   revert A x m. *)
+(*   srapply @SS_ind. *)
+(*   - cbn. intros A m. *)
+(*     srapply @BuildContr. *)
+(*     { exists (point _). apply (point_eq (som_to_SS X A m)). } *)
+(*     intros [x p]. *)
+(*     induction m. *)
+(*     { cbn. *)
+
+
+(* Definition parallel_induction (X : pType) *)
+(*            (P : forall (A : Type) (m : Magma A) (x : Symmetric_Smash X A), Type) *)
+(*            (ss_basepoint' : forall (A: Type) (m : Magma A), P A m (ss_basepoint X A)) *)
+(*            (pt' : P Empty m0 (pt X)) *)
+(*            (ss1' : forall x : X, P Unit m1 (ss1 X x)) *)
+(*            (pointed_ss1' : transport (P Unit m1) (pointed_ss1 X) (ss1' (point X)) = ss_basepoint' Unit m1) *)
+(*            (ss_sum' : forall {A B : Type} (m1 : Magma A) (m2 : Magma B) (x : Symmetric_Smash X A) (y : Symmetric_Smash X B), P (A+B) (m_sum m1 m2) *)
+(*                                                                                                                                (ss_sum X x y)) *)
+(*            (hub_r' : forall (A B : Type) (m1 : Magma A) (m2 : Magma B), P (A+B) (m_sum m1 m2) (hub_r X A B)) *)
+(*            (pointed_ss_sum_l' : forall (A B : Type) (m1 : Magma A) (m2 : Magma B) (y : Symmetric_Smash X B), *)
+(*                transport (P (A + B) (m_sum m1 m2)) (pointed_ss_sum_l X A B y) (ss_sum' m1 m2 (ss_basepoint X A) y ) = (ss_basepoint' (A+B) (m_sum m1 m2))) *)
+(*            (pointed_ss_sum_r' : forall (A B : Type) (m1 : Magma A) (m2 : Magma B) (x : Symmetric_Smash X A), *)
+(*                transport (P (A + B) (m_sum m1 m2)) (pointed_ss_sum_r X A B x) (ss_sum' m1 m2 x (ss_basepoint X B)) = hub_r' A B m1 m2) *)
+(*   : forall (A : Type) (m : Magma A) (x : Symmetric_Smash X A), P A m x. *)
+(* Proof. *)
+(*   intros A m x. *)
+(*   match (m, x) with *)
+  
+
+  
+    
+
+
+
+Fixpoint SS_to_som (X : pType) (A : Type) (m : Magma A) :
+  Symmetric_Smash X A -> smash_over_magma X A m.
+Proof.
+  intro x. revert m. revert A x.
+  srapply @SS_rec.
+  
+  - cbn. intros A m. exact (point _). (* Basepoint *)
+  - cbn. intro m.
+    exact (match m with
+             |m0 => inr tt
+           end).
+    destruct m.
+    cbn. exact (inr tt).
+    { cbn. exact (point X).     (* this doesn't make sense. . . *) }
+    { exact (point _). }        (* makes no sense *)
+  - cbn. intro x.
+    destruct m.
+    { exact (point _). }        (* makes no sense *)
+    exact x.
+    { exact (point _). }        (* makes no sense *)
+  - cbn.
+    apply path_forall. intro m. induction m.
+    { cbn. reflexivity. }
+    { cbn. reflexivity. }
+    cbn. reflexivity.
+  - cbn.
+    intros A B x y m.
+    apply SS_to_som. apply (ss_sum X x y).
+  - cbn.                        (* hub_r' *)
+    intros A B m.
+    recall (A + B) as C eqn:e. apply (transport (fun D => smash_over_magma X D (transport Magma e m) e).
+    destruct m.
+    
+
+  
     
 
   

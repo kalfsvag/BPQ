@@ -1,7 +1,85 @@
 Require Import HoTT.
 Require Import trunc_lemmas.
 Require Import sigma_lemmas.
-(* Context `{Funext}. *)
+Require Import equiv_lemmas.
+
+Section Finite_Types.
+  Require Import UnivalenceAxiom.
+  Definition Finite_Types  :=
+    {A : Type & Finite A}.
+
+  Definition type_of (A : Finite_Types) := pr1 A.
+  Coercion type_of : Finite_Types >-> Sortclass.
+  Global Instance finite_finite_type (A : Finite_Types) : Finite A := A.2.
+
+  (* Canonical finite types *)
+  Definition canon (n : nat) : Finite_Types :=
+    (* Build_Finite_Types (Fin n) (Build_Finite (Fin n) n (tr 1%equiv)). *)
+    (Fin n; Build_Finite (Fin n) n (tr 1%equiv)).
+
+  (* A detachable subset of a finite set has smaller cardinal *)
+  Definition leq_card_subset (A : Finite_Types) (P : A -> Type)
+             (isprop_P : forall a : A, IsHProp (P a)) (isdec_P : forall a : A, Decidable (P a)) :
+    (fcard {a : A & P a} <= fcard A)%nat.
+  Proof.  
+    destruct A as [A fA]. simpl in P, isprop_P, isdec_P. simpl.
+    apply (leq_inj_finite pr1).
+    unfold IsEmbedding. intro a.
+    apply (trunc_equiv' (P a) ).
+    apply hfiber_fibration. apply isprop_P.
+  Qed.
+
+  (* Plus one for finite types *)
+  Definition add_one : Finite_Types -> Finite_Types.
+  Proof.
+    intros [A [n H]].
+    exists (A + Unit).
+    (* apply (Build_Finite_Types (A + Unit)). *)
+    strip_truncations.
+    apply (Build_Finite _ (n.+1)).
+    apply tr. (* apply path_universe_uncurried. *)
+    (* exact (equiv_functor_sum' ((equiv_path_universe A (Fin n))^-1 H) equiv_idmap). *)
+    exact (equiv_functor_sum' H equiv_idmap).
+  Defined.
+
+  Definition path_finite_types  (s t : Finite_Types):
+    (s <~> t) <~> s = t :=
+    equiv_path_sigma_hprop _ _ oE equiv_path_universe _ _.
+
+  (* This should more or less follow from baut_ind_hset (except that is only for P: Type -> Type*)
+  Definition BSigma_ind_hSet (P : Finite_Types -> Type)
+             {isset_P : forall s : Finite_Types, IsHSet (P s)}
+             (pt : forall n : nat, P (canon n))
+             (wd : forall (n : nat) (e : Fin n <~> Fin n),
+                 transport P (path_finite_types (canon n) (canon n) e) (pt n) = pt n) :
+    forall s : Finite_Types, P s.
+  Proof.
+    intro s.
+    apply (@pr1 (P s) (fun p : P s => forall e' : Fin (fcard s) <~> s,
+                           transport P (path_finite_types (canon (fcard s)) s e') (pt (fcard s)) = p)).
+    assert (isprop_goal : forall s' : Finite_Types, IsHProp
+                                                      {p : P s' &
+                                                           forall e' : Fin (fcard s') <~> s',
+                                                             transport P (path_sigma_hprop (canon (fcard s')) s' (path_universe_uncurried e'))
+                                                                       (pt (fcard s')) = p}).
+    { destruct s' as [A [m eA]].
+      strip_truncations. apply trunc_sigma'.
+      - intro p. apply trunc_forall.
+      - intros p q.
+        apply (contr_inhabited_hprop _).
+        destruct p as [p fp]. destruct q as [q fq]. simpl. simpl in fp. simpl in fq.      
+        exact ((fp (equiv_inverse eA))^ @ (fq (equiv_inverse eA))). }
+    destruct s as [A [m eA]]. strip_truncations.
+    destruct (path_finite_types (canon m) (A; Build_Finite A m (tr eA)) (equiv_inverse eA)).
+    change (fcard (canon m)) with m.
+    exact (pt m; wd m).
+  Defined.
+
+End Finite_Types.
+  
+
+
+
 
 (* A term in Magma A is a decomposition of A into a sum of Empty and Unit *)
 Section Magma.
@@ -37,23 +115,6 @@ Section Magma.
     
 End Magma.
 
-(* A few results I didn't find *)
-Lemma dprop_equiv_unit `{Funext} (A : Type) (isprop_A : IsHProp A) (dec_A : Decidable A) : (A + ~A) <~> Unit.
-Proof.
-  srapply @equiv_adjointify.
-  - exact (const tt).
-  - intro t. exact (dec_A).
-  - intros []. reflexivity.
-  - intros [a | na].
-    destruct (dec_A) as [a' | na'].
-    apply (ap inl). apply (isprop_A a' a).
-    destruct (na' a).
-    destruct (dec_A) as [a' | na'].
-    destruct (na a').
-    apply (ap inr). apply path_arrow. intro a. destruct (na a).
-Defined.
-
-    
   
 
 (* This is also in monoidal_1type.v *)
@@ -73,12 +134,12 @@ Proof.
 Defined.
 
 Section Restrict_Equivalence.
-        (* This is just copied from fin_equiv_hfiber, but I wanted it as its own result *)
+  (* This is just copied from fin_equiv_hfiber, but I wanted it as its own result *)
 
-        (* My doing: One of the Fin n's is generalized. *)
-        Local Lemma is_inl_restrict_equiv_notfixlast {n : nat} {A : Type}
+  (* My doing: One of the Fin n's is generalized. *)
+  Local Lemma is_inl_restrict_equiv_notfixlast {n : nat} {A : Type}
         (e : A+Unit <~> Fin n.+1) (y : Fin n) (p : e (inr tt) = inl y) :
-  forall a : A, is_inl ((fin_transpose_last_with n (inl y) oE e) (inl a)).
+    forall a : A, is_inl ((fin_transpose_last_with n (inl y) oE e) (inl a)).
   Proof.
     intro a. ev_equiv.
     assert (q : inl y <> e (inl a))
@@ -137,7 +198,7 @@ Section Factorize_Monomorphism.
   Context {finite_A : Finite A}.
   Context {finite_B : Finite B}.
   Context (f : A-> B).
-  Context {ismono_f : forall a1 a2 : A, f a1 = f a2 -> a1 = a2}.
+  Context (ismono_f : forall a1 a2 : A, f a1 = f a2 -> a1 = a2).
   Context `{Funext}.
 
   (* First a lemma that the hfiber is a proposition *)
@@ -210,6 +271,30 @@ Section Factorize_Monomorphism.
       apply equiv_sigma_symm.
   Defined.
 End Factorize_Monomorphism.
+
+Section Finite_Subtypes.
+  Definition Finite_Types_ (n : nat)
+    := {B : Type & (merely (B <~> Fin n))}.
+  Definition fin_to_fin (n : nat) :
+    Finite_Types_ n -> Finite_Types.
+  intros [B e].
+  exists B. exists n. exact e.
+  Defined.
+
+  Coercion fin_to_fin : Finite_Types_ >-> Finite_Types.
+  Global Instance finite_fin_ (n : nat) (B : Finite_Types_ n) : Finite B := finite_finite_type B.
+  
+  Definition finite_subtype_card (A : Finite_Types) (n : nat) :=
+    { B : Finite_Types_ n & {f : B -> A & forall b1 b2 : B, f b1 = f b2 -> b1 = b2}}.
+
+  Definition finite_subtype_is_dprop (A : Finite_Types) (n : nat):
+    finite_subtype_card A n <~> {B : A -> DProp & fcard ({a : A & B a}) = n}.
+  Proof.
+    srapply @equiv_adjointify.
+    { intros [B [f ismono_f]].
+      srapply @existT.
+      intro a.
+      exact (if (decidable_hfiber B A f a) then True else False).
 
 
 

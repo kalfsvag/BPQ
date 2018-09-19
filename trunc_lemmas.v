@@ -34,3 +34,20 @@ Proof.
   intro b. revert p. apply Trunc_rec. intro p.
   exact (transport B p b).
 Defined.
+
+(* If A is a decidable proposition, then A +~A is contractible *)
+Lemma dprop_equiv_unit `{Funext} (A : Type) (isprop_A : IsHProp A) (dec_A : Decidable A) : (A + ~A) <~> Unit.
+Proof.
+  srapply @equiv_adjointify.
+  - exact (const tt).
+  - intro t. exact (dec_A).
+  - intros []. reflexivity.
+  - intros [a | na].
+    destruct (dec_A) as [a' | na'].
+    apply (ap inl). apply (isprop_A a' a).
+    destruct (na' a).
+    destruct (dec_A) as [a' | na'].
+    destruct (na a').
+    apply (ap inr). apply path_arrow. intro a. destruct (na a).
+Defined.
+

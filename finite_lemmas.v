@@ -2,14 +2,30 @@ Require Import HoTT.
 Require Import trunc_lemmas.
 Require Import sigma_lemmas.
 Require Import equiv_lemmas.
+Require Import UnivalenceAxiom.
+
+
+(* The type of decidable propositions is finite *)
+Global Instance finite_dprop : Finite DProp.
+Proof.
+  refine (finite_equiv' (Fin 2) _ _).
+  transitivity Bool.
+  + unfold Fin.
+    srapply @equiv_adjointify.
+    { intros [[[] | []] | []]. exact true. exact false. }
+    { intros  [ | ]. exact (inl (inr tt)). exact (inr tt). }
+    * intros [ | ] ;reflexivity.
+    * intros [[[] | []] | []]; reflexivity.
+  + apply equiv_inverse. apply equiv_dprop_to_bool.
+Qed.
+    
 
 Section Finite_Types.
-  Require Import UnivalenceAxiom.
   Definition Finite_Types  :=
     {A : Type & Finite A}.
 
   Definition type_of (A : Finite_Types) := pr1 A.
-  Coercion type_of : Finite_Types >-> Sortclass.
+  Global Coercion type_of : Finite_Types >-> Sortclass.
   Global Instance finite_finite_type (A : Finite_Types) : Finite A := A.2.
 
   (* Canonical finite types *)
@@ -45,6 +61,14 @@ Section Finite_Types.
   Definition path_finite_types  (s t : Finite_Types):
     (s <~> t) <~> s = t :=
     equiv_path_sigma_hprop _ _ oE equiv_path_universe _ _.
+
+  Definition transport_exp_finite {X : Type} {A B : Finite_Types} (e : A <~> B) (x : A -> X) :
+    transport (fun I : Finite_Types => I -> X) (path_finite_types A B e) x = x o e^-1.
+  Proof.
+    refine (ap10 (transport_pr1_path_sigma_uncurried (pr1^-1 (path_universe_uncurried e))
+                                                     (fun A : Type => A -> X)) x @ _).
+    exact (transport_exp X A B e x).
+  Defined.
 
   (* This should more or less follow from baut_ind_hset (except that is only for P: Type -> Type*)
   Definition BSigma_ind_hSet (P : Finite_Types -> Type)
@@ -198,103 +222,293 @@ Section Factorize_Monomorphism.
   Context {finite_A : Finite A}.
   Context {finite_B : Finite B}.
   Context (f : A-> B).
-  Context (ismono_f : forall a1 a2 : A, f a1 = f a2 -> a1 = a2).
+  (* Context (ismono_f : forall a1 a2 : A, f a1 = f a2 -> a1 = a2). *)
+  Context (isemb_f : IsEmbedding f).
   Context `{Funext}.
-
-  (* First a lemma that the hfiber is a proposition *)
-  Lemma ishprop_hfiber (b : B) : IsHProp (hfiber f b).
+  
+  (* If f is an embedding and A has a point, then f has a retract *)
+  Definition retract_of_embedding (a0 : A) : B -> A.
   Proof.
-    apply trunc_sigma'.
-    - intro a. srapply @isset_Finite.
-    - intros [a1 p1] [a2 p2]. simpl.
-      apply contr_inhabited_hprop.
-      + srapply @isset_Finite.
-      + apply ismono_f.
-        exact (p1 @ p2^).
+    intro b.
+    destruct (detachable_image_finite f b) as [[a p] |]. 
+    - exact a.
+    - exact a0.
+  Defined.  
+
+  
+  Definition issect_embedding (a0 : A) : (retract_of_embedding a0) o f = idmap.
+  Proof.
+    cbn. apply path_arrow. intro a. unfold retract_of_embedding.
+    destruct (detachable_image_finite f (f a)) as [[a' p] |].
+    - apply (isinj_embedding f _ _ _ p).
+    - apply Empty_rec. apply n. exact (a; idpath).
   Defined.
 
-  (* Since A is a set, the himage is the sum of the hfibers *)
-  Lemma himage_hfiber : (himage f) <~> {b : B & hfiber f b}.
-  Proof.
-    unfold himage. unfold TrM.image. simpl.
-    apply equiv_functor_sigma_id. intro a.
-    apply equiv_inverse. 
-    exists tr.
-    apply isequiv_tr.
-    apply ishprop_hfiber.
-  Defined.
+  (* (* First a lemma that the hfiber is a proposition *) *)
+  (* Lemma ishprop_hfiber (b : B) : IsHProp (hfiber f b). *)
+  (* Proof. *)
+  (*   apply trunc_sigma'. *)
+  (*   - intro a. srapply @isset_Finite. *)
+  (*   - intros [a1 p1] [a2 p2]. simpl. *)
+  (*     apply contr_inhabited_hprop. *)
+  (*     + srapply @isset_Finite. *)
+  (*     + apply ismono_f. *)
+  (*       exact (p1 @ p2^). *)
+  (* Defined. *)
 
-  (* Then a lemma that the the hfiber is decidable. *)
-  Global Instance decidable_hfiber (b : B) : Decidable (hfiber f b).
-  Proof.
-    apply detachable_finite_subset.
-    - apply ishprop_hfiber.
-    - apply (finite_equiv' (himage f) himage_hfiber).
-      apply finite_image.
-  Defined.
+  (* (* Since A is a set, the himage is the sum of the hfibers *) *)
+  (* Lemma himage_hfiber : (himage f) <~> {b : B & hfiber f b}. *)
+  (* Proof. *)
+  (*   unfold himage. unfold TrM.image. simpl. *)
+  (*   apply equiv_functor_sigma_id. intro a. *)
+  (*   apply equiv_inverse.  *)
+  (*   exists tr. *)
+  (*   apply isequiv_tr. *)
+  (*   apply ishprop_hfiber. *)
+  (* Defined. *)
+
+  (* (* Then a lemma that the the hfiber is decidable. *)
+  (*    This is almost the same as decidable_image_finite *) *)
+  (* Global Instance decidable_hfiber (b : B) : Decidable (hfiber f b). *)
+  (* Proof. *)
+  (*   apply detachable_finite_subset. *)
+  (*   - apply ishprop_hfiber. *)
+  (*   - apply (finite_equiv' (himage f) himage_hfiber). *)
+  (*     apply finite_image. *)
+  (* Defined. *)
 
   (* Now we can start factorizing *)
-  Theorem split_range : {b : B & hfiber f b} + {b : B & not (hfiber f b)} <~> B.
+  Theorem split_range : B <~> {b : B & hfiber f b} + {b : B & not (hfiber f b)}.
   Proof.
-    transitivity (B*Unit).
-    transitivity {b : B & Unit}.
-    transitivity {b : B & hfiber f b + ~ hfiber f b}.
-    - apply equiv_sigma_sum'.
-    - apply equiv_functor_sigma_id.
-      intro b.
-      apply (dprop_equiv_unit _ (ishprop_hfiber b) (decidable_hfiber b)).
-    - apply equiv_sigma_prod0.
-    - apply prod_unit_r.
-  Defined.
+    srapply @equiv_adjointify.
+    { intro b.
+      destruct (detachable_image_finite f b) as [fib | nfib].
+      exact (inl (b; fib)). exact (inr (b; nfib)). }
+    { intros [[b fib] | [b nfib]] ;exact b. }
+    - intros [[b fib] | [b nfib]];
+        destruct (detachable_image_finite f b) as [fib' | nfib']; cbn.
+      + apply (ap inl). apply path_sigma_hprop. reflexivity.
+      + destruct (nfib' fib).
+      + destruct (nfib fib').
+      + apply (ap inr). apply path_sigma_hprop. reflexivity.
+    - intro b.
+      destruct (detachable_image_finite f b) as [fib | nfib]; reflexivity.      
+  Defined.    
+    (* transitivity (B*Unit). *)
+    (* transitivity {b : B & Unit}. *)
+    (* transitivity {b : B & hfiber f b + ~ hfiber f b}. *)
+    (* - apply equiv_sigma_sum'. *)
+    (* - apply equiv_functor_sigma_id. *)
+    (*   intro b. *)
+    (*   apply (dprop_equiv_unit _ (isemb_f b) (detachable_image_finite f b)). *)
+    (* - apply equiv_sigma_prod0. *)
+    (* - apply prod_unit_r. *)
+  (* Defined. *)
 
   (* Could perhaps be simplified using isequiv_fcontr *)
   Theorem equiv_A_image : A <~> {b : B & hfiber f b}.
   Proof.
-    transitivity {a : A & {b : B & f a =b}}.
-    transitivity {a : A & Unit}.
-    transitivity (A*Unit).
-    - apply equiv_inverse. apply prod_unit_r.
-    - apply equiv_inverse. apply equiv_sigma_prod0.
-    - apply equiv_functor_sigma_id.
-      intro a.
-      srapply @equiv_adjointify.
-      + intro t. exact (f a; idpath).
-      + exact (const tt).
-      + intros [b p].
-        srapply @path_sigma.
-        * exact p.
-        * transitivity (1@p).
-          apply transport_paths_r.
-          apply concat_1p.
-      + intros []. reflexivity.
-    - unfold hfiber.
-      apply equiv_sigma_symm.
+    srapply @equiv_adjointify.
+    { intro a. exists (f a). exists a. reflexivity. }
+    { intros [b [a p]]. exact a. }
+    - intros [b [a p]]. srapply @path_sigma. exact p.
+      apply isemb_f.
+    - intro a. reflexivity.
   Defined.
+    
+  (*   transitivity {a : A & {b : B & f a =b}}. *)
+  (*   transitivity {a : A & Unit}. *)
+  (*   transitivity (A*Unit). *)
+  (*   - apply equiv_inverse. apply prod_unit_r. *)
+  (*   - apply equiv_inverse. apply equiv_sigma_prod0. *)
+  (*   - apply equiv_functor_sigma_id. *)
+  (*     intro a. *)
+  (*     srapply @equiv_adjointify. *)
+  (*     + intro t. exact (f a; idpath). *)
+  (*     + exact (const tt). *)
+  (*     + intros [b p]. *)
+  (*       srapply @path_sigma. *)
+  (*       * exact p. *)
+  (*       * transitivity (1@p). *)
+  (*         apply transport_paths_r. *)
+  (*         apply concat_1p. *)
+  (*     + intros []. reflexivity. *)
+  (*   - unfold hfiber. *)
+  (*     apply equiv_sigma_symm. *)
+  (* Defined. *)
+  
 End Factorize_Monomorphism.
 
-Section Finite_Subtypes.
-  Definition Finite_Types_ (n : nat)
-    := {B : Type & (merely (B <~> Fin n))}.
-  Definition fin_to_fin (n : nat) :
-    Finite_Types_ n -> Finite_Types.
-  intros [B e].
-  exists B. exists n. exact e.
+Section Finite_Subsets.
+  (* Lemma finite_fibers_to_finite_sigma *)
+  (*       (A : Type) (a0 : A) (B : A -> Type) (finite_B0 : Finite (B a0)) *)
+        
+  (*       (connected_A : merely (forall a : A, a0 = a)) *)
+  (*       (only_basepoint_inhabited : merely (forall (a : A) (b0 : B a0) (b : B a), (a = a0))) *)
+  (* : Finite {a : A & B a}. *)
+  (* Proof.     *)
+  (*   destruct finite_B0 as [m e]. *)
+  (*   apply (Build_Finite _ m). strip_truncations. apply tr. *)
+  (*   refine (e oE _). *)
+  (*   set (iscontr_A := BuildContr A (point A) connected_A : Contr A). *)
+  (*   apply (@equiv_contr_sigma A B iscontr_A). *)
+  (* Defined.  *)
+
+  Definition Finite_Subsets (A : Finite_Types) :=
+    {B : Finite_Types & {f : B -> A & IsEmbedding f}}.
+  Definition fintype_of_subset (A : Finite_Types) : Finite_Subsets A -> Finite_Types := pr1.  
+  Global Coercion fintype_of_subset : Finite_Subsets >-> Finite_Types.
+
+  Definition path_finite_subsets {A : Finite_Types} (B1 B2 : Finite_Subsets A)
+             (e : B1 <~> B2) (h : B1.2.1 o e^-1 = B2.2.1) :
+    B1 = B2.
+  Proof.
+    srapply @path_sigma.
+    - apply path_finite_types. exact e.
+    - apply path_sigma_hprop. refine (_ @ h). destruct B1 as [B1 [f1 emb1]]. destruct B2 as [B2 [f2 emb2]]. cbn in *.
+      refine (_ @ transport_exp_finite e f1). cbn.
+      apply (ap pr1 (transport_sigma (A := Finite_Types) (B := fun B => B -> A) (C := fun B f => IsEmbedding f)
+                                     (path_sigma_hprop B1 B2 (path_universe_uncurried e)) (f1; emb1))).
   Defined.
+             
 
-  Coercion fin_to_fin : Finite_Types_ >-> Finite_Types.
-  Global Instance finite_fin_ (n : nat) (B : Finite_Types_ n) : Finite B := finite_finite_type B.
-  
-  Definition finite_subtype_card (A : Finite_Types) (n : nat) :=
-    { B : Finite_Types_ n & {f : B -> A & forall b1 b2 : B, f b1 = f b2 -> b1 = b2}}.
+  Local Definition project_to_dprop (X Y : Type) : X + Y -> DProp :=
+    fun xy => if xy then True else False.
 
-  Definition finite_subtype_is_dprop (A : Finite_Types) (n : nat):
-    finite_subtype_card A n <~> {B : A -> DProp & fcard ({a : A & B a}) = n}.
+  (* Giving a finite subset is the same as giving a map A -> DProp *)
+  Definition equiv_detachable_finite_subset {A : Finite_Types} :
+    (A -> DProp) <~> Finite_Subsets A.
   Proof.
     srapply @equiv_adjointify.
-    { intros [B [f ismono_f]].
+    { intro B.
       srapply @existT.
-      intro a.
-      exact (if (decidable_hfiber B A f a) then True else False).
+      exists {a : A & B a}. exact _.
+      cbn. exists pr1. intro a.
+      apply (trunc_equiv' (B a)).
+      apply (hfiber_fibration a B). exact _. }
+    { intros [B [f isemb_f]].
+      exact ((project_to_dprop _ _) o (split_range B A f isemb_f)). }
+    - intros [B [f isemb_f]].
+      srapply @path_finite_subsets.
+      + cbn.
+        srapply @equiv_adjointify.
+        { intros [a h].
+          destruct (detachable_image_finite f a) as [fib | nfib]; cbn in *.
+          - exact fib.1. - destruct h. }
+        { intro b. exists (f b).
+          destruct (detachable_image_finite f (f b)) as [fib | nfib]; cbn.
+          - exact tt. - apply nfib. exists b. reflexivity. }
+        * intro b. cbn.
+          destruct (detachable_image_finite f (f b)) as [fib | nfib]. destruct fib as [b' p]; cbn.
+          { apply (isinj_embedding f isemb_f). exact p. }
+          apply Empty_rec. apply nfib. exists b. reflexivity.
+        * cbn. intros [a h].
+          apply path_sigma_hprop. cbn.          
+          destruct (detachable_image_finite f a) as [fib | nfib]; cbn in *.
+          { destruct fib as [a' p]. cbn. exact p. } destruct h.
+      + reflexivity.
+    - intro B.
+      apply path_arrow. intro a. cbn.
+      destruct (detachable_image_finite pr1 a) as [fib | nfib]; cbn.
+      + destruct fib as [[a' b] p].
+        apply path_dprop. apply path_universe_uncurried. cbn.
+        apply equiv_inverse.
+        srapply @equiv_contr_unit. apply contr_inhabited_hprop. exact _. exact (transport B p b).
+      + apply path_dprop. apply path_universe_uncurried. apply equiv_inverse.
+        apply (if_not_hprop_then_equiv_Empty). exact _. intro b. apply nfib.
+        apply (hfiber_fibration a B b).
+  Defined.
+
+  (* Then we can show that the type of finite subsets is finite *)
+  Global Instance finite_finite_subsets {A : Finite_Types} : Finite (Finite_Subsets A).
+  Proof.
+    apply (finite_equiv' (A -> DProp) equiv_detachable_finite_subset).
+    apply finite_forall. exact _. intro a. exact _.
+  Qed.  
+  
+  Definition Finite_Types_component (n : nat)
+    := {B : Type & (merely (B <~> Fin n))}.
+  Definition fin_to_fin (n : nat) :
+    Finite_Types_component n -> Finite_Types.
+    intros [B e].
+    exists B. exists n. exact e.
+  Defined.
+
+  Coercion fin_to_fin : Finite_Types_component >-> Finite_Types.
+  Global Instance finite_fin_ (n : nat) (B : Finite_Types_component n) : Finite B := finite_finite_type B.
+
+  Definition fcard_is_ (n : nat) (B : Finite_Types_component n)
+    : fcard B = n := idpath.
+
+  Definition decompose_finite_types :
+    Finite_Types <~> {n : nat & Finite_Types_component n}.
+  Proof.
+    srapply @equiv_adjointify.
+    { intros [A [n e]]. exact (n; (A; e)). }
+    { intros [n [A e]]. exists A. exact (Build_Finite A n e). }
+    - intros [n [A e]]. reflexivity.
+    - intros [A [n e]]. reflexivity.
+  Defined.
+
+  Definition component_is_subtype (n : nat):
+    Finite_Types_component n <~> {B : Finite_Types & fcard B = n}.
+  Proof.
+    srapply @equiv_adjointify.
+    { intros [B e]. exists (B; Build_Finite B n e). reflexivity. }
+    { intros [[B [m e]] p]. destruct p. cbn. exact (B;e). }
+    - intros [[B [m e]] p]. destruct p. reflexivity.
+    - intros [B e]. reflexivity.
+  Defined.  
+  
+  Definition finite_subset_component (A : Finite_Types) (n : nat) :=
+    { B : Finite_Types_component n & {f : B -> A & IsEmbedding f}}.
+  Definition subset_component_to_component (A : Finite_Types) (n : nat)
+    : finite_subset_component A n -> Finite_Types_component n := pr1.
+  Coercion subset_component_to_component : finite_subset_component >-> Finite_Types_component.
+
+  Definition subset_component_to_subset (A : Finite_Types) (n : nat)
+    : finite_subset_component A n -> Finite_Subsets A.
+  Proof.
+    intros [B e]. exists B. exact e.
+  Defined.
+  Coercion subset_component_to_subset : finite_subset_component >-> Finite_Subsets.    
+  
+
+  Definition decompose_finite_subsets (A : Finite_Types) :
+    Finite_Subsets A <~> {n : nat & finite_subset_component A n}.
+  Proof.
+    unfold Finite_Subsets. unfold finite_subset_component.
+    transitivity {B : {n : nat & Finite_Types_component n} & {f : B.2 -> A & IsEmbedding f}}.
+    - srapply @equiv_functor_sigma'. exact decompose_finite_types. cbn.
+      intro B. reflexivity.
+    - apply equiv_inverse. srapply @equiv_sigma_assoc.
+  Defined.
+
+  Definition subset_component_is_subtype (A : Finite_Types) (n : nat) :
+    finite_subset_component A n <~> {B : Finite_Subsets A & fcard B.1 = n}.
+  Proof.
+    unfold finite_subset_component. unfold Finite_Subsets.
+    transitivity {B : {B : Finite_Types & fcard B = n} & {f : B.1 -> A & IsEmbedding f}}.
+    { srapply @equiv_functor_sigma'. apply component_is_subtype.
+      intro B. reflexivity. }
+    (* Easier to do directly than using lemmas *)
+    srapply @equiv_adjointify.
+    { intros [[B p] h]. exact ((B; h); p). }
+    { intros [[B h] p]. exact ((B; p); h). }
+    - intros [[B h] p]. reflexivity.
+    - intros [[B p] h]. reflexivity.
+  Defined.
+
+  Definition equiv_detachable_finite_subset_component (A : Finite_Types) (n : nat):
+    finite_subset_component A n <~> {B : A -> DProp & fcard ({a : A & B a}) = n}.
+  Proof.
+    refine (_ oE subset_component_is_subtype A n). apply equiv_inverse.
+    srapply @equiv_functor_sigma'. apply equiv_detachable_finite_subset.
+    intro B. hnf. reflexivity.
+  Defined.
+  
+End Finite_Subsets.
+      
 
 
 

@@ -30,10 +30,8 @@ Coercion type_of_over : Type_Over >-> Sortclass.
 Arguments Build_Type_Over {X} A f : rename.
 Arguments type_of_over {X} A : rename.
 Arguments arrow_of_over {X} A x : rename.
-Context {X : Type}.
 
-
-Definition issig_type_over {X : Type} :
+Definition issig_type_over {X : Type}:
   Type_Over X <~> {Y : Type & Y -> X}.
 Proof.
   srapply @equiv_adjointify.
@@ -43,7 +41,7 @@ Proof.
   - intros [A f]. reflexivity.
 Defined.
 
-Definition path_type_over (A B : Type_Over X)
+Definition path_type_over {X : Type} (A B : Type_Over X)
            (e : A <~> B) (p : arrow_of_over A = (arrow_of_over B) o e)
   : A = B.
 Proof.
@@ -79,28 +77,28 @@ Defined.
 (* Defined. *)
   
 
-Definition prod_over : (Type_Over X) -> (Type_Over X) -> Type_Over X.
+Definition prod_over {X : Type} : (Type_Over X) -> (Type_Over X) -> Type_Over X.
 Proof.
   intros [A f] [B g].
   apply (Build_Type_Over { ab : A*B & f (fst ab) = g (snd ab)}).
   intros [[a b] p]. exact (f a).
 Defined.
 
-Arguments prod_over !A !B.
+Arguments prod_over X !A !B.
 
 
 
-Definition fst_over (A B : Type_Over X)
+Definition fst_over {X : Type} (A B : Type_Over X)
   : prod_over A B -> A := fst o pr1.
 
-Arguments fst_over !A !B x. (* : simpl never. *)
+Arguments fst_over X !A !B x. (* : simpl never. *)
 
-Definition snd_over (A B : Type_Over X)
+Definition snd_over {X : Type} (A B : Type_Over X)
   : prod_over A B -> B := snd o pr1.
 
-Arguments snd_over !A !B x. (* : simpl never. *)
+Arguments snd_over X !A !B x. (* : simpl never. *)
 
-Definition path_prod_over (A B : Type_Over X) (a1 a2 : A) (b1 b2 : B)
+Definition path_prod_over {X : Type} (A B : Type_Over X) (a1 a2 : A) (b1 b2 : B)
            (p1 : arrow_of_over A a1 = arrow_of_over B b1)
            (p2 : arrow_of_over A a2 = arrow_of_over B b2)
            (qa : a1 = a2) (qb : b1 = b2)
@@ -119,13 +117,16 @@ Proof.
   refine (transport_paths_Fr qb p1 @ _). exact comm.
 Defined.
 
+Definition terminal_obj_type_over {X : Type} : Type_Over X
+  := Build_Type_Over X idmap.
 
-Definition sum_over : (Type_Over X) -> (Type_Over X) -> Type_Over X.
+
+Definition sum_over {X : Type} : (Type_Over X) -> (Type_Over X) -> Type_Over X.
 Proof.
   intros [A f] [B g]. exists (A + B). intros [a | b]. exact (f a). exact (g b).
 Defined.
 
-Definition hunion : (Type_Over X) -> (Type_Over X) -> Type_Over X.
+Definition hunion {X : Type} : (Type_Over X) -> (Type_Over X) -> Type_Over X.
 Proof.
   intros A B.
   exists (pushout (fst_over A B) (snd_over A B)).
@@ -135,15 +136,15 @@ Proof.
     intros [[a b] p]. cbn.
     exact p.
 Defined.
-Arguments hunion !A !B.
+Arguments hunion X !A !B.
 
-Definition pu (A B : Type_Over X) (a : A) (b : B) (p : arrow_of_over A a = arrow_of_over B b) :
+Definition pu {X : Type} (A B : Type_Over X) (a : A) (b : B) (p : arrow_of_over A a = arrow_of_over B b) :
                   push (inl a) = push (inr b) :> hunion A B.
 Proof.
   refine (pp ((a,b);p)).
 Defined.
 
-Definition hunion_ind (A B : Type_Over X) (P : hunion A B -> Type)
+Definition hunion_ind {X : Type} (A B : Type_Over X) (P : hunion A B -> Type)
            (push' : forall ab : A + B, P (push ab)) :
 (forall (a : A) (b : B) (p : arrow_of_over A a = arrow_of_over B b),
     transport P (pu A B a b p) (push' (inl a)) = push' (inr b)) ->
@@ -156,7 +157,7 @@ Proof.
   unfold pu in p'. apply p'.
 Defined.
 
-Definition hunion_ind_beta_pu (A B : Type_Over X)
+Definition hunion_ind_beta_pu {X : Type} (A B : Type_Over X)
            (P : hunion A B -> Type)
            (push' : forall ab : A + B, P (push ab))
            (pu' : (forall (a : A) (b : B) (p : arrow_of_over A a = arrow_of_over B b),
@@ -177,14 +178,14 @@ Arguments pu : simpl never.
 Arguments hunion_ind : simpl never.
 Arguments hunion_ind_beta_pu : simpl never.
 
-Definition hunion_rec (A B : Type_Over X) (P : Type)
+Definition hunion_rec {X : Type} (A B : Type_Over X) (P : Type)
            (push' : A+B -> P)
            (pu' : forall (a : A) (b : B) (p : arrow_of_over A a = arrow_of_over B b),
                push' (inl a) = push' (inr b))
   : hunion A B -> P :=
   hunion_ind A B (fun _ => P) push' (fun a b p => transport_const _ _ @ pu' a b p).
 
-Definition hunion_rec_beta_pu (A B : Type_Over X) (P : Type)
+Definition hunion_rec_beta_pu {X : Type} (A B : Type_Over X) (P : Type)
            (push' : A+B -> P)
            (pu' : forall (a : A) (b : B) (p : arrow_of_over A a = arrow_of_over B b),
                push' (inl a) = push' (inr b))
@@ -193,11 +194,11 @@ Definition hunion_rec_beta_pu (A B : Type_Over X) (P : Type)
 Proof.
   unfold hunion_rec.
   eapply (cancelL (transport_const (pu A B a b p) _)).
-  refine ((apD_const (@hunion_ind A B (fun _ => P) push' _) (pu A B a b p))^ @ _).
+  refine ((apD_const (@hunion_ind X A B (fun _ => P) push' _) (pu A B a b p))^ @ _).
   refine (hunion_ind_beta_pu A B (fun _ => P) _ _ _ _ _).
 Defined.  
 
-Definition assoc_prod_over : forall A B C : Type_Over X,
+Definition assoc_prod_over {X : Type} : forall A B C : Type_Over X,
     prod_over A (prod_over B C) = prod_over (prod_over A B) C.
 Proof.
   intros [A f] [B g] [C h].
@@ -233,7 +234,7 @@ Proof.
   - cbn. reflexivity.
 Defined.
 
-Definition distribute_over_disjoint : forall A B C : Type_Over X,
+Definition distribute_over_disjoint {X : Type} : forall A B C : Type_Over X,
     prod_over (sum_over A B) C <~> sum_over (prod_over A C) (prod_over B C).
 Proof.
   intros [A f] [B g] [C h].
@@ -248,7 +249,7 @@ Proof.
   - intros [[[a | b] c] p]; reflexivity.
 Defined.
 
-Definition distribute_over_disjoint_commute (A B C : Type_Over X) :
+Definition distribute_over_disjoint_commute {X : Type} (A B C : Type_Over X) :
   arrow_of_over (prod_over (sum_over A B) C) =
   arrow_of_over (sum_over (prod_over A C) (prod_over B C)) o (distribute_over_disjoint A B C).
 Proof.
@@ -257,13 +258,13 @@ Proof.
   intros [[[a | b] c] p]; reflexivity.
 Defined.
 
-Definition sigma_over (A : Type) (B : A -> Type_Over X) : Type_Over X.
+Definition sigma_over {X : Type} (A : Type) (B : A -> Type_Over X) : Type_Over X.
 Proof.
   apply (Build_Type_Over {a : A & B a}).
   intros [a b]. exact (arrow_of_over (B a) b).
 Defined.
 
-Definition distribute_over_sigma (A : Type_Over X) (B : Type) (C : B -> Type_Over X) :
+Definition distribute_over_sigma {X : Type} (A : Type_Over X) (B : Type) (C : B -> Type_Over X) :
   prod_over A (sigma_over B C) = sigma_over B (fun b => prod_over A (C b)).
 Proof.
   srapply @path_type_over.
@@ -278,9 +279,9 @@ Proof.
     intros [[a [b c]] p]. reflexivity.
 Defined.
 
-Definition injective_over (A : Type_Over X) := forall {a1 a2 : A}, (arrow_of_over A a1) = (arrow_of_over A a2) -> a1 = a2.
+Definition injective_over {X : Type} (A : Type_Over X) := forall {a1 a2 : A}, (arrow_of_over A a1) = (arrow_of_over A a2) -> a1 = a2.
 
-Definition hunion_preserve_injection (A B : Type_Over X) (inj_A : injective_over A) (inj_B : injective_over B)
+Definition hunion_preserve_injection {X : Type} (A B : Type_Over X) (inj_A : injective_over A) (inj_B : injective_over B)
            : injective_over (hunion A B).
 Proof.
   unfold injective_over. intros ab1 ab2. revert ab2.
@@ -306,11 +307,11 @@ Proof.
 Abort.
   
 
-Definition has_section (A : Type_Over X) :=
+Definition has_section {X : Type} (A : Type_Over X) :=
   {s : X -> A & s o (arrow_of_over A) = idmap}.
 
 (* Do over disjoint sum first? *)
-Definition distribute_over : forall (A B C : Type_Over X)
+Definition distribute_over {X : Type} : forall (A B C : Type_Over X)
                                     (has_section_A : has_section A),
     prod_over A (hunion B C) = hunion (prod_over A B) (prod_over A C).
 Proof.
@@ -362,7 +363,7 @@ Proof.
           (transport_const
              (pu (prod_over A B) (prod_over A C) ((a1, b); p) ((a2, c); q) r)
              ((a1, push (inl b)); p) @ _).
-        srapply (@path_prod_over A (hunion B C)).
+        srapply (@path_prod_over X A (hunion B C)).
         + destruct A as [A f]. destruct B as [B g]. destruct C as [C h]. 
           destruct has_section_A as [s issect]. cbn in *.
           transitivity (s (f a2)). transitivity (s (f a1)).

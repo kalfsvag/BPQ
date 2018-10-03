@@ -69,3 +69,6 @@ Proof.
     + apply inl. apply inr_ne_inl.
   - apply inr. apply (n_neq_bp_Sphere (point (pSphere n))).
 Defined.
+
+(* Global Instance ispointed_arrow (A : Type) (B : pType) : IsPointed (A -> B) := const (point B *)
+       

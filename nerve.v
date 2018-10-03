@@ -1,6 +1,6 @@
 Require Import HoTT.
 Require Import UnivalenceAxiom.
-Load finite.
+Require Import finite_lemmas.
 
 
 Require Import Functor Category.
@@ -50,22 +50,49 @@ Definition issig_ca {C : PreCategory} {n : nat} {c0 : C} :
 (*   - exact (composable_arrows C n c0). *)
 (* Defined. *)
 
-(* The face maps when i>0 are defined on composable_arrows *)
-Fixpoint ca_face_Si {C : PreCategory} {n : nat} {c0 : C} (i : pFin n) :
-  composable_arrows C n.+1 c0 -> composable_arrows C n c0.
-Proof.
-  (* Do a trick since [destruct s] doesn't work here *)
-  intro s'. destruct (issig_ca s') as [c1 [f0 s]]. clear s'.
-  destruct i.
-  (* i=1 *)
-  - destruct s. exact (nil c0). exact (f0 o f1 :: s).
-  (* i+2 *)
-  - exact (f0 :: ca_face_Si C n c1 i s). (* d_i+2 (c0<-c1<-...) = c0 <- d_i+1 (c1<-...) *)
-Defined.
+(* (* The face maps when i>0 are defined on composable_arrows *) *)
+(* Fixpoint ca_face_Si {C : PreCategory} {n : nat} {c0 : C} (i : pFin n) : *)
+(*   composable_arrows C n.+1 c0 -> composable_arrows C n c0. *)
+(* Proof. *)
+(*   (* Do a trick since [destruct s] doesn't work here *) *)
+(*   intro s'. destruct (issig_ca s') as [c1 [f0 s]]. clear s'. *)
+(*   destruct i as [i i_lt_n]. *)
+(*   destruct i. *)
+(*   (* i=1 *) *)
+(*   - destruct s. exact (nil c0). exact (f0 o f1 :: s). *)
+(*   (* (* i+2 *) *) *)
+(*   - exact (f0 :: ca_face_Si C n c1 (i;_) s). (* d_i+2 (c0<-c1<-...) = c0 <- d_i+1 (c1<-...) *) *)
+(* Defined. *)
 
 (* All composable strings of length n: *)
 Definition Nerve (C : PreCategory) (n : nat) :=
   {c0 : C & composable_arrows C n c0}.
+
+Fixpoint nerve_face {C : PreCategory} (n : nat) (i : pFin n) :
+  Nerve C n -> match n with
+                 |O => Unit
+                 |S n => Nerve C n
+               end.
+Proof.
+  intros [c0 s].
+  destruct s. exact tt.
+  destruct i as [i i_lt_n].
+  destruct i.
+  - exact (c1; s).                            (* d_0 is forgetting the first *)
+  - destruct s.                               (* d_(i+1) is composing f_i and f_i+1 *)
+    exact (c1; nil c1).
+    destruct i.
+    exact (c0; (f0 o f1 :: s)).
+    
+    exists c0. apply (cons f0).
+    cut (Nerve C n).  intro nv. exact (pr2 nv).
+    
+    apply (nerve_face C (n.+1)). exists i. cbn in i_lt_n.
+    apply (leq_trans i n n.+2). apply i_lt_n. apply (leq_trans n n.+1 n.+2); apply leq_succ.
+    
+    
+  
+  
 
 (* Definition ca_to_nerve {C : PreCategory} {n : nat} {c0 : C} : composable_arrows C n c0 -> Nerve C n. *)
 (* Proof. *)
@@ -92,9 +119,9 @@ Defined.
 Definition nerve_face {C : PreCategory} {n : nat} (i : pFin n) :
   Nerve C n -> Nerve_pred C n.
 Proof.
-  intros [c0 s]. destruct i.
+  intros [c0 s].
   {destruct s. exact tt. exact (_;s). } (* i=0 *)
-  exists c0. exact (ca_face_Si i s).    (* i>0 *)
+  (* exists c0. exact (ca_face_Si i s).    (* i>0 *) *)
 Defined.
 
 Open Scope function_scope.

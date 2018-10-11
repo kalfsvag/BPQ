@@ -236,9 +236,9 @@ Section Factorize_Monomorphism.
   Defined.  
 
   
-  Definition issect_embedding (a0 : A) : (retract_of_embedding a0) o f = idmap.
+  Definition issect_embedding (a0 : A) : (retract_of_embedding a0) o f == idmap.
   Proof.
-    cbn. apply path_arrow. intro a. unfold retract_of_embedding.
+    cbn. intro a. unfold retract_of_embedding.
     destruct (detachable_image_finite f (f a)) as [[a' p] |].
     - apply (isinj_embedding f _ _ _ p).
     - apply Empty_rec. apply n. exact (a; idpath).

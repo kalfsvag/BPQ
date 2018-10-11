@@ -16,10 +16,15 @@ Section Functor_prod.
   Definition functor_prod_fin {A B : Finite_Types} {X : A -> pType} (f : embedding B A) :
     (forall b : B, X (f b)) -> (forall a : A, X a).
   Proof.
-    intro x. intro a.
+    (* intro x. *)
+    (* apply (equiv_ind (split_range _ _ f _)^-1 _). *)
+    (* intros [[a [b []]] | [a n]]; cbn. *)
+    (* - exact (x b). *)
+    (* - exact (point ( X a)). *)
     destruct f as [f emb].
+    intros x a.
     destruct (detachable_image_finite f a) as [[b p] | nhitA].
-    - exact (transport X p (x b)). 
+    - exact (transport X p (x b)).
     - exact (point (X a)).
   Defined.
   
@@ -33,32 +38,23 @@ Section Functor_prod.
   (*   - exact (point X). *)
   (* Defined. *)
 
+  
+
   Definition issect_functor_prod_fin {A B : Finite_Types} {X : A -> pType} (f : embedding B A) (x : forall b : B, X (f b)) :
     forall b : B, (functor_prod_fin f x (f b) = x b).
   Proof.
-    intro b. unfold functor_prod_fin. destruct f as [f emb]. cbn.    
+    intro b.
+    unfold functor_prod_fin. destruct f as [f emb]. cbn.    
     destruct (detachable_image_finite f (f b)) as [[b' p] | ].
-    -  
-
-      refine (_ @ apD x (isinj_embedding f emb b' b p)). simpl.
-      refine (_ @ (transport_compose X f (isinj_embedding f emb b' b p) (x b'))^).
-      cut (p = (ap f (isinj_embedding f emb b' b p))). intro q. destruct q. reflexivity.
-      unfold isinj_embedding.
-      refine (_ @ ap_compose pr1 f (path_ishprop (b'; p) (b; 1))).
-      unfold path_ishprop.
-      transitivity (ap pr1 (path_sigma (fun b' : B => f b' = f b)
-      
-      
-      
-      destruct (isinj_embedding f emb b' b p).
-
-      apply (ap x).
-      apply (isinj_embedding f emb b' b p).
+    - set (g := retract_of_embedding B A f _ b).
+      set (H := (issect_embedding B A f _ b) : g o f == idmap).
+      cut ({q : b' = b & ap f q = p}).
+      + intros [q h]. destruct h. destruct q. reflexivity.
+      + exists ((H b')^ @ ap g p @ (H b)).
+        apply (isset_Finite A). exact _.
     - apply Empty_rec. apply n. exists b. reflexivity.
   Defined.
-End Exponentials.
-
-
+End Functor_prod.
 
 Definition base_to_sum (A : Type) (X : A -> pType) : A -> {a : A & X a} := fun a => (a; point (X a)).
 
@@ -67,10 +63,10 @@ Definition Wedge {A : Type} (X : A -> pType) : Type
   := pushout (const tt) (base_to_sum A X).
 
 (* uncurry constructors *)
-Definition pt {A : Type} {X : A -> pType} : Wedge X := push_fl tt.
+Definition pt {A : Type} {X : A -> pType} : Wedge X := push_fl _ _ tt.
 Definition wsummand {A : Type} {X : A -> pType} (a : A)
   : X a -> Wedge X
-  := fun x => push_fr (a;x).
+  := fun x => push_fr _ _ (a;x).
 Definition wp {A : Type} {X : A -> pType} (a : A)
   : pt = (wsummand a (point (X a)))
   := pp (f:= const tt) (g := base_to_sum A X) a.
@@ -99,13 +95,19 @@ Proof.
   exact wp'.
 Defined.
 
+Definition functor_wedge_summand {A : Type} (X : A -> pType) (B : Type) (f : B -> A) :
+  forall b : B, X (f b) -> {a : A & X a}.
+Proof.
+  intros b x. exact (f b; x).
+Defined.  
+
 Definition functor_wedge {A : Type} (X : A -> pType) (B : Type) (f : B -> A) :
            Wedge (fun b : B => X (f b)) -> Wedge X.
 Proof.
   srapply @functor_pushout. exact f. exact idmap.
-  cbn. intros [b x]. exact (f b; x).
-  intro b. reflexivity.
-  simpl. intro b. reflexivity.
+  - simpl. intros [b x]. apply (functor_wedge_summand X B f b x).
+  - intro b. reflexivity.
+  - intro b. reflexivity.
 Defined.
 
 Definition functor_wedge_compose {A : Type} (X : A -> pType) (B : Type) (f : B -> A) (C : Type) (g : C -> B) :
@@ -115,22 +117,198 @@ Proof.
   refine (_ @ functor_pushout_compose _ _ _ _ _ _ _ _ _ _ x). reflexivity.
 Defined.
 
+Definition wedge_eta_homot {A : Type} {X : A -> pType} {P : Wedge X -> Type}
+           (f : forall x : Wedge X, P x) :
+  f == wedge_ind X P (f pt) (fun (a : A) (x : (X a)) => f (wsummand a x)) (fun a : A => apD f (wp a)).
+Proof.
+  srapply @wedge_ind; try reflexivity.
+  - intro a.
+    refine (transport_paths_FlFr_D
+              (f := f)
+              (g := wedge_ind X P (f pt) (fun (a0 : A) (x0 : X a0) => f (wsummand a0 x0)) (fun a0 : A => apD f (wp a0)))
+              (wp a) idpath @ _).    
+    simpl. apply moveR_Mp.
+    refine (pushout_ind_beta_pp P _ _ _ @ _).
+    cut (forall q : transport P (wp a) (f pt) = f (wsummand a (point (X a))), q = ((q^@1)^@1)).
+    intro H. apply H.
+    intros []. reflexivity.
+Defined.
+
+Definition wedge_rec_eta_homot {A : Type} {X : A -> pType} {P : Type}
+           (f : Wedge X -> P)
+  : f == wedge_rec X P (f pt) (fun a => f o (wsummand a)) (fun a => ap f (wp a)).
+Proof.
+  unfold pointwise_paths.
+  srapply @wedge_ind; try reflexivity.
+  intro a.
+  refine (transport_paths_FlFr
+            (f := f)            
+            (wp a) idpath @ _).
+  apply moveR_Mp. refine (pushout_rec_beta_pp P _ _ _ @ _).
+  cut (forall q : f pt = f (wsummand a (point (X a))), q = ((q^ @ 1)^ @ 1)).
+  intro H. apply H. intros []. reflexivity.
+Defined.
+
+Definition path_wedge_arrow {A : Type} (X : A -> pType) (Y : Type) (f g : Wedge X -> Y)
+           (eq_pt : f pt = g pt)
+           (eq_summand : forall (a : A) (x : X a), f (wsummand a x) = g (wsummand a x))
+           (eq_wp : forall a : A,
+              eq_pt^ @ (ap f (wp a)) @ (eq_summand a (point (X a))) = ap g (wp a))
+  : f = g.
+Proof.
+  apply path_forall. srapply @wedge_ind.
+  - exact eq_pt.
+  - exact eq_summand.
+  - intro a.
+    refine (transport_paths_FlFr (wp a) eq_pt @ _).
+    refine (concat_pp_p _ _ _ @ _). apply moveR_Vp. apply moveR_Mp. apply inverse.
+    refine (concat_p_pp _ _ _ @ _). exact (eq_wp a).
+Defined.
+
+Definition wedge_to_prod_summand {A : Finite_Types} (X : A -> pType)
+           : forall (a : A), (X a) -> forall a : A, X a.
+Proof.
+  intros a x.
+  intro a'.
+  destruct (decidablepaths_finite A a a').
+  + destruct p. exact x.
+  + exact (point (X a')).
+Defined.
+
+Definition wedge_to_prod_wp  {A : Finite_Types} (X : A -> pType) (a : A) :
+  ((fun a' : A => point (X a')) = wedge_to_prod_summand X a (point (X a))).
+Proof.
+  apply path_forall. intro a'.
+  unfold wedge_to_prod_summand.
+  destruct (decidablepaths_finite A a a').
+  + cbn. destruct p. reflexivity.
+  + reflexivity.
+Defined.
+  
+  
 Definition wedge_to_prod {A : Finite_Types} (X : A -> pType)
   : Wedge X -> (forall a : A, X a).
 Proof.
   srapply @wedge_rec.
   - intro a. exact (point (X a)).
-  - intros a x. intro a'.
-    destruct (decidablepaths_finite A a a').
-    + destruct p. exact x.
-    + exact (point (X a')).
-  - intro a. apply path_forall. intro a'.
-    destruct (decidablepaths_finite A a a').
-    + cbn. destruct p. reflexivity.
-    + reflexivity.
+  - apply wedge_to_prod_summand.
+  - apply wedge_to_prod_wp.
 Defined.
 
-Definition natural_wedge_to_prod {A : Finite_Types} (X : A -> pType)
+(* Wedge_to_prod is natural *)
+Definition natural_wedge_to_prod_summand {A : Finite_Types} (X : A -> pType) (B : Finite_Types) (f : embedding B A) :
+    forall (b : B) (x : X (f b)),
+      wedge_to_prod_summand (A := A) X (f b) x = functor_prod_fin f (wedge_to_prod_summand (X o f) b x).
+Proof.
+  intros b x. unfold wedge_to_prod_summand. unfold functor_prod_fin.
+  destruct f as [f emb]. simpl in *. apply path_forall. intro a.
+  destruct (detachable_image_finite f a) as [[b' p']|];
+  destruct (decidablepaths_finite A (f b) a) as [p|];
+  try destruct (decidablepaths_finite B b b') as [q|].
+  - destruct q.
+  cut (p = p').
+  { intros []. reflexivity. }
+  apply (isset_Finite A). exact _.
+  - destruct p'. apply Empty_rec. apply n. apply (isinj_embedding f). exact _. exact p.
+  - unfold transport. destruct p'. destruct q. apply Empty_rec. apply n. reflexivity.
+  - destruct p'. unfold transport. reflexivity.
+  - destruct p. apply Empty_rec. apply n.
+    exact (b; idpath).
+  - reflexivity.
+Defined.
+
+Definition natural_wedge_to_prod {A : Finite_Types} (X : A -> pType) (B : Finite_Types) (f : embedding B A)
+  : wedge_to_prod X o (functor_wedge X B f) = (functor_prod_fin f) o (wedge_to_prod (fun b : B => X (f b))).
+Proof.
+  srapply @path_wedge_arrow.
+  - apply path_forall. intro a. simpl.
+    destruct f as [f emb].
+    unfold functor_prod_fin.
+    destruct
+      (detachable_image_finite f a) as [[b p]|]. destruct p. reflexivity. reflexivity.
+  - exact (natural_wedge_to_prod_summand X B f).
+  - intro b. destruct f as [f emb]. simpl.
+    
+    
+    
+  
+  apply path_arrow.
+  (* refine ((wedge_rec_eta_homot ((wedge_to_prod X) o (functor_wedge X B f)) x) *)
+  (*           @ _ @ *)
+  (*         (wedge_rec_eta_homot ((functor_prod_fin f) o (wedge_to_prod (fun b : B => X (f b)))) x)^). *)
+  (* simpl. *)
+  
+  
+  (* -  *)
+  
+  srapply @wedge_ind.
+  - apply path_forall. intro a. simpl.
+    destruct f as [f emb].
+    unfold functor_prod_fin.
+    destruct
+      (detachable_image_finite f a) as [[b p]|]. destruct p. reflexivity. reflexivity.
+  - exact (natural_wedge_to_prod_summand X B f).
+  - simpl. intro b.
+    refine (transport_paths_FlFr (wp b) _ @ _). destruct f as [f emb]. simpl.
+    cut (ap (fun x : Wedge (fun b : B => X (f b)) => wedge_to_prod X (functor_wedge X B f x)) (wp a)
+         = wedge_to_prod_wp X 
+    
+    
+    
+    
+    
+    destruct (detachable_image_finite f a) as [[b' p']|].
+    destruct (decidablepaths_finite A (f b) a) as [p|].
+    destruct (decidablepaths_finite B b b') as [q|].
+    
+
+    
+    destruct p.
+    
+
+    destruct p. destruct q.
+
+    
+
+    
+    change (functor_wedge X B f (wsummand b x)) with (wsummand 
+    apply path_forall. intro a. 
+    (* destruct (decidablepaths_finite A (f b) a) as [[]|]. *) simpl in x.
+
+
+    rewrite transport_
+
+    reflexivity. reflexivity.
+    destruct (decidablepaths_finite B b a').
+    + 
+    
+
+    unfold wedge_to_prod. unfold functor_prod_fin. simpl.
+
+  intro x.
+  refine ((pushout_rec_eta_homot ((wedge_to_prod X) o (functor_wedge X B f)) x)
+            @ _ @
+          (pushout_rec_eta_homot ((functor_prod_fin f) o (wedge_to_prod (fun b : B => X (f b)))) x)^).
+  simpl.
+  revert x.
+  srapply @wedge_ind.
+  - simpl. apply path_forall. intro a. unfold functor_prod_fin.
+
+    destruct
+      (detachable_image_finite f a) as [[b p]|]. destruct p. reflexivity. reflexivity.
+  - intros a x. simpl. unfold functor_prod_fin.
+    
+    
+
+  
+  
+  
+  apply (srapply @path_pushout_rec'.).
+  
+  cbn.
+  
+  
+  
 
 
 (* The set {1,...,n} *)

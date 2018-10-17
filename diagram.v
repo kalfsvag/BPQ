@@ -78,18 +78,16 @@ Section Directed_Diagram.
   Defined.
 
   Definition chain k := (pr1 (chain' k)).
-  Definition c_source {k} : chain k -> Type := (pr2 (chain' k)).
+  Definition c_source {k} := (pr2 (chain' k)).
 
   Definition chain_to_dia' (k : nat) :
     {e : chain k <~> dDiagram k &
          (forall c : chain k,
              c_source c <~> Ind k (e c))}.
   Proof.
-    induction k.
+    induction k. simpl.
     exists (equiv_idmap). simpl.
-    intro X0. 
-    change (c_source X0) with X0.  change (Ind 0 X0) with X0. reflexivity.
-
+    intro X0. reflexivity.
 
     change (chain k.+1) with {c : chain k & {S2 : Type & S2 -> c_source c}}.
     change (dDiagram k.+1) with {X : dDiagram k & Ind k X -> Type}.
@@ -117,12 +115,10 @@ Section Directed_Diagram.
     - simpl.
       intros [c [S2 f]]. unfold c_source. simpl.
       unfold functor_sigma. simpl.
-      transitivity {u : Ind k (e1 c) & hfiber (fun x0 : S2 => (e2 c) (f x0)) u}.
-      + refine (_ oE equiv_fibration_replacement f).
-        apply (equiv_functor_sigma' (e2 c)).
-        intro x.
-        apply hfiber_compose_equiv.
-      + reflexivity.
+      refine (_ oE equiv_fibration_replacement f).
+      apply (equiv_functor_sigma' (e2 c)).
+      intro x.
+      apply hfiber_compose_equiv.
   Defined.
 
   Definition chain_to_dia (k : nat) : chain k <~> dDiagram k
@@ -132,7 +128,7 @@ End Directed_Diagram.
 
 
 Section Cubical_Diagram.
-  Local Notation P := (fun k A => finite_subset_component A k).
+  Local Notation P k A := (finite_subset_component A k).
 
   Definition compose_embedding {X Y Z : Type} (f : X -> Y) (g : Y -> Z)
     : IsEmbedding f -> IsEmbedding g -> IsEmbedding (g o f).
@@ -142,30 +138,93 @@ Section Cubical_Diagram.
   Qed.
     
 
-  Definition include_subset {A : Finite_Types} {k : nat} {I : Finite_Subsets A} :
-    P k I -> P k A.
+  Definition include_subset {A : Finite_Types} {k : nat} {B : Finite_Subsets A} :
+    P k B -> P k A.
   Proof.
     unfold finite_subset_component in *.
-    destruct I as [I [alpha emb_alpha]].
-    intros [B [f emb_f]].
-    exists B. exists (alpha o f). apply (compose_embedding f alpha emb_f emb_alpha).
+    destruct B as [B [a emb_a]].
+    intros [C [b emb_b]].
+    exists C. exists (a o b). apply (compose_embedding b a emb_b emb_a).
   Defined.
 
-  Definition Cube_Diagram' (n : nat) (A : Finite_Types_component n) (k : nat) :
+  Variable n : nat.
+  Variable A : Finite_Types_component n.
+  (* Perhaps unnecessary to fix A and work with subsets, but I believe it will come in handy later. . . *)
+  Definition Cube_Diagram' (k : nat) :
     {D : Finite_Subsets A -> Type &
-                             forall (I : Finite_Subsets A),
-                               D I -> (P (k.+1) I) -> Type}.
+                             forall (B : Finite_Subsets A),
+                               D B -> (P (k.+1) B) -> Type}.
   Proof.
     induction k.
     - exists (fun _ => Type).
-      intros I X0 I1. exact X0.
+      intros B X0 I1. exact X0.
     - destruct IHk as [Dk Indk].
-      exists (fun I => {X : Dk I & forall (I1 : P (k.+1) I), Indk I X I1 -> Type}).
-      intros I [X X1] I2.
-
-      (* Redo definitions of finite sets and finite subsets. . . *)
-      exact {I1 : P (k.+1) I2 & {x : Indk I X (include_subset (I := I2) I1) & X1 (include_subset (I := I2) I1) x}}.
+      exists (fun B => {X : Dk B & forall (I1 : P (k.+1) B), Indk B X I1 -> Type}).
+      intros B [X X1] I2.
+      (* Redo definitions of finite sets and finite subsets. . ? *)
+      exact {I1 : P (k.+1) I2 & {x : Indk B X (include_subset (B := I2) I1) & X1 (include_subset (B := I2) I1) x}}.
   Defined.
+
+  Definition Cube_Diagram k
+    : Finite_Subsets A -> Type
+    := proj1_sig (Cube_Diagram' k).
+  Definition Cube_Ind k
+    : forall (B : Finite_Subsets A),
+      Cube_Diagram k B -> (P (k.+1) B) -> Type
+    := proj2_sig (Cube_Diagram' k).
+
+  (* Ltac simpl_cd_succ := *)
+  (*   match goal with *)
+  (*   |(Cube_Diagram ?k.+1 ?B) => *)
+  (*    change (Cube_Diagram k.+1 B) with *)
+  (*    {X : Cube_Diagram k B & *)
+  (*         forall (I1 : P (k.+1) B), Cube_Ind k B X I1 -> Type}. *)
+
+  
+  Definition cd1 (B : Finite_Subsets A) :
+    Cube_Diagram 1 B = {X0 : Type & forall (I1 : P 1 B), X0 -> Type} := idpath.
+
+  Definition test2 (B : Finite_Subsets A) :
+    Cube_Diagram 2 B.
+    change (Cube_Diagram 2 B) with
+    {X1 : Cube_Diagram 1 B & forall (I2 : P 2 B), Cube_Ind 1 B X1 I2 -> Type}.
+    change (Cube_Diagram 1 B) with
+    {X0 : Type & forall (I1 : P 1 B), X0 -> Type}.
+    change (Cube_Ind 1 B) with
+    (fun (X1 : Cube_Diagram 1 B) (I2 : P 2 B) =>
+       {I1 : P 1 I2 & {x : Cube_Ind 0 B X1.1 (include_subset (B := I2) I1) & X1.2 (include_subset (B:= I2) I1) x}}). simpl.
+    unfold Cube_Ind. simpl.
+    Abort.
+
+    Definition cd2 (B : Finite_Subsets A) :
+    Cube_Diagram 2 B <~>
+     {X0 : Type & {X1 : (P 1 B) -> X0 -> Type &
+                                         forall (I2 : P 2 B) (I1 : P 1 I2) (x0 : X0), X1 (include_subset (B := I2) I1) x0 -> Type}}.
+    Proof.
+      change (Cube_Diagram 2 B) with
+    {X1 : Cube_Diagram 1 B & forall (I2 : P 2 B), Cube_Ind 1 B X1 I2 -> Type}.
+    change (Cube_Diagram 1 B) with
+    {X0 : Type & forall (I1 : P 1 B), X0 -> Type}.
+    change (Cube_Ind 1 B) with
+    (fun (X1 : Cube_Diagram 1 B) (I2 : P 2 B) =>
+       {I1 : P 1 I2 & {x : Cube_Ind 0 B X1.1 (include_subset (B := I2) I1) & X1.2 (include_subset (B:= I2) I1) x}}). simpl.
+    unfold Cube_Ind. simpl.
+    (* this is associativity of sigma types, but I find it easier to prove directly. . . *)
+    srapply @equiv_adjointify.
+    - intros [[X0 X1] X2]. simpl in *.
+      exists X0. exists X1.
+      intros I2 I1 x0 x1. exact (X2 I2 (I1; (x0; x1))).
+    - intros [X0 [X1 X2]].
+      exists (X0; X1). simpl.
+      intros I2 [I1 [x0 x1]]. exact (X2 I2 I1 x0 x1).
+    - intros [X0 [X1 X2]].
+      apply (ap (fun X => (X0; X))). apply (ap (fun X => (X1; X))).
+      apply path_forall. intro I2. apply path_forall. intro I1. apply path_forall. intro x0. apply path_arrow. intro x1. reflexivity.
+    - intros [[X0 X1] X2]. simpl in *.
+      srapply @path_sigma. reflexivity. simpl.
+      apply path_forall. intro I2. apply path_forall.
+      intros [I1 [x0 x1]]. reflexivity.
+    Defined.
 
   
   

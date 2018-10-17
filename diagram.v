@@ -128,49 +128,30 @@ End Directed_Diagram.
 
 
 Section Cubical_Diagram.
-  Local Notation P k A := (finite_subset_component A k).
-
-  Definition compose_embedding {X Y Z : Type} (f : X -> Y) (g : Y -> Z)
-    : IsEmbedding f -> IsEmbedding g -> IsEmbedding (g o f).
-  Proof.
-    unfold IsEmbedding. intros embf embg. intro z.
-    apply (trunc_equiv' _ (hfiber_compose f g z)^-1).
-  Qed.
-    
-
-  Definition include_subset {A : Finite_Types} {k : nat} {B : Finite_Subsets A} :
-    P k B -> P k A.
-  Proof.
-    unfold finite_subset_component in *.
-    destruct B as [B [a emb_a]].
-    intros [C [b emb_b]].
-    exists C. exists (a o b). apply (compose_embedding b a emb_b emb_a).
-  Defined.
+  
+  Local Notation P k A := (Finite_Subsets k A).
 
   Variable n : nat.
-  Variable A : Finite_Types_component n.
-  (* Perhaps unnecessary to fix A and work with subsets, but I believe it will come in handy later. . . *)
+  Variable A : Finite_Types n.
+
   Definition Cube_Diagram' (k : nat) :
-    {D : Finite_Subsets A -> Type &
-                             forall (B : Finite_Subsets A),
-                               D B -> (P (k.+1) B) -> Type}.
+    {D : Type &  D -> (P (k.+1) A) -> Type}.
   Proof.
     induction k.
-    - exists (fun _ => Type).
-      intros B X0 I1. exact X0.
+    - exists Type.
+      intros X0 I1. exact X0.
     - destruct IHk as [Dk Indk].
-      exists (fun B => {X : Dk B & forall (I1 : P (k.+1) B), Indk B X I1 -> Type}).
-      intros B [X X1] I2.
+      exists {X : Dk & forall (I1 : P (k.+1) A), Indk X I1 -> Type}.
+      intros [X X1] I2.
       (* Redo definitions of finite sets and finite subsets. . ? *)
-      exact {I1 : P (k.+1) I2 & {x : Indk B X (include_subset (B := I2) I1) & X1 (include_subset (B := I2) I1) x}}.
+      exact {I1 : P (k.+1) I2 & {x : Indk X (include_subset I1) & X1 (include_subset I1) x}}.
   Defined.
 
   Definition Cube_Diagram k
-    : Finite_Subsets A -> Type
+    : Type
     := proj1_sig (Cube_Diagram' k).
   Definition Cube_Ind k
-    : forall (B : Finite_Subsets A),
-      Cube_Diagram k B -> (P (k.+1) B) -> Type
+    : Cube_Diagram k -> (P (k.+1) A) -> Type
     := proj2_sig (Cube_Diagram' k).
 
   (* Ltac simpl_cd_succ := *)
@@ -181,34 +162,34 @@ Section Cubical_Diagram.
   (*         forall (I1 : P (k.+1) B), Cube_Ind k B X I1 -> Type}. *)
 
   
-  Definition cd1 (B : Finite_Subsets A) :
-    Cube_Diagram 1 B = {X0 : Type & forall (I1 : P 1 B), X0 -> Type} := idpath.
+  Definition cd1  :
+    Cube_Diagram 1 = {X0 : Type & forall (I1 : P 1 A), X0 -> Type} := idpath.
 
-  Definition test2 (B : Finite_Subsets A) :
-    Cube_Diagram 2 B.
-    change (Cube_Diagram 2 B) with
-    {X1 : Cube_Diagram 1 B & forall (I2 : P 2 B), Cube_Ind 1 B X1 I2 -> Type}.
-    change (Cube_Diagram 1 B) with
-    {X0 : Type & forall (I1 : P 1 B), X0 -> Type}.
-    change (Cube_Ind 1 B) with
-    (fun (X1 : Cube_Diagram 1 B) (I2 : P 2 B) =>
-       {I1 : P 1 I2 & {x : Cube_Ind 0 B X1.1 (include_subset (B := I2) I1) & X1.2 (include_subset (B:= I2) I1) x}}). simpl.
+  Definition test2 :
+    Cube_Diagram 2.
+    change (Cube_Diagram 2) with
+    {X1 : Cube_Diagram 1 & forall (I2 : P 2 A), Cube_Ind 1 X1 I2 -> Type}.
+    change (Cube_Diagram 1) with
+    {X0 : Type & forall (I1 : P 1 A), X0 -> Type}.
+    change (Cube_Ind 1) with
+    (fun (X1 : Cube_Diagram 1) (I2 : P 2 A) =>
+       {I1 : P 1 I2 & {x : Cube_Ind 0 X1.1 (include_subset I1) & X1.2 (include_subset I1) x}}). simpl.
     unfold Cube_Ind. simpl.
     Abort.
 
-    Definition cd2 (B : Finite_Subsets A) :
-    Cube_Diagram 2 B <~>
-     {X0 : Type & {X1 : (P 1 B) -> X0 -> Type &
-                                         forall (I2 : P 2 B) (I1 : P 1 I2) (x0 : X0), X1 (include_subset (B := I2) I1) x0 -> Type}}.
+    Definition cd2 :
+    Cube_Diagram 2 <~>
+     {X0 : Type & {X1 : (P 1 A) -> X0 -> Type &
+                                         forall (I2 : P 2 A) (I1 : P 1 I2) (x0 : X0), X1 (include_subset I1) x0 -> Type}}.
     Proof.
-      change (Cube_Diagram 2 B) with
-    {X1 : Cube_Diagram 1 B & forall (I2 : P 2 B), Cube_Ind 1 B X1 I2 -> Type}.
-    change (Cube_Diagram 1 B) with
-    {X0 : Type & forall (I1 : P 1 B), X0 -> Type}.
-    change (Cube_Ind 1 B) with
-    (fun (X1 : Cube_Diagram 1 B) (I2 : P 2 B) =>
-       {I1 : P 1 I2 & {x : Cube_Ind 0 B X1.1 (include_subset (B := I2) I1) & X1.2 (include_subset (B:= I2) I1) x}}). simpl.
-    unfold Cube_Ind. simpl.
+      change (Cube_Diagram 2) with
+      {X1 : Cube_Diagram 1 & forall (I2 : P 2 A), Cube_Ind 1 X1 I2 -> Type}.
+      change (Cube_Diagram 1) with
+      {X0 : Type & forall (I1 : P 1 A), X0 -> Type}.
+      change (Cube_Ind 1) with
+      (fun (X1 : Cube_Diagram 1) (I2 : P 2 A) =>
+         {I1 : P 1 I2 & {x : Cube_Ind 0 X1.1 (include_subset I1) & X1.2 (include_subset I1) x}}). simpl.
+      unfold Cube_Ind. simpl.
     (* this is associativity of sigma types, but I find it easier to prove directly. . . *)
     srapply @equiv_adjointify.
     - intros [[X0 X1] X2]. simpl in *.
@@ -225,6 +206,14 @@ Section Cubical_Diagram.
       apply path_forall. intro I2. apply path_forall.
       intros [I1 [x0 x1]]. reflexivity.
     Defined.
+
+    Variable X : A -> Type.
+    Definition prod_diag (k : nat) : (d : Cube_Diagram k & forall x : P k.+1 A, Cube_Ind k d x <~> (forall a : (A_minus_I), X (a)).
+    Proof.
+      induction k.
+      exact (forall a : A, X a).
+      change (Cube_Diagram k.+1) with 
+                             
 
   
   

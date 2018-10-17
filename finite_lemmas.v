@@ -21,82 +21,132 @@ Qed.
     
 
 Section Finite_Types.
-  Definition Finite_Types  :=
-    {A : Type & Finite A}.
+  Definition Finite_Types  (n : nat) :=
+    {A : Type & merely (A <~> Fin n) }.
 
-  Definition type_of (A : Finite_Types) := pr1 A.
+  Definition type_of {n : nat} (A : Finite_Types n) := pr1 A.
   Global Coercion type_of : Finite_Types >-> Sortclass.
-  Global Instance finite_finite_type (A : Finite_Types) : Finite A := A.2.
+  Global Instance finite_finite_type {n : nat} (A : Finite_Types n) : Finite A :=
+    Build_Finite A.1 n A.2.
+
+  Definition sum_finite :
+    {n : nat & Finite_Types n} <~> {A : Type & Finite A}.
+  Proof.
+    srapply @equiv_adjointify.
+    - intros [n A]. exists A. exact _.
+    - intros [A [n e]]. exact (n; (A; e)).
+    - intros [A [n e]]. simpl.
+      apply path_sigma_hprop. reflexivity.
+    - intros [n A]. simpl. reflexivity.
+  Defined.
+    
+  
 
   (* Canonical finite types *)
-  Definition canon (n : nat) : Finite_Types :=
-    (* Build_Finite_Types (Fin n) (Build_Finite (Fin n) n (tr 1%equiv)). *)
-    (Fin n; Build_Finite (Fin n) n (tr 1%equiv)).
+  Definition canon (n : nat) : Finite_Types n := (Fin n; (tr 1%equiv)).    
 
   (* A detachable subset of a finite set has smaller cardinal *)
-  Definition leq_card_subset (A : Finite_Types) (P : A -> Type)
+  Definition leq_card_subset {n : nat} (A : Finite_Types n) (P : A -> Type)
              (isprop_P : forall a : A, IsHProp (P a)) (isdec_P : forall a : A, Decidable (P a)) :
     (fcard {a : A & P a} <= fcard A)%nat.
   Proof.  
-    destruct A as [A fA]. simpl in P, isprop_P, isdec_P. simpl.
+    destruct A as [A eA]. simpl in P, isprop_P, isdec_P. 
     apply (leq_inj_finite pr1).
-    unfold IsEmbedding. intro a.
+    unfold IsEmbedding. simpl. intro a.
     apply (trunc_equiv' (P a) ).
     apply hfiber_fibration. apply isprop_P.
   Qed.
 
   (* Plus one for finite types *)
-  Definition add_one : Finite_Types -> Finite_Types.
+  Definition add_one {n : nat} : Finite_Types n -> Finite_Types n.+1.
   Proof.
-    intros [A [n H]].
+    intros [A H].
     exists (A + Unit).
     (* apply (Build_Finite_Types (A + Unit)). *)
     strip_truncations.
-    apply (Build_Finite _ (n.+1)).
     apply tr. (* apply path_universe_uncurried. *)
     (* exact (equiv_functor_sum' ((equiv_path_universe A (Fin n))^-1 H) equiv_idmap). *)
     exact (equiv_functor_sum' H equiv_idmap).
   Defined.
 
-  Definition path_finite_types  (s t : Finite_Types):
+  Definition path_finite_types_fix (n : nat) (s t : Finite_Types n):
     (s <~> t) <~> s = t :=
     equiv_path_sigma_hprop _ _ oE equiv_path_universe _ _.
 
-  Definition transport_exp_finite {X : Type} {A B : Finite_Types} (e : A <~> B) (x : A -> X) :
-    transport (fun I : Finite_Types => I -> X) (path_finite_types A B e) x = x o e^-1.
+  Definition path_finite_types_sum (s t : {A : Type & Finite A}) :
+    (s.1 <~> t.1) <~> s = t :=
+    equiv_path_sigma_hprop _ _ oE equiv_path_universe _ _.
+
+  Definition path_finite_types (s t : {n : nat & Finite_Types n}) :
+    (s.2 <~> t.2) <~> s = t.
+  Proof.  
+    refine ((equiv_ap sum_finite s t)^-1 oE _).
+
+    
+    destruct s as [m [A eA]]. destruct t as [n [B eB]]. simpl.
+    exact (path_finite_types_sum (A; finite_finite_type (A; eA)) (B; finite_finite_type (B; eB))).
+  Defined.
+  
+  Definition transport_exp_finite_fix (n : nat) {X : Type} {A B : Finite_Types n} (e : A <~> B) (x : A -> X):
+    transport (fun I : Finite_Types n => I -> X) (path_finite_types_fix n A B e) x = x o e^-1.
   Proof.
     refine (ap10 (transport_pr1_path_sigma_uncurried (pr1^-1 (path_universe_uncurried e))
                                                      (fun A : Type => A -> X)) x @ _).
     exact (transport_exp X A B e x).
   Defined.
 
-  (* This should more or less follow from baut_ind_hset (except that is only for P: Type -> Type*)
-  Definition BSigma_ind_hSet (P : Finite_Types -> Type)
-             {isset_P : forall s : Finite_Types, IsHSet (P s)}
-             (pt : forall n : nat, P (canon n))
-             (wd : forall (n : nat) (e : Fin n <~> Fin n),
-                 transport P (path_finite_types (canon n) (canon n) e) (pt n) = pt n) :
-    forall s : Finite_Types, P s.
+  Definition transport_exp_finite_sum {X : Type} {A B : {A : Type & Finite A}} (e : A.1 <~> B.1) (x : A.1 -> X) :
+    transport (fun I : {A : Type & Finite A} => I.1 -> X) (path_finite_types_sum A B e) x = x o e^-1.
   Proof.
-    intro s.
-    apply (@pr1 (P s) (fun p : P s => forall e' : Fin (fcard s) <~> s,
-                           transport P (path_finite_types (canon (fcard s)) s e') (pt (fcard s)) = p)).
-    assert (isprop_goal : forall s' : Finite_Types, IsHProp
-                                                      {p : P s' &
-                                                           forall e' : Fin (fcard s') <~> s',
-                                                             transport P (path_sigma_hprop (canon (fcard s')) s' (path_universe_uncurried e'))
-                                                                       (pt (fcard s')) = p}).
-    { destruct s' as [A [m eA]].
+    refine (ap10 (transport_pr1_path_sigma_uncurried (pr1^-1 (path_universe_uncurried e))
+                                                     (fun A : Type => A -> X)) x @ _).
+    exact (transport_exp X A.1 B.1 e x).
+  Defined.
+
+  (* Definition transport_exp_finite {X : Type} {A B : {n : nat & Finite_Types n}} (e : A.2 <~> B.2) (x : A.2 -> X) : *)
+  (*   transport (fun I : {n : nat & Finite_Types n} => I.2 -> X) (path_finite_types A B e) x = x o e^-1. *)
+  (* Proof.     *)
+
+  (*   destruct A as [m [A eA]]. destruct B as [n [B eB]]. simpl in e. simpl in x. *)
+  (*   refine (_ @ transport_exp_finite_sum (A := (A; Build_Finite A m eA)) (B := (B; Build_Finite B n eB)) e x). *)
+  (*   refine (_ @ (transport_compose (fun I : {n0 : nat & Finite_Types n0} => I.2 -> X) *)
+  (*                             (sum_finite )^-1 *)
+  (*                             (path_finite_types_sum (A; finite_finite_type (A; eA)) (B; finite_finite_type (B; eB)) e) x)^ ). *)
+  (*   unfold path_finite_types. *)
+  (*   apply (ap (fun f : sum_finite (m; (A; eA)) = sum_finite (n; (B; eB)) -> (m; (A; eA)) = (n; (B; eB)) => *)
+  (*                transport (fun I : {n0 : nat & Finite_Types n0} => I.2 -> X) *)
+  (*                          (f ((path_finite_types_sum (A; finite_finite_type (A; eA)) (B; finite_finite_type (B; eB))) e)) x)). *)
+  (*   transitivity  *)
+  (*   (fun q : sum_finite (m; (A; eA)) = sum_finite (n; (B; eB)) => *)
+  (*                      ((eissect sum_finite (m; (A; eA)))^ @ ap sum_finite^-1 q) @ eissect sum_finite (n; (B; eB))). reflexivity. *)
+  (*   Abort. *)
+
+  (* This should more or less follow from baut_ind_hset (except that is only for P: Type -> Type*)
+  Definition BSigma_ind_hSet (P : forall n : nat, Finite_Types n -> Type)
+             {isset_P : forall (n : nat) (s : Finite_Types n), IsHSet (P n s)}
+             (pt : forall n : nat, P  n (canon n))
+             (wd : forall (n : nat) (e : Fin n <~> Fin n),
+                 transport (P n) (path_finite_types_fix n (canon n) (canon n) e) (pt n) = pt n) :
+    forall (n : nat) (s : Finite_Types n), P n s.
+  Proof.
+    intros n s.
+    apply (@pr1 (P n s) (fun p : P n s => forall e' : Fin n <~> s,
+                           transport (P n) (path_finite_types_fix n (canon n) s e') (pt n) = p)).
+    assert (isprop_goal : forall s' : Finite_Types n, IsHProp
+                                                      {p : P n s' &
+                                                           forall e' : Fin n <~> s',
+                                                             transport (P n) (path_sigma_hprop (canon n) s' (path_universe_uncurried e'))
+                                                                       (pt n) = p}).
+    { destruct s' as [A eA].
       strip_truncations. apply trunc_sigma'.
       - intro p. apply trunc_forall.
       - intros p q.
         apply (contr_inhabited_hprop _).
         destruct p as [p fp]. destruct q as [q fq]. simpl. simpl in fp. simpl in fq.      
         exact ((fp (equiv_inverse eA))^ @ (fq (equiv_inverse eA))). }
-    destruct s as [A [m eA]]. strip_truncations.
-    destruct (path_finite_types (canon m) (A; Build_Finite A m (tr eA)) (equiv_inverse eA)).
-    change (fcard (canon m)) with m.
-    exact (pt m; wd m).
+    destruct s as [A eA]. strip_truncations.
+    destruct (path_finite_types_fix n (canon n) (A; (tr eA)) (equiv_inverse eA)). simpl.
+    exact (pt n; wd n).
   Defined.
 
 End Finite_Types.
@@ -354,56 +404,75 @@ Section Finite_Subsets.
   (*   apply (@equiv_contr_sigma A B iscontr_A). *)
   (* Defined.  *)
 
-  Definition Finite_Subsets (A : Finite_Types) :=
-    {B : Finite_Types & {f : B -> A & IsEmbedding f}}.
-  Definition fintype_of_subset (A : Finite_Types) : Finite_Subsets A -> Finite_Types := pr1.  
+  Definition Finite_Subsets {n : nat} (k : nat) (A : Finite_Types n)  :=
+    {B : Finite_Types k & {f : B -> A & IsEmbedding f}}.
+  Definition fintype_of_subset {n k: nat} (A : Finite_Types n)  : Finite_Subsets k A -> Finite_Types k := pr1.  
   Global Coercion fintype_of_subset : Finite_Subsets >-> Finite_Types.
+  Definition type_of_subset {n k: nat} (A : Finite_Types n) : Finite_Subsets k A -> Type := pr1 o pr1.
+  Global Coercion type_of_subset :Finite_Subsets >-> Sortclass.
 
-  Definition path_finite_subsets {A : Finite_Types} (B1 B2 : Finite_Subsets A)
+  Definition path_finite_subsets k {n : nat} {A : Finite_Types n} (B1 B2 : Finite_Subsets k A)
              (e : B1 <~> B2) (h : B1.2.1 o e^-1 = B2.2.1) :
     B1 = B2.
   Proof.
     srapply @path_sigma.
-    - apply path_finite_types. exact e.
+    - apply (path_finite_types_fix k). exact e.
     - apply path_sigma_hprop. refine (_ @ h). destruct B1 as [B1 [f1 emb1]]. destruct B2 as [B2 [f2 emb2]]. cbn in *.
-      refine (_ @ transport_exp_finite e f1). cbn.
-      apply (ap pr1 (transport_sigma (A := Finite_Types) (B := fun B => B -> A) (C := fun B f => IsEmbedding f)
+      refine (_ @ transport_exp_finite_fix k e f1). cbn.
+      apply (ap pr1 (transport_sigma (A := Finite_Types k) (B := fun B => B -> A) (C := fun B f => IsEmbedding f)
                                      (path_sigma_hprop B1 B2 (path_universe_uncurried e)) (f1; emb1))).
   Defined.
-             
+
+  Definition path_finite_subsets_sum {n : nat} {A : Finite_Types n}
+             (B1 B2 : {B : {fB : Type & Finite fB} & {f : B.1 -> A & IsEmbedding f}})
+             (e : B1.1.1 <~> B2.1.1) (h : B1.2.1 o e^-1 = B2.2.1) :
+    B1 = B2.
+  Proof.
+    srapply @path_sigma'.
+    - apply path_finite_types_sum. exact e.
+    - apply path_sigma_hprop. refine (_ @ h). simpl.
+      refine (_ @ transport_exp_finite_sum e (B1.2.1)).
+      destruct B1 as [[B1 [n1 e1]] [f1 emb1]].
+      destruct B2 as [[B2 [n2 e2]] [f2 emb2]]. simpl in *.
+      apply (ap pr1
+                (transport_sigma
+                (A := {fB : Type & Finite fB}) (B := fun B => B.1 -> A) (C := fun B f => IsEmbedding f)
+                (path_sigma_hprop (B1; {| fcard := n1; merely_equiv_fin := e1 |})
+                                  (B2; {| fcard := n2; merely_equiv_fin := e2 |}) (path_universe_uncurried e)) (f1; emb1))).
+  Defined.             
 
   Local Definition project_to_dprop (X Y : Type) : X + Y -> DProp :=
     fun xy => if xy then True else False.
 
   (* Giving a finite subset is the same as giving a map A -> DProp *)
-  Definition equiv_detachable_finite_subset {A : Finite_Types} :
-    (A -> DProp) <~> Finite_Subsets A.
+  Definition equiv_detachable_finite_subset {n : nat} {A : Finite_Types n} :
+    (A -> DProp) <~> {B : {fB : Type & Finite fB} & {f : B.1 -> A & IsEmbedding f}}.
   Proof.
     srapply @equiv_adjointify.
-    { intro B.
-      srapply @existT.
-      exists {a : A & B a}. exact _.
-      cbn. exists pr1. intro a.
-      apply (trunc_equiv' (B a)).
-      apply (hfiber_fibration a B). exact _. }
-    { intros [B [f isemb_f]].
-      exact ((project_to_dprop _ _) o (split_range B A f isemb_f)). }
-    - intros [B [f isemb_f]].
-      srapply @path_finite_subsets.
+    { intro P. srapply @exist.
+      exists {a : A & P a}.  exact _.
+      simpl.
+      exists pr1. intro a.
+      apply (trunc_equiv' (P a)).
+      apply (hfiber_fibration a P). exact _. }
+    { intros [[B fB] [f isemb_f]].
+      apply ((project_to_dprop _ _) o (split_range B A f isemb_f)). }
+    - intros [[B fB] [f isemb_f]].
+      srapply @path_finite_subsets_sum.
       + cbn.
         srapply @equiv_adjointify.
-        { intros [a h].
+        { intros [a h]. simpl in f.
           destruct (detachable_image_finite f a) as [fib | nfib]; cbn in *.
           - exact fib.1. - destruct h. }
-        { intro b. exists (f b).
+        { intro b. exists (f b). simpl in f.
           destruct (detachable_image_finite f (f b)) as [fib | nfib]; cbn.
           - exact tt. - apply nfib. exists b. reflexivity. }
-        * intro b. cbn.
+        * intro b. cbn. simpl in f.
           destruct (detachable_image_finite f (f b)) as [fib | nfib]. destruct fib as [b' p]; cbn.
           { apply (isinj_embedding f isemb_f). exact p. }
           apply Empty_rec. apply nfib. exists b. reflexivity.
         * cbn. intros [a h].
-          apply path_sigma_hprop. cbn.          
+          apply path_sigma_hprop. cbn. simpl in f.
           destruct (detachable_image_finite f a) as [fib | nfib]; cbn in *.
           { destruct fib as [a' p]. cbn. exact p. } destruct h.
       + reflexivity.
@@ -419,92 +488,147 @@ Section Finite_Subsets.
         apply (hfiber_fibration a B b).
   Defined.
 
+  Definition equiv_finite_subset {n : nat} {A : Finite_Types n} :
+    {k : nat & Finite_Subsets k A} <~> {B : {fB : Type & Finite fB} & {f : B.1 -> A & IsEmbedding f}}.
+  Proof.
+    srapply @equiv_adjointify.
+    - intros [k [B f]]. simpl in f.
+      srapply @exist. exists B. exact _.
+      simpl. exact f.
+    - intros [[B [k eB] f]]. simpl in f.
+      exists k. exists (B; eB). exact f.
+    - intros [[B [k eB] f]]. reflexivity.
+    - intros [k [B f]]. reflexivity.
+  Defined.
+      
+    
+
   (* Then we can show that the type of finite subsets is finite *)
-  Global Instance finite_finite_subsets {A : Finite_Types} : Finite (Finite_Subsets A).
+  Global Instance finite_finite_subsets {n : nat} {A : Finite_Types n} : Finite {k : nat & Finite_Subsets k A}.
   Proof.
-    apply (finite_equiv' (A -> DProp) equiv_detachable_finite_subset).
-    apply finite_forall. exact _. intro a. exact _.
-  Qed.  
+    apply (finite_equiv' (A -> DProp)).
+    - exact ((equiv_finite_subset)^-1 oE equiv_detachable_finite_subset).
+    - apply finite_forall. exact _. intro a. exact _.
+  Qed.
   
-  Definition Finite_Types_component (n : nat)
-    := {B : Type & (merely (B <~> Fin n))}.
-  Definition fin_to_fin (n : nat) :
-    Finite_Types_component n -> Finite_Types.
-    intros [B e].
-    exists B. exists n. exact e.
-  Defined.
+  (* Definition Finite_Types_component (n : nat) *)
+  (*   := {B : Type & (merely (B <~> Fin n))}. *)
+  (* Definition fin_to_fin (n : nat) : *)
+  (*   Finite_Types_component n -> Finite_Types. *)
+  (*   intros [B e]. *)
+  (*   exists B. exists n. exact e. *)
+  (* Defined. *)
 
-  Coercion fin_to_fin : Finite_Types_component >-> Finite_Types.
-  Global Instance finite_fin_ (n : nat) (B : Finite_Types_component n) : Finite B := finite_finite_type B.
+  (* Coercion fin_to_fin : Finite_Types_component >-> Finite_Types. *)
+  (* Global Instance finite_fin_ (n : nat) (B : Finite_Types_component n) : Finite B := finite_finite_type B. *)
 
-  Definition fcard_is_ (n : nat) (B : Finite_Types_component n)
-    : fcard B = n := idpath.
+  (* Definition fcard_is_ (n : nat) (B : Finite_Types_component n) *)
+  (*   : fcard B = n := idpath. *)
 
-  Definition decompose_finite_types :
-    Finite_Types <~> {n : nat & Finite_Types_component n}.
-  Proof.
-    srapply @equiv_adjointify.
-    { intros [A [n e]]. exact (n; (A; e)). }
-    { intros [n [A e]]. exists A. exact (Build_Finite A n e). }
-    - intros [n [A e]]. reflexivity.
-    - intros [A [n e]]. reflexivity.
-  Defined.
+  (* Definition decompose_finite_types : *)
+  (*   Finite_Types <~> {n : nat & Finite_Types_component n}. *)
+  (* Proof. *)
+  (*   srapply @equiv_adjointify. *)
+  (*   { intros [A [n e]]. exact (n; (A; e)). } *)
+  (*   { intros [n [A e]]. exists A. exact (Build_Finite A n e). } *)
+  (*   - intros [n [A e]]. reflexivity. *)
+  (*   - intros [A [n e]]. reflexivity. *)
+  (* Defined. *)
 
-  Definition component_is_subtype (n : nat):
-    Finite_Types_component n <~> {B : Finite_Types & fcard B = n}.
-  Proof.
-    srapply @equiv_adjointify.
-    { intros [B e]. exists (B; Build_Finite B n e). reflexivity. }
-    { intros [[B [m e]] p]. destruct p. cbn. exact (B;e). }
-    - intros [[B [m e]] p]. destruct p. reflexivity.
-    - intros [B e]. reflexivity.
-  Defined.  
+  (* Definition component_is_subtype (n : nat): *)
+  (*   Finite_Types_component n <~> {B : Finite_Types & fcard B = n}. *)
+  (* Proof. *)
+  (*   srapply @equiv_adjointify. *)
+  (*   { intros [B e]. exists (B; Build_Finite B n e). reflexivity. } *)
+  (*   { intros [[B [m e]] p]. destruct p. cbn. exact (B;e). } *)
+  (*   - intros [[B [m e]] p]. destruct p. reflexivity. *)
+  (*   - intros [B e]. reflexivity. *)
+  (* Defined.   *)
   
-  Definition finite_subset_component (A : Finite_Types) (n : nat) :=
-    { B : Finite_Types_component n & {f : B -> A & IsEmbedding f}}.
-  Definition subset_component_to_component (A : Finite_Types) (n : nat)
-    : finite_subset_component A n -> Finite_Types_component n := pr1.
-  Coercion subset_component_to_component : finite_subset_component >-> Finite_Types_component.
+  (* Definition finite_subset_component (A : Finite_Types) (n : nat) := *)
+  (*   { B : Finite_Types_component n & {f : B -> A & IsEmbedding f}}. *)
+  (* Definition subset_component_to_component (A : Finite_Types) (n : nat) *)
+  (*   : finite_subset_component A n -> Finite_Types_component n := pr1. *)
+  (* Coercion subset_component_to_component : finite_subset_component >-> Finite_Types_component. *)
 
-  Definition subset_component_to_subset (A : Finite_Types) (n : nat)
-    : finite_subset_component A n -> Finite_Subsets A.
-  Proof.
-    intros [B e]. exists B. exact e.
-  Defined.
-  Coercion subset_component_to_subset : finite_subset_component >-> Finite_Subsets.    
+  (* Definition subset_component_to_subset (A : Finite_Types) (n : nat) *)
+  (*   : finite_subset_component A n -> Finite_Subsets A. *)
+  (* Proof. *)
+  (*   intros [B e]. exists B. exact e. *)
+  (* Defined. *)
+  (* Coercion subset_component_to_subset : finite_subset_component >-> Finite_Subsets.     *)
   
 
-  Definition decompose_finite_subsets (A : Finite_Types) :
-    Finite_Subsets A <~> {n : nat & finite_subset_component A n}.
+  (* Definition decompose_finite_subsets (A : Finite_Types) : *)
+  (*   Finite_Subsets A <~> {n : nat & finite_subset_component A n}. *)
+  (* Proof. *)
+  (*   unfold Finite_Subsets. unfold finite_subset_component. *)
+  (*   transitivity {B : {n : nat & Finite_Types_component n} & {f : B.2 -> A & IsEmbedding f}}. *)
+  (*   - srapply @equiv_functor_sigma'. exact decompose_finite_types. cbn. *)
+  (*     intro B. reflexivity. *)
+  (*   - apply equiv_inverse. srapply @equiv_sigma_assoc. *)
+  (* Defined. *)
+
+  (* Definition subset_component_is_subtype {n : nat} (A : Finite_Types) (k : nat) : *)
+  (*   Finite_Subsets k A <~> {B : {k :  *)
+
+  (*                  {B : {fB : Type & Finite fB} & {f : B.1 -> A & IsEmbedding f}} *)
+
+  (*                  {B : Finite_Subsets A & fcard B.1 = n}. *)
+  (* Proof. *)
+  (*   unfold finite_subset_component. unfold Finite_Subsets. *)
+  (*   transitivity {B : {B : Finite_Types & fcard B = n} & {f : B.1 -> A & IsEmbedding f}}. *)
+  (*   { srapply @equiv_functor_sigma'. apply component_is_subtype. *)
+  (*     intro B. reflexivity. } *)
+  (*   (* Easier to do directly than using lemmas *) *)
+  (*   srapply @equiv_adjointify. *)
+  (*   { intros [[B p] h]. exact ((B; h); p). } *)
+  (*   { intros [[B h] p]. exact ((B; p); h). } *)
+  (*   - intros [[B h] p]. reflexivity. *)
+  (*   - intros [[B p] h]. reflexivity. *)
+  (* Defined. *)
+
+  Definition equiv_detachable_finite_fix (k : nat) {n : nat} {A : Finite_Types n} :
+    Finite_Subsets k A <~> {B : A -> DProp & fcard ({a : A & B a}) = k}.
   Proof.
-    unfold Finite_Subsets. unfold finite_subset_component.
-    transitivity {B : {n : nat & Finite_Types_component n} & {f : B.2 -> A & IsEmbedding f}}.
-    - srapply @equiv_functor_sigma'. exact decompose_finite_types. cbn.
+    transitivity {B : {B : {fB : Type & Finite fB} & {f : B.1 -> A & IsEmbedding f}} & @fcard _ B.1.2 = k}.
+    transitivity {B : {k' : nat & Finite_Subsets k' A} & B.1 = k}.
+    - srapply @equiv_adjointify.
+      { intro B. exists (k; B). reflexivity. }
+      { intros [[k' B] []]. exact B. }
+      { intros [[k' B] []]. reflexivity. }
+      { intro B. reflexivity. }
+    - apply (equiv_functor_sigma' equiv_finite_subset).
+      intros [k' B]. reflexivity.      
+    - apply equiv_inverse.
+      apply (equiv_functor_sigma' equiv_detachable_finite_subset).
       intro B. reflexivity.
-    - apply equiv_inverse. srapply @equiv_sigma_assoc.
   Defined.
 
-  Definition subset_component_is_subtype (A : Finite_Types) (n : nat) :
-    finite_subset_component A n <~> {B : Finite_Subsets A & fcard B.1 = n}.
+  (* Now we get that the parts of finite subsets are finite *)
+  Definition finite_finite_subset_fix (k : nat) {n : nat} {A : Finite_Types n} :
+    Finite (Finite_Subsets k A).
   Proof.
-    unfold finite_subset_component. unfold Finite_Subsets.
-    transitivity {B : {B : Finite_Types & fcard B = n} & {f : B.1 -> A & IsEmbedding f}}.
-    { srapply @equiv_functor_sigma'. apply component_is_subtype.
-      intro B. reflexivity. }
-    (* Easier to do directly than using lemmas *)
-    srapply @equiv_adjointify.
-    { intros [[B p] h]. exact ((B; h); p). }
-    { intros [[B h] p]. exact ((B; p); h). }
-    - intros [[B h] p]. reflexivity.
-    - intros [[B p] h]. reflexivity.
+    apply (finite_equiv' {B : A -> DProp & fcard ({a : A & B a}) = k}).
+    - apply equiv_inverse. simpl. apply equiv_detachable_finite_fix.
+    - apply (finite_detachable_subset); intro B; exact _.
   Defined.
 
-  Definition equiv_detachable_finite_subset_component (A : Finite_Types) (n : nat):
-    finite_subset_component A n <~> {B : A -> DProp & fcard ({a : A & B a}) = n}.
+  (* This result is perhaps belonging somewhere else. . . *)
+  Definition compose_embedding {X Y Z : Type} (f : X -> Y) (g : Y -> Z) :
+     IsEmbedding f -> IsEmbedding g -> IsEmbedding (g o f).
   Proof.
-    refine (_ oE subset_component_is_subtype A n). apply equiv_inverse.
-    srapply @equiv_functor_sigma'. apply equiv_detachable_finite_subset.
-    intro B. hnf. reflexivity.
+    unfold IsEmbedding. intros embf embg. intro z.
+    apply (trunc_equiv' _ (hfiber_compose f g z)^-1).
+  Qed.
+
+  
+  Definition include_subset {n k: nat} {A : Finite_Types n} {B : Finite_Subsets k A} {l : nat}
+             : Finite_Subsets l B -> Finite_Subsets l A.
+  Proof.
+    unfold Finite_Subsets.
+    intros [I [b emb_b]]. destruct B as [B [a emb_a]]. simpl in b.
+    exists I. exists (a o b). apply compose_embedding. exact emb_b. exact emb_a.
   Defined.
   
 End Finite_Subsets.

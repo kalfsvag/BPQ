@@ -5,6 +5,16 @@ Require Import equiv_lemmas.
 Require Import UnivalenceAxiom.
 
 
+(* To be moved *)
+Lemma equiv_is_embedding {A B : Type} (f : A -> B) {isequiv_f : IsEquiv f}
+  : IsEmbedding f.
+Proof.
+  unfold IsEmbedding. intro b.
+  srapply @trunc_succ.
+  apply fcontr_isequiv. exact isequiv_f.
+Defined.
+  
+
 (* The type of decidable propositions is finite *)
 Global Instance finite_dprop : Finite DProp.
 Proof.
@@ -34,6 +44,14 @@ Proof.
   intros [m finA]. strip_truncations.
   apply (trunc_equiv' (Fin m) finA^-1).
 Defined.
+
+Lemma finite_eq_fcard (A B : Type) {fA : Finite A} {fB : Finite B} :
+  fcard A = fcard B -> merely (A <~> B).
+Proof.
+  destruct fA as [m eA]. destruct fB as [n eB].
+  strip_truncations. intro p. apply tr. simpl in p. destruct p.
+  exact (eB^-1 oE eA).
+Qed.
 
 
 
@@ -174,7 +192,7 @@ Section Factorize_Monomorphism.
   Context {finite_B : Finite B}.
   Context (f : A-> B).
   Context (isemb_f : IsEmbedding f).
-  Context `{Funext}.
+  (* Context `{Funext}. *)
   
   (* If f is an embedding and A has a point, then f has a retract *)
   Definition retract_of_embedding (a0 : A) : B -> A.
@@ -210,10 +228,22 @@ Section Factorize_Monomorphism.
       + apply (ap inr). apply path_sigma_hprop. reflexivity.
     - intro b.
       destruct (detachable_image_finite f b) as [fib | nfib]; reflexivity.      
-  Defined.    
+  Defined.
+
+  Definition compliment_to_range : {b : B & not (hfiber f b)} -> B := pr1.
+
+  Definition embed_compliment : IsEmbedding compliment_to_range.
+  Proof.
+    unfold IsEmbedding. intro b.
+    apply (trunc_equiv' (not (hfiber f b))).
+    unfold compliment_to_range.
+    exact (hfiber_fibration b _).
+    exact _.
+  Defined.
+    
 
   (* Could perhaps be simplified using isequiv_fcontr? *)
-  Theorem equiv_A_image : A <~> {b : B & hfiber f b}.
+  Theorem equiv_image : A <~> {b : B & hfiber f b}.
   Proof.
     srapply @equiv_adjointify.
     { intro a. exists (f a). exists a. reflexivity. }
@@ -222,6 +252,28 @@ Section Factorize_Monomorphism.
       apply isemb_f.
     - intro a. reflexivity.
   Defined.
+
+  Definition fcard_sum_compliment : (fcard A + fcard {b : B & not (hfiber f b)} = fcard B)%nat.
+  Proof.
+    refine ((fcard_sum _ _)^ @ _).
+    apply fcard_equiv'.
+    refine (split_range^-1 oE _).
+    apply equiv_functor_sum'. exact equiv_image. reflexivity.
+  Qed.
+
+  (* a lemma for minus *)
+  Lemma sum_minus (k l: nat) :
+    l = (k+l)%nat - k.
+  Proof.
+    induction k. simpl.
+    - destruct l; reflexivity.
+    - simpl. exact IHk.
+  Qed.
+  
+  Definition fcard_compliment : fcard {b : B & not (hfiber f b)} = (fcard B) - (fcard A).
+  Proof.
+    destruct fcard_sum_compliment. apply sum_minus.
+  Qed.    
 End Factorize_Monomorphism.
 
 Section Finite_Subsets.
@@ -374,6 +426,96 @@ Section Finite_Subsets.
     intros [I [b emb_b]]. destruct B as [B [a emb_a]]. simpl in b.
     exists I. exists (a o b). apply compose_embedding. exact emb_b. exact emb_a.
   Defined.
+
+  Definition compliment {n k : nat} {A : Finite_Types n} :
+    Finite_Subsets k A -> Finite_Subsets (n - k) A.
+  Proof.
+    intros [B [f embf]].
+    srapply @exist.
+    - exists ({a : A & not (hfiber f a)}).
+      srapply @finite_eq_fcard. 
+      apply fcard_compliment. exact embf.
+    - simpl.
+      exists pr1.
+      apply embed_compliment.
+  Defined.
+
+  Definition equiv_sum_compliment {n k : nat} {A : Finite_Types n} (B : Finite_Subsets k A) :
+    B + (compliment B) <~> A.
+  Proof.
+    destruct B as [B [f embf]]. simpl.
+    refine ((split_range B A f embf)^-1 oE _).
+    srapply @equiv_functor_sum'.
+    apply equiv_image. exact embf. reflexivity.
+  Defined.
+
+  Definition sum_compliment_subset {n k : nat} {A : Finite_Types n} (B : Finite_Subsets k A) :
+      Finite_Subsets n A.
+  Proof.
+    srapply @exist.
+    exists (B + (compliment B)). srapply @finite_eq_fcard.
+    change (fcard (Fin n)) with (fcard A).
+    apply fcard_equiv'. apply equiv_sum_compliment.
+    exists (equiv_sum_compliment B).
+    apply equiv_is_embedding. exact _.
+  Defined.
+
+  (* A as a subset of itself *)
+  Definition last_subset {n : nat} (A : Finite_Types n) :
+    Finite_Subsets n A.
+  Proof.
+    exists A. exists idmap. apply equiv_is_embedding. exact _.
+  Defined.
+  
+  Definition eq_sum_compliment {n k : nat} {A : Finite_Types n} (B : Finite_Subsets k A) :
+    sum_compliment_subset B = last_subset A.
+  Proof.
+    srapply @path_finite_subsets.
+    apply equiv_sum_compliment.
+    apply path_arrow. intro a. simpl.
+    destruct B as [B [f embf]]. simpl.
+    destruct (detachable_image_finite f a) as [[a' p] |]. exact p.
+    simpl. reflexivity.
+  Defined.
+    
+
+
+
+
+  (* (* I want to show that P n A is contractible, but I don't think I need it. . . *) *)
+  (* Definition contr_last_subset {n : nat} (A : Finite_Types n) : *)
+  (*   Contr (Finite_Subsets n A). *)
+  (* Proof. *)
+  (*   srapply @BuildContr. *)
+  (*   - srapply @exist. *)
+  (*     exists A. exact A.2. *)
+  (*     exists idmap. apply equiv_is_embedding. exact _. *)
+  (*   - intro B. srapply @path_finite_subsets. *)
+  (*     + simpl. apply equiv_inverse. *)
+  (*       destruct B as [B [f embf]]. simpl. *)
+  (*       transitivity {ab : A * B & f (snd ab) = fst ab}. *)
+  (*       *  srapply @equiv_adjointify. *)
+  (*          { intro b. exists (f b, b). reflexivity. } *)
+  (*          { exact (snd o pr1). } *)
+  (*          { intros [[a b] p]. simpl in *. admit. } *)
+  (*          { intro b. reflexivity. } *)
+  (*       * srapply @equiv_adjointify. *)
+  (*         { intros [[a b] p]. exact a. } *)
+  (*         { intro a. *)
+        
+  (*       srapply @BuildEquiv. *)
+  (*       exact B.2.1. *)
+  (*       apply isequiv_fcontr. intro a. *)
+  (*       apply contr_inhabited_hprop. apply (B.2.2). *)
+
+        
+        
+    
+
+
+    
+
+    
   
 End Finite_Subsets.
 

@@ -18,7 +18,24 @@ Proof.
     * intros [[[] | []] | []]; reflexivity.
   + apply equiv_inverse. apply equiv_dprop_to_bool.
 Qed.
-    
+
+(* This is also in monoidal_1type.v *)
+(*Finite types are sets *)
+Definition isset_Fin (n : nat) : IsHSet (Fin n).
+Proof.
+  induction n.
+  - exact _.
+  - apply hset_sum.
+Defined.
+
+Definition isset_Finite `{Funext} (A : Type) :
+  Finite A -> IsHSet A.
+Proof.
+  intros [m finA]. strip_truncations.
+  apply (trunc_equiv' (Fin m) finA^-1).
+Defined.
+
+
 
 Section Finite_Types.
   Definition Finite_Types  (n : nat) :=
@@ -69,6 +86,7 @@ Section Finite_Types.
     exact (equiv_functor_sum' H equiv_idmap).
   Defined.
 
+  (* Path types in various "types of finite types" *)
   Definition path_finite_types_fix (n : nat) (s t : Finite_Types n):
     (s <~> t) <~> s = t :=
     equiv_path_sigma_hprop _ _ oE equiv_path_universe _ _.
@@ -81,8 +99,6 @@ Section Finite_Types.
     (s.2 <~> t.2) <~> s = t.
   Proof.  
     refine ((equiv_ap sum_finite s t)^-1 oE _).
-
-    
     destruct s as [m [A eA]]. destruct t as [n [B eB]]. simpl.
     exact (path_finite_types_sum (A; finite_finite_type (A; eA)) (B; finite_finite_type (B; eB))).
   Defined.
@@ -150,121 +166,6 @@ Section Finite_Types.
   Defined.
 
 End Finite_Types.
-  
-
-
-
-
-(* A term in Magma A is a decomposition of A into a sum of Empty and Unit *)
-Section Magma.
-  Inductive Magma : Type -> Type :=
-    |m0 : Magma Empty
-    |m1 : Magma Unit
-    |m_sum {A B : Type} : Magma A -> Magma B -> Magma (A+B).
-
-  Definition magma_to_finite (A : Type) : Magma A -> Finite A.
-  Proof.
-    intro m.
-    induction m.
-    - exact finite_empty.
-    - exact finite_unit.
-    - apply finite_sum. exact IHm1. exact IHm2.
-  Defined.
-
-  (* Definition contr_magma0 : Contr (Magma Empty). *)
-  (* Proof. *)
-  (*   apply (BuildContr _ m0). *)
-  (*   recall Empty as A eqn:e. *)
-  (*   apply (transport (fun B => Contr (Magma B)) e^). *)
-  (*   srapply @BuildContr. *)
-  (*   - destruct e. exact m0. *)
-  (*   - intro m. induction m. *)
-      
-
-      
-  (*   recall Empty as A eqn:e. *)
-  (*   apply (transport (fun B => Contr (Magma B)) e^). *)
-
-  (*   -  *)
-    
-End Magma.
-
-  
-
-(* This is also in monoidal_1type.v *)
-(*Finite types are sets *)
-Definition isset_Fin (n : nat) : IsHSet (Fin n).
-Proof.
-  induction n.
-  - exact _.
-  - apply hset_sum.
-Defined.
-
-Definition isset_Finite `{Funext} (A : Type) :
-  Finite A -> IsHSet A.
-Proof.
-  intros [m finA]. strip_truncations.
-  apply (trunc_equiv' (Fin m) finA^-1).
-Defined.
-
-Section Restrict_Equivalence.
-  (* This is just copied from fin_equiv_hfiber, but I wanted it as its own result *)
-
-  (* My doing: One of the Fin n's is generalized. *)
-  Local Lemma is_inl_restrict_equiv_notfixlast {n : nat} {A : Type}
-        (e : A+Unit <~> Fin n.+1) (y : Fin n) (p : e (inr tt) = inl y) :
-    forall a : A, is_inl ((fin_transpose_last_with n (inl y) oE e) (inl a)).
-  Proof.
-    intro a. ev_equiv.
-    assert (q : inl y <> e (inl a))
-      by exact (fun z => inl_ne_inr _ _ (equiv_inj e (z^ @ p^))).
-    set (z := e (inl a)) in *.
-    destruct z as [z|[]].
-    - rewrite fin_transpose_last_with_rest;
-        try exact tt; try assumption.
-    - rewrite fin_transpose_last_with_last; exact tt.
-  Qed.
-
-  Local Lemma is_inr_restrict_equiv_notfixlast {n : nat} {A : Type}
-        (e : A + Unit <~> Fin n.+1) (y : Fin n) (p : e (inr tt) = inl y) :
-    forall b : Unit, is_inr ((fin_transpose_last_with n (inl y) oE e) (inr b)).
-  Proof.
-    intros []. ev_equiv.
-    rewrite p.
-    rewrite fin_transpose_last_with_with; exact tt.
-  Qed.
-
-  Local Lemma is_inl_restrict_equiv_last_fixed {A B: Type} (e : A + Unit <~> B + Unit) (p : e (inr tt) = inr tt)
-    : forall a : A, is_inl (e (inl a)).
-  Proof.
-    intro a.
-    destruct (is_inl_or_is_inr (e (inl a))) as [l|r].
-    - exact l.
-    - assert (q := inr_un_inr (e (inl a)) r).
-      apply moveR_equiv_V in q.
-      assert (s := q^ @ ap (e^-1 o inr) (path_unit _ _) @ (moveL_equiv_V _ _ p)^).
-      elim (inl_ne_inr _ _ s).
-  Qed.
-
-  Local Lemma is_inr_restrict_equiv_last_fixed {A B : Type} (e : A+Unit <~> B+Unit) (p : e (inr tt) = inr tt) :
-    forall b : Unit, is_inr (e (inr b)).
-  Proof.
-    intros []; exact (p^ # tt).
-  Defined.
-
-  Definition equiv_restrict {n : nat} {A : Type} (e : A+Unit <~> Fin n.+1) :  A<~> Fin n.
-  Proof.
-    simpl in e.
-    recall (e (inr tt)) as y eqn:p.
-    assert (p' := (moveL_equiv_V _ _ p)^).
-    destruct y as [y | []].
-    (*  *)
-    - apply (equiv_unfunctor_sum_l (fin_transpose_last_with n (inl y) oE e)).
-      + apply is_inl_restrict_equiv_notfixlast. exact p.
-      + apply is_inr_restrict_equiv_notfixlast. exact p.
-    - apply (equiv_unfunctor_sum_l e (is_inl_restrict_equiv_last_fixed e p) (is_inr_restrict_equiv_last_fixed e p)).
-  Defined.
-End Restrict_Equivalence.
 
 
 Section Factorize_Monomorphism.
@@ -272,7 +173,6 @@ Section Factorize_Monomorphism.
   Context {finite_A : Finite A}.
   Context {finite_B : Finite B}.
   Context (f : A-> B).
-  (* Context (ismono_f : forall a1 a2 : A, f a1 = f a2 -> a1 = a2). *)
   Context (isemb_f : IsEmbedding f).
   Context `{Funext}.
   
@@ -294,39 +194,6 @@ Section Factorize_Monomorphism.
     - apply Empty_rec. apply n. exact (a; idpath).
   Defined.
 
-  (* (* First a lemma that the hfiber is a proposition *) *)
-  (* Lemma ishprop_hfiber (b : B) : IsHProp (hfiber f b). *)
-  (* Proof. *)
-  (*   apply trunc_sigma'. *)
-  (*   - intro a. srapply @isset_Finite. *)
-  (*   - intros [a1 p1] [a2 p2]. simpl. *)
-  (*     apply contr_inhabited_hprop. *)
-  (*     + srapply @isset_Finite. *)
-  (*     + apply ismono_f. *)
-  (*       exact (p1 @ p2^). *)
-  (* Defined. *)
-
-  (* (* Since A is a set, the himage is the sum of the hfibers *) *)
-  (* Lemma himage_hfiber : (himage f) <~> {b : B & hfiber f b}. *)
-  (* Proof. *)
-  (*   unfold himage. unfold TrM.image. simpl. *)
-  (*   apply equiv_functor_sigma_id. intro a. *)
-  (*   apply equiv_inverse.  *)
-  (*   exists tr. *)
-  (*   apply isequiv_tr. *)
-  (*   apply ishprop_hfiber. *)
-  (* Defined. *)
-
-  (* (* Then a lemma that the the hfiber is decidable. *)
-  (*    This is almost the same as decidable_image_finite *) *)
-  (* Global Instance decidable_hfiber (b : B) : Decidable (hfiber f b). *)
-  (* Proof. *)
-  (*   apply detachable_finite_subset. *)
-  (*   - apply ishprop_hfiber. *)
-  (*   - apply (finite_equiv' (himage f) himage_hfiber). *)
-  (*     apply finite_image. *)
-  (* Defined. *)
-
   (* Now we can start factorizing *)
   Theorem split_range : B <~> {b : B & hfiber f b} + {b : B & not (hfiber f b)}.
   Proof.
@@ -344,18 +211,8 @@ Section Factorize_Monomorphism.
     - intro b.
       destruct (detachable_image_finite f b) as [fib | nfib]; reflexivity.      
   Defined.    
-    (* transitivity (B*Unit). *)
-    (* transitivity {b : B & Unit}. *)
-    (* transitivity {b : B & hfiber f b + ~ hfiber f b}. *)
-    (* - apply equiv_sigma_sum'. *)
-    (* - apply equiv_functor_sigma_id. *)
-    (*   intro b. *)
-    (*   apply (dprop_equiv_unit _ (isemb_f b) (detachable_image_finite f b)). *)
-    (* - apply equiv_sigma_prod0. *)
-    (* - apply prod_unit_r. *)
-  (* Defined. *)
 
-  (* Could perhaps be simplified using isequiv_fcontr *)
+  (* Could perhaps be simplified using isequiv_fcontr? *)
   Theorem equiv_A_image : A <~> {b : B & hfiber f b}.
   Proof.
     srapply @equiv_adjointify.
@@ -365,45 +222,9 @@ Section Factorize_Monomorphism.
       apply isemb_f.
     - intro a. reflexivity.
   Defined.
-    
-  (*   transitivity {a : A & {b : B & f a =b}}. *)
-  (*   transitivity {a : A & Unit}. *)
-  (*   transitivity (A*Unit). *)
-  (*   - apply equiv_inverse. apply prod_unit_r. *)
-  (*   - apply equiv_inverse. apply equiv_sigma_prod0. *)
-  (*   - apply equiv_functor_sigma_id. *)
-  (*     intro a. *)
-  (*     srapply @equiv_adjointify. *)
-  (*     + intro t. exact (f a; idpath). *)
-  (*     + exact (const tt). *)
-  (*     + intros [b p]. *)
-  (*       srapply @path_sigma. *)
-  (*       * exact p. *)
-  (*       * transitivity (1@p). *)
-  (*         apply transport_paths_r. *)
-  (*         apply concat_1p. *)
-  (*     + intros []. reflexivity. *)
-  (*   - unfold hfiber. *)
-  (*     apply equiv_sigma_symm. *)
-  (* Defined. *)
-  
 End Factorize_Monomorphism.
 
 Section Finite_Subsets.
-  (* Lemma finite_fibers_to_finite_sigma *)
-  (*       (A : Type) (a0 : A) (B : A -> Type) (finite_B0 : Finite (B a0)) *)
-        
-  (*       (connected_A : merely (forall a : A, a0 = a)) *)
-  (*       (only_basepoint_inhabited : merely (forall (a : A) (b0 : B a0) (b : B a), (a = a0))) *)
-  (* : Finite {a : A & B a}. *)
-  (* Proof.     *)
-  (*   destruct finite_B0 as [m e]. *)
-  (*   apply (Build_Finite _ m). strip_truncations. apply tr. *)
-  (*   refine (e oE _). *)
-  (*   set (iscontr_A := BuildContr A (point A) connected_A : Contr A). *)
-  (*   apply (@equiv_contr_sigma A B iscontr_A). *)
-  (* Defined.  *)
-
   Definition Finite_Subsets {n : nat} (k : nat) (A : Finite_Types n)  :=
     {B : Finite_Types k & {f : B -> A & IsEmbedding f}}.
   Definition fintype_of_subset {n k: nat} (A : Finite_Types n)  : Finite_Subsets k A -> Finite_Types k := pr1.  
@@ -511,83 +332,6 @@ Section Finite_Subsets.
     - apply finite_forall. exact _. intro a. exact _.
   Qed.
   
-  (* Definition Finite_Types_component (n : nat) *)
-  (*   := {B : Type & (merely (B <~> Fin n))}. *)
-  (* Definition fin_to_fin (n : nat) : *)
-  (*   Finite_Types_component n -> Finite_Types. *)
-  (*   intros [B e]. *)
-  (*   exists B. exists n. exact e. *)
-  (* Defined. *)
-
-  (* Coercion fin_to_fin : Finite_Types_component >-> Finite_Types. *)
-  (* Global Instance finite_fin_ (n : nat) (B : Finite_Types_component n) : Finite B := finite_finite_type B. *)
-
-  (* Definition fcard_is_ (n : nat) (B : Finite_Types_component n) *)
-  (*   : fcard B = n := idpath. *)
-
-  (* Definition decompose_finite_types : *)
-  (*   Finite_Types <~> {n : nat & Finite_Types_component n}. *)
-  (* Proof. *)
-  (*   srapply @equiv_adjointify. *)
-  (*   { intros [A [n e]]. exact (n; (A; e)). } *)
-  (*   { intros [n [A e]]. exists A. exact (Build_Finite A n e). } *)
-  (*   - intros [n [A e]]. reflexivity. *)
-  (*   - intros [A [n e]]. reflexivity. *)
-  (* Defined. *)
-
-  (* Definition component_is_subtype (n : nat): *)
-  (*   Finite_Types_component n <~> {B : Finite_Types & fcard B = n}. *)
-  (* Proof. *)
-  (*   srapply @equiv_adjointify. *)
-  (*   { intros [B e]. exists (B; Build_Finite B n e). reflexivity. } *)
-  (*   { intros [[B [m e]] p]. destruct p. cbn. exact (B;e). } *)
-  (*   - intros [[B [m e]] p]. destruct p. reflexivity. *)
-  (*   - intros [B e]. reflexivity. *)
-  (* Defined.   *)
-  
-  (* Definition finite_subset_component (A : Finite_Types) (n : nat) := *)
-  (*   { B : Finite_Types_component n & {f : B -> A & IsEmbedding f}}. *)
-  (* Definition subset_component_to_component (A : Finite_Types) (n : nat) *)
-  (*   : finite_subset_component A n -> Finite_Types_component n := pr1. *)
-  (* Coercion subset_component_to_component : finite_subset_component >-> Finite_Types_component. *)
-
-  (* Definition subset_component_to_subset (A : Finite_Types) (n : nat) *)
-  (*   : finite_subset_component A n -> Finite_Subsets A. *)
-  (* Proof. *)
-  (*   intros [B e]. exists B. exact e. *)
-  (* Defined. *)
-  (* Coercion subset_component_to_subset : finite_subset_component >-> Finite_Subsets.     *)
-  
-
-  (* Definition decompose_finite_subsets (A : Finite_Types) : *)
-  (*   Finite_Subsets A <~> {n : nat & finite_subset_component A n}. *)
-  (* Proof. *)
-  (*   unfold Finite_Subsets. unfold finite_subset_component. *)
-  (*   transitivity {B : {n : nat & Finite_Types_component n} & {f : B.2 -> A & IsEmbedding f}}. *)
-  (*   - srapply @equiv_functor_sigma'. exact decompose_finite_types. cbn. *)
-  (*     intro B. reflexivity. *)
-  (*   - apply equiv_inverse. srapply @equiv_sigma_assoc. *)
-  (* Defined. *)
-
-  (* Definition subset_component_is_subtype {n : nat} (A : Finite_Types) (k : nat) : *)
-  (*   Finite_Subsets k A <~> {B : {k :  *)
-
-  (*                  {B : {fB : Type & Finite fB} & {f : B.1 -> A & IsEmbedding f}} *)
-
-  (*                  {B : Finite_Subsets A & fcard B.1 = n}. *)
-  (* Proof. *)
-  (*   unfold finite_subset_component. unfold Finite_Subsets. *)
-  (*   transitivity {B : {B : Finite_Types & fcard B = n} & {f : B.1 -> A & IsEmbedding f}}. *)
-  (*   { srapply @equiv_functor_sigma'. apply component_is_subtype. *)
-  (*     intro B. reflexivity. } *)
-  (*   (* Easier to do directly than using lemmas *) *)
-  (*   srapply @equiv_adjointify. *)
-  (*   { intros [[B p] h]. exact ((B; h); p). } *)
-  (*   { intros [[B h] p]. exact ((B; p); h). } *)
-  (*   - intros [[B h] p]. reflexivity. *)
-  (*   - intros [[B p] h]. reflexivity. *)
-  (* Defined. *)
-
   Definition equiv_detachable_finite_fix (k : nat) {n : nat} {A : Finite_Types n} :
     Finite_Subsets k A <~> {B : A -> DProp & fcard ({a : A & B a}) = k}.
   Proof.
@@ -632,6 +376,87 @@ Section Finite_Subsets.
   Defined.
   
 End Finite_Subsets.
+
+
+(* A term in Magma A is a decomposition of A into a sum of Empty and Unit *)
+Section Magma.
+  Inductive Magma : Type -> Type :=
+    |m0 : Magma Empty
+    |m1 : Magma Unit
+    |m_sum {A B : Type} : Magma A -> Magma B -> Magma (A+B).
+
+  Definition magma_to_finite (A : Type) : Magma A -> Finite A.
+  Proof.
+    intro m.
+    induction m.
+    - exact finite_empty.
+    - exact finite_unit.
+    - apply finite_sum. exact IHm1. exact IHm2.
+  Defined.
+End Magma.
+
+  
+
+
+Section Restrict_Equivalence.
+  (* This is just copied from fin_equiv_hfiber, but I wanted it as its own result *)
+
+  (* My doing: One of the Fin n's is generalized. *)
+  Local Lemma is_inl_restrict_equiv_notfixlast {n : nat} {A : Type}
+        (e : A+Unit <~> Fin n.+1) (y : Fin n) (p : e (inr tt) = inl y) :
+    forall a : A, is_inl ((fin_transpose_last_with n (inl y) oE e) (inl a)).
+  Proof.
+    intro a. ev_equiv.
+    assert (q : inl y <> e (inl a))
+      by exact (fun z => inl_ne_inr _ _ (equiv_inj e (z^ @ p^))).
+    set (z := e (inl a)) in *.
+    destruct z as [z|[]].
+    - rewrite fin_transpose_last_with_rest;
+        try exact tt; try assumption.
+    - rewrite fin_transpose_last_with_last; exact tt.
+  Qed.
+
+  Local Lemma is_inr_restrict_equiv_notfixlast {n : nat} {A : Type}
+        (e : A + Unit <~> Fin n.+1) (y : Fin n) (p : e (inr tt) = inl y) :
+    forall b : Unit, is_inr ((fin_transpose_last_with n (inl y) oE e) (inr b)).
+  Proof.
+    intros []. ev_equiv.
+    rewrite p.
+    rewrite fin_transpose_last_with_with; exact tt.
+  Qed.
+
+  Local Lemma is_inl_restrict_equiv_last_fixed {A B: Type} (e : A + Unit <~> B + Unit) (p : e (inr tt) = inr tt)
+    : forall a : A, is_inl (e (inl a)).
+  Proof.
+    intro a.
+    destruct (is_inl_or_is_inr (e (inl a))) as [l|r].
+    - exact l.
+    - assert (q := inr_un_inr (e (inl a)) r).
+      apply moveR_equiv_V in q.
+      assert (s := q^ @ ap (e^-1 o inr) (path_unit _ _) @ (moveL_equiv_V _ _ p)^).
+      elim (inl_ne_inr _ _ s).
+  Qed.
+
+  Local Lemma is_inr_restrict_equiv_last_fixed {A B : Type} (e : A+Unit <~> B+Unit) (p : e (inr tt) = inr tt) :
+    forall b : Unit, is_inr (e (inr b)).
+  Proof.
+    intros []; exact (p^ # tt).
+  Defined.
+
+  Definition equiv_restrict {n : nat} {A : Type} (e : A+Unit <~> Fin n.+1) :  A<~> Fin n.
+  Proof.
+    simpl in e.
+    recall (e (inr tt)) as y eqn:p.
+    assert (p' := (moveL_equiv_V _ _ p)^).
+    destruct y as [y | []].
+    (*  *)
+    - apply (equiv_unfunctor_sum_l (fin_transpose_last_with n (inl y) oE e)).
+      + apply is_inl_restrict_equiv_notfixlast. exact p.
+      + apply is_inr_restrict_equiv_notfixlast. exact p.
+    - apply (equiv_unfunctor_sum_l e (is_inl_restrict_equiv_last_fixed e p) (is_inr_restrict_equiv_last_fixed e p)).
+  Defined.
+End Restrict_Equivalence.
+
       
 
 

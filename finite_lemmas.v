@@ -427,7 +427,20 @@ Section Finite_Subsets.
     exists I. exists (a o b). apply compose_embedding. exact emb_b. exact emb_a.
   Defined.
 
-  Definition compliment {n k : nat} {A : Finite_Types n} :
+  Definition include_subset_in_last {n k : nat} {A : Finite_Types n} {B : Finite_Subsets k A} :
+    B -> A.
+  Proof.
+    exact B.2.1.
+  Defined.
+
+  Coercion include_subset_in_last : Finite_Subsets >-> Funclass.
+
+  (* Definition check (n k: nat) (A : Finite_Types n) (B : Finite_Subsets k A): B -> A. apply B. *)
+  
+
+  
+
+  Definition compliment {n k : nat} (A : Finite_Types n) :
     Finite_Subsets k A -> Finite_Subsets (n - k) A.
   Proof.
     intros [B [f embf]].
@@ -441,7 +454,7 @@ Section Finite_Subsets.
   Defined.
 
   Definition equiv_sum_compliment {n k : nat} {A : Finite_Types n} (B : Finite_Subsets k A) :
-    B + (compliment B) <~> A.
+    B + (compliment A B) <~> A.
   Proof.
     destruct B as [B [f embf]]. simpl.
     refine ((split_range B A f embf)^-1 oE _).
@@ -453,7 +466,7 @@ Section Finite_Subsets.
       Finite_Subsets n A.
   Proof.
     srapply @exist.
-    exists (B + (compliment B)). srapply @finite_eq_fcard.
+    exists (B + (compliment A B)). srapply @finite_eq_fcard.
     change (fcard (Fin n)) with (fcard A).
     apply fcard_equiv'. apply equiv_sum_compliment.
     exists (equiv_sum_compliment B).

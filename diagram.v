@@ -10,21 +10,13 @@ Proof.
   apply (equiv_functor_sigma' equiv_idmap). intro x. simpl.
   apply equiv_ap'.
 Defined.
-  
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+Definition equiv_functor_sigma_id2 {A B : Type} (P : A -> Type) (e : A <~> B) : 
+  {a : A & P a} <~> {b : B & P (e^-1 b)}.
+Proof.
+  apply (equiv_functor_sigma' e). intro a. 
+  apply equiv_transport. apply inverse. apply eissect.
+Defined.
 
 Section Directed_Diagram.
   (* Directed diagram *)
@@ -207,12 +199,174 @@ Section Cubical_Diagram.
       intros [I1 [x0 x1]]. reflexivity.
     Defined.
 
-    Variable X : A -> Type.
-    Definition prod_diag (k : nat) : (d : Cube_Diagram k & forall x : P k.+1 A, Cube_Ind k d x <~> (forall a : (A_minus_I), X (a)).
+    Arguments compliment : simpl never.
+
+    Variable X : A -> pType.
+
+    Definition prod_diag_step1 {k : nat}
+               (d_k : Cube_Diagram k)
+               (ind_k : forall I1 : P k.+1 A,
+                   Cube_Ind k d_k I1 <~> {I : P k I1 & {x : forall a : A, X a & forall a : I, x (I1 (I a)) = point (X (I1 (I a)))}}) :
+      forall I1 : P k.+1 A, Cube_Ind k d_k I1 -> Type.
+    Proof.
+      intro I1.
+      apply (equiv_precompose' (ind_k I1)).
+      intros [I [x p]].
+      exact (forall a : compliment I1 I,
+                x (I1 ((compliment I1 I) a)) = point (X (I1 ((compliment I1 I) a)))).
+    Defined.
+
+    
+
+    Definition prod_diag_step2 {k : nat}
+               (d_k : Cube_Diagram k)
+               (ind_k : forall I1 : P k.+1 A,
+                   Cube_Ind k d_k I1 <~> {I : P k I1 & {x : forall a : A, X a & forall a : I, x (I1 (I a)) = point (X (I1 (I a)))}})
+               (I1 : P k.+1 A)
+               (x : Cube_Ind k d_k I1)
+      : prod_diag_step1 d_k ind_k I1 x <~>
+        forall (a : compliment I1 (ind_k I1 x).1),
+          (ind_k I1 x).2.1 (I1 ((compliment I1 (ind_k I1 x).1) a)) = point (X (I1 ((compliment I1 (ind_k I1 x).1) a))).        
+    Proof.
+      destruct (eissect (ind_k I1) x). (*       destruct (ind_k I1 x) as [I [y p]].  *)
+      unfold prod_diag_step1. simpl.
+      destruct (eisretr (ind_k I1) (ind_k I1 x))^. reflexivity.
+    Defined.
+    
+
+    (* Definition prod_diag_step2 {k : nat} *)
+    (*            (d_k : Cube_Diagram k) *)
+    (*            (ind_k : forall I1 : P k.+1 A, *)
+    (*                Cube_Ind k d_k I1 <~> {I : P k I1 & {x : forall a : A, X a & forall a : I, x (I1 (I a)) = point (X (I1 (I a)))}}) *)
+    (*            (I1 : P k.+1 A) *)
+    (*            (x : {I : P k I1 & {x : forall a : A, X a & forall a : I, x (I1 (I a)) = point (X (I1 (I a)))}}) *)
+    (*   : (forall (a : compliment I1 x.1), x.2.1 (I1 ((compliment I1 x.1) a)) = point (X (I1 ((compliment I1 x.1) a)))) *)
+    (*                                                                                <~> *)
+    (*     prod_diag_step1 d_k ind_k I1 ((ind_k I1)^-1 x). *)
+        
+    (* Proof. *)
+    (*   destruct x as [I [x p]]. unfold prod_diag_step1. simpl. *)
+    (*   destruct (eisretr (ind_k I1) (I; (x;p)))^. simpl. reflexivity. *)
+    (* Defined. *)    
+    
+    Definition prod_diag (k : nat) : 
+      {d : Cube_Diagram k & 
+           forall  (I1 : P k.+1 A),
+             Cube_Ind k d I1 <~> {I : P k I1 & {x : forall a : A, X a & forall a : I, x (I1 (I a)) = point (X (I1 (I a)))}}}.
+    Proof.
+      induction k.
+      - exists (forall a : A, X a). unfold Cube_Ind. simpl. intro I1. admit.
+      - destruct IHk as [d_k ind_k].
+        change (Cube_Diagram k.+1) with
+        {d : Cube_Diagram k & 
+             forall (I1 : P (k.+1) A), Cube_Ind k d I1 -> Type}.
+        change (Cube_Ind k.+1) with
+        (fun (d : Cube_Diagram k.+1) (I2 : P k.+2 A)  =>
+           {I1 : P (k.+1) I2 & {x : Cube_Ind k d.1 (include_subset I1) & d.2 (include_subset I1) x}}). simpl.
+        srapply @exist.
+        + exists d_k. exact (prod_diag_step1 d_k ind_k).
+        + intro I2. apply equiv_functor_sigma_id.
+          intro I1. simpl.
+          refine (_ oE equiv_functor_sigma_id (prod_diag_step2 d_k ind_k (include_subset I1))).
+          refine (_ oE (equiv_functor_sigma_id2 _ (ind_k (include_subset I1))) ).
+          transitivity {x : forall a : A, X a & {I : P k (include_subset I1) &
+                              {p : forall a : I, x ((include_subset I1) (I a)) = point (X ((include_subset I1) (I a))) &
+                 forall a : compliment (include_subset I1) I,
+                   x ((include_subset I1) ((compliment (include_subset I1) I) a)) =
+                   point (X ((include_subset I1) ((compliment (include_subset I1) I) a)))  }}}. admit.
+          transitivity 
+
+          
+          { srapply @equiv_adjointify.
+            - intros [[I [x p]]]. simpl. intro q. exists x. exists I. exists p.
+              intros [a fib].
+              intro.
+              
+              destruct (eisretr (ind_k (include_subset I1)) (I; (x;p)))^ in q.
+
+              
+
+          
+          simpl.
+          
+          srefine (_ oE (equiv_functor_sigma' (ind_k (include_subset I1)) (prod_diag_step2 d_k ind_k (include_subset I1)))).
+          
+          
+          transitivity {b
+                        : {I : P k (include_subset I1) &
+                               {x : forall a : A, X a & forall a : I, x ((include_subset I1) (I a)) = point (X ((include_subset I1) (I a)))}} &
+                          prod_diag_step d_k ind_k (include_subset I1) ((ind_k (include_subset I1))^-1 b)}
+
+          
+          destruct (eisretr (Ind_k (include_subset I1)) (I; (x;p)))^.
+          
+          
+          set (P : {I : P k (include_subset I1) &
+                        {x : forall a : A, X a & forall a : I, x ((include_subset I1) (I a)) = point (X ((include_subset I1) (I a)))}} -> Type
+               := fun z => 
+
+          
+          
+          srapply @equiv_adjointify.
+          { intros [[I [x p]] I0].
+            exists x.
+            destruct ^ in I0. simpl in I0.
+
+
+
+
+
+
+
+
+
+
+
+
+            
+            cut (forall a : (I + (compliment (include_subset I1) I)), blah
+
+            clear Ind_k.
+            
+            cut (forall a : (I
+
+            
+            destruct I1 as [I1 [f1 emb1]]. simpl. destruct I2 as [I2 [f2 emb2]]. simpl in I0.          
+            
+
+            intros.
+            intro.
+
+          
+          destruct (Ind_k (include_subset I1)). simpl. 
+          
+
+          
+          
+          
+          
+          refine (_ oE (equiv_functor_sigma' (Ind_k (include_subset I)) (fun c => equiv_idmap))).
+           
+
+           
+
+           intro x.
+           apply (Ind_k
+      
+
+      {I1 : P (k.+1) I & {x : Cube_Ind k d.1 (include_subset I1) & d.2 (include_subset I1) x}}
+      
+      
+      exists IHk. intro I1.
+
+
+
+      (d : Cube_Diagram k & forall x : P k.+1 A). ,
+                                          Cube_Ind k d x <~> (forall a : (A_minus_I), X (a)).
     Proof.
       induction k.
       exact (forall a : A, X a).
-      change (Cube_Diagram k.+1) with 
+      
                              
 
   

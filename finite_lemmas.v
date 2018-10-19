@@ -13,7 +13,7 @@ Proof.
   srapply @trunc_succ.
   apply fcontr_isequiv. exact isequiv_f.
 Defined.
-  
+
 
 (* The type of decidable propositions is finite *)
 Global Instance finite_dprop : Finite DProp.
@@ -269,6 +269,25 @@ Section Factorize_Monomorphism.
     - destruct l; reflexivity.
     - simpl. exact IHk.
   Qed.
+
+  Lemma leq_0 (k : nat) : k <= 0 -> k = 0.
+  Proof.
+    intro p. apply path_nat.
+    destruct k; exact p.
+  Defined.
+
+  Fixpoint minus_minus (n k : nat) :
+    (k <= n) -> n - (n - k) = k.
+  Proof.
+    destruct n. simpl. intros p. apply inverse. apply (leq_0 k p).
+    destruct k. simpl. intro t. apply path_nat. apply subnn.
+    intro p. simpl.
+    refine (_ @ ap S (minus_minus n k p)). destruct (n - k).  admit. simpl.
+    destruct n. reflexivity. destruct k. simpl.
+    
+    simpl.
+
+    unfold leq. simpl.
   
   Definition fcard_compliment : fcard {b : B & not (hfiber f b)} = (fcard B) - (fcard A).
   Proof.
@@ -490,6 +509,12 @@ Section Finite_Subsets.
     destruct (detachable_image_finite f a) as [[a' p] |]. exact p.
     simpl. reflexivity.
   Defined.
+
+  Definition equiv_compliment {n k : nat} {A : Finite_Types n} :
+      IsEquiv (@compliment n k A).
+  Proof.
+    srapply @isequiv_adjointify.
+    
     
 
 

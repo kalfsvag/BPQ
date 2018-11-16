@@ -1,6 +1,42 @@
-Require Import HoTT.
+Require Import HoTT. 
 (* Require Import Utf8. *)
 Require Import finite_lemmas.
+
+(* Definition fin := {n : nat & Finite_Types n}. *)
+(* Definition fin_type_of : fin -> Type := fun A => pr1 (pr2 A). *)
+(* Coercion fin_type_of : fin >-> Sortclass. *)
+(* Definition P (k : nat) (A : fin) := {B : Finite_Types k & Embedding B A}. *)
+
+Record Type_of_Cubical_Diagram : Type :=
+  {D : forall {n : nat}, Finite_Types n -> Type;
+   L : forall {n : nat} (I : Finite_Types n), D I -> Type;
+   R : forall {m n : nat} {I : Finite_Types m} (J : Finite_Subsets n I), D I -> D J;
+   r : forall {m n : nat} {I : Finite_Types m} {J : Finite_Subsets n I} {F : D I}, L I F -> L J (R J F)}.              
+
+Definition Cubical_Diagram (k : nat) : Type_of_Cubical_Diagram.
+Proof.
+  induction k.
+  - srapply @Build_Type_of_Cubical_Diagram.
+    + intros n I. exact Type.
+    + simpl. intros n I. exact idmap.
+    + simpl. intros m n I J. exact idmap.
+    + simpl. intros m n I J F. exact idmap.
+  - srapply @Build_Type_of_Cubical_Diagram.
+    + intros n I.
+      exact {F : D IHk I & forall (K : Finite_Subsets (k.+1) I), L IHk K (R IHk K F) -> Type}.
+    + simpl. intros n I.
+      intros [F G].
+      exact {x : L IHk I F & forall (K : Finite_Subsets (k.+1) I), G K (r IHk x)}.
+    + simpl. intros m n I J.
+      intros [F G].
+      exists (R IHk J F). intros K x.
+      apply (G (include_subset K)). 
+      apply (r IHk). Check (r IHk x).
+      
+
+
+
+
 
 (* Move to equiv_lemmas *)
 Definition hfiber_compose_equiv (X Y1 Y2 : Type) (e : Y1 <~> Y2) (f : X -> Y1) (y : Y1):
@@ -115,6 +151,20 @@ Section Directed_Diagram.
 
   Definition chain_to_dia (k : nat) : chain k <~> dDiagram k
     := pr1 (chain_to_dia' k).
+
+  Definition eq_chain_dia' (k : nat) : chain' k = dDiagram' k.
+  Proof.
+    srapply @path_sigma.
+    - apply path_universe_uncurried. apply chain_to_dia.
+      
+    - refine (transport_exp Type _ _ (chain_to_dia k) _ @ _).
+      apply path_arrow. intro d. apply path_universe_uncurried.
+      refine (_ oE (chain_to_dia' k).2 ((chain_to_dia k)^-1 d)). simpl.
+      unfold Ind.
+      apply equiv_transport.
+      apply eisretr.
+  Defined.
+    
 
 End Directed_Diagram.
 

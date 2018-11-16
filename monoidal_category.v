@@ -1,6 +1,9 @@
 Require Import HoTT.
 Require Import UnivalenceAxiom.
-Load stuff.
+Load sigma_lemmas.
+Load trunc_lemmas.
+  
+(* Load stuff. *)
 
 
 Require Import Functor Category.
@@ -448,6 +451,7 @@ Section Group_Completion.
   Defined.
 
 
+
   (* Must I start with everything reduced for the notation to be readable? *)
   Definition equiv_group_completion_morph (a b : M*M) (f g : group_completion_morph a b) :
     f = g <~> {alpha : f.1 --> g.1 & f.2 = g.2 o ((diag _1 alpha) +^+ 1)}.
@@ -534,10 +538,10 @@ Section Group_Completion.
     apply (trunc_equiv' {alpha : f.1 --> g.1 & f.2 = g.2 o (pair_1 (alpha +^ 1) (alpha +^ 1))}).
      refine (equiv_inverse (equiv_group_completion_morph a b f g)).
     destruct a as [a1 a2]. destruct b as [b1 b2].
-    destruct f as [s f]. destruct g as [t g]. (* simpl in f1, f2, g1, g2. *)
+    destruct f as [s f]. destruct g as [t g]. (* simpl in f1, f2, g1, g2. *) simpl.
     apply trunc_sigma'.
     - intro alpha. exact _.
-    - intros [e H] [e' H']. simpl in e, H, e', H'. 
+    - intros [e H] [e' H']. simpl in e, H, e', H'. simpl.
       apply contr_inhabited_hprop. exact _. simpl.
       srapply @cancellation_M. exact a1.
       destruct (H'^). clear H'.

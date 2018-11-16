@@ -1,5 +1,22 @@
 Require Import HoTT.
 
+Definition distributivity `{Funext} (A : Type) (B : A -> Type) (C : forall a : A, B a -> Type) :
+  (forall a : A, {b : B a & C a b}) <~> {b : forall a : A, B a & forall a : A, C a (b a)}.
+Proof.
+  srapply @equiv_adjointify.
+  - intro x.
+    exists (fun a : A => (x a).1). exact (fun a : A => (x a).2).
+  - intro x.
+    intro a.
+    exists (x.1 a). exact (x.2 a).
+  - intros [b c]. simpl. reflexivity.
+  - intro. simpl. apply path_forall. intro a.
+    srapply @path_sigma; reflexivity.
+Defined.
+  
+
+
+
 
 
 Lemma equiv_sigma_sum' (A : Type) (B C : A -> Type) :

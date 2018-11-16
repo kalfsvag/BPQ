@@ -1,14 +1,9 @@
 Require Import HoTT.
 Require Import UnivalenceAxiom.
-Load stuff.
+Load finite_lemmas.
+Load equiv_lemmas.
+Load path_lemmas.
 
-Definition ap011_pp_pp {A B C : Type} (f : A -> B -> C) {x x' x'' : A} {y y' y'' : B}
-           (p : x = x') (p' : x' = x'') (q : y = y') (q' : y' = y'') :
-  ap011 f (p @ p') (q @ q') = ap011 f p q @ ap011 f p' q'.
-Proof.
-  by path_induction.
-  (* destruct p, p', q, q'. exact idpath. *)
-Qed.
 
 Section Finite.
   (*Fin respects sum*)
@@ -28,55 +23,10 @@ Section Finite.
 
   Definition trivial_equiv_fin (m n : nat) : m = n -> (Fin m) <~> (Fin n).
   Proof.
-    intro p. induction p. exact equiv_idmap.
+    intros []. reflexivity.
   Defined.
-
   (* Definition trivial_is_idmap {m : nat} : trivial_equiv_fin m m idpath  *)
 End Finite.
-
-
-Section Equiv.
-  (*Cancellation of equivalences*)
-  (*Is there anything to get from saying that g and h are equicalences?*)
-
-  
-
-  (* Definition ewhiskerL {A B C : Type} (f : A -> B) {isequiv_f : IsEquiv f} (g h : B -> C) : *)
-  (*   g = h -> g o f = h o f. *)
-  (* Proof. *)
-  (*   intro p. *)
-  (*   apply path_arrow. *)
-  (*   intro a. *)
-  (*   refine (ap (g o f) (eissect f a)^ @ _ @ ap (h o f) (eissect f a)). *)
-     
-  
-  Definition ecancelL {A B C : Type} (f : A -> B) {isequiv_f : IsEquiv f} (g h : B -> C) :
-    g o f = h o f -> g = h.
-  Proof.
-    intro p.
-    apply path_arrow.
-    intro b.
-    refine (ap g (eisretr f b)^ @ _ @ ap h (eisretr f b)).
-    exact (ap10 p (f^-1 b)).
-  Defined.
-
-  Definition ecancelR {A B C : Type} (f g : A -> B) (h : B -> C) {isequiv_h : IsEquiv h} :
-    h o f = h o g -> f = g.
-  Proof.
-    intro p.
-    apply path_arrow.
-    intro a.
-    refine ((eissect h (f a))^ @ _ @ (eissect h (g a))).
-    exact (ap (h^-1) (ap10 p a)).
-  Defined.
-
-  Definition equiv_functor_sum_1 {A B : Type} : @equiv_idmap A +E @equiv_idmap B = equiv_idmap.
-  Proof.
-    apply path_equiv. apply path_arrow. intros [a | b]; reflexivity.
-  Defined.
-
-
-End Equiv.
 
         
 (*Defining the type of monoidal 1-Types (this corresponds to a monoidal category*)
@@ -101,200 +51,347 @@ Section Monoidal_1Type.
     forall a b : A,
       assoc a e b @ ap (fun c => m c b) (rid a) = ap (m a) (lid b).
 
-  Definition coherence_pentagram {A : Type} {m : A -> A -> A} (assoc : associative m) :=
+  Definition coherence_pentagon {A : Type} {m : A -> A -> A} (assoc : associative m) :=
     forall a b c d : A,
       assoc a b (m c d) @ assoc (m a b) c d =
       ap (m a) (assoc b c d) @ assoc a (m b c) d @ ap (fun f => m f d) (assoc a b c).
 
-
-  Record Monoidal_1Type : Type := { mon_type :> Type;
-                                    mon_istrunc : IsTrunc 1 mon_type;
+  Record Monoidal_1Type : Type := { mon_type :> 1-Type;
+                                    (* mon_istrunc : IsTrunc 1 mon_type; *)
                                     mon_mult  : mon_type->mon_type->mon_type;
                                     mon_id : mon_type;
                                     mon_assoc : associative mon_mult;
                                     mon_lid : left_identity mon_mult mon_id ;
                                     mon_rid : right_identity mon_mult mon_id ;
                                     mon_triangle : coherence_triangle mon_assoc mon_lid mon_rid ;
-                                    mon_pentagram : coherence_pentagram mon_assoc
+                                    mon_pentagon : coherence_pentagon mon_assoc
                                   }.
 
   (*Makes mon_istrunc an implicit argument*)
   Global Arguments
-         Build_Monoidal_1Type mon_type {mon_istrunc} mon_mult mon_id mon_assoc mon_lid mon_rid
-         mon_triangle mon_pentagram.
-
+         Build_Monoidal_1Type mon_type (* {mon_istrunc} *) mon_mult mon_id mon_assoc mon_lid mon_rid
+         mon_triangle mon_pentagon.
+  
   Global Arguments mon_mult {m} m1 m2.
-  Global Arguments mon_assoc {m} {a} {b} {c}.
+  Global Arguments mon_id {m}.
+  Global Arguments mon_assoc {m} a b c.
   Global Arguments mon_lid {m} a.
   Global Arguments mon_rid {m} a.
-
-
-  Notation "a + b" := (mon_mult a b) : monoid_scope.
-
+  
+  Infix "⊗" := mon_mult (at level 50,no associativity). 
 
   (*Todo: Define symmetric monoidal category (check coherence criteria)*)
   Definition symmetric {A : Type} (m : A->A->A) := forall a b : A, m a b = m b a.
 
+  Record Monoidal_Map (M N : Monoidal_1Type) :=
+    {mon_map :> M -> N;
+     mon_map_mult (x y : M) : mon_map (x ⊗ y) = (mon_map x) ⊗ (mon_map y);
+     mon_map_id : mon_map (mon_id) = mon_id;
+     mon_map_assoc (x y z : M) :
+       ap mon_map (mon_assoc x y z) @ mon_map_mult (x ⊗ y) z @ ap (fun s => s ⊗ mon_map z) (mon_map_mult x y)=
+       mon_map_mult x (y ⊗ z) @ ap (fun s => mon_map x ⊗ s) (mon_map_mult y z) @ mon_assoc (mon_map x) (mon_map y) (mon_map z);
+     mon_map_lid (x : M) : ap mon_map (mon_lid x) =
+                           mon_map_mult mon_id x @ ap (fun s => s ⊗ mon_map x) mon_map_id @ mon_lid (mon_map x);
+     mon_map_rid (x : M) : ap mon_map (mon_rid x) =
+                           mon_map_mult x mon_id @ ap (fun s => mon_map x ⊗ s) mon_map_id @ mon_rid (mon_map x);
+    }.
 
+  Definition monoidal_map_id (M : Monoidal_1Type) : Monoidal_Map M M.
+  Proof.
+    srapply (Build_Monoidal_Map M M idmap); try reflexivity.
+    intros. rewrite ap_idmap. repeat rewrite concat_p1. apply inverse. apply concat_1p.
+  Defined.
+  
+  Definition monoidal_map_compose (M N O : Monoidal_1Type) :
+    Monoidal_Map M N -> Monoidal_Map N O -> Monoidal_Map M O.
+  Proof.
+    intros F G.
+    srapply @Build_Monoidal_Map.
+    - exact (G o F).
+    - intros x y.
+      transitivity (G (F x ⊗ F y)).
+      + apply (ap G). apply mon_map_mult.
+      + apply mon_map_mult.
+    - transitivity (G mon_id).
+      + apply (ap G). apply mon_map_id.
+      + apply mon_map_id.
+    - intros. simpl.
+      
+      
+      
+    - intro x. simpl.
+      transitivity (ap G (ap F (mon_lid x))).
+      { apply (ap_compose F G). }
+      refine ( ap (ap G) (mon_map_lid _ _ F x) @ _).
+      refine (ap_pp G _ _ @ _).
+      refine (ap (fun p => p @ ap G (mon_lid (F x))) (ap_pp G _ _) @ _).
+      refine (whiskerL _ (mon_map_lid _ _ G (F x)) @ _).
+      repeat refine (concat_p_pp _ _ _ @ _). apply whiskerR.
+      repeat refine (concat_pp_p _ _ _ @ _).
+      repeat refine (_ @ concat_p_pp _ _ _). apply whiskerL.
+      refine (_ @ whiskerL _ (ap_pp (fun s : O => s ⊗ G (F x)) _ _)^).
+      repeat refine (_ @ concat_pp_p _ _ _).
+      repeat refine (concat_p_pp _ _ _ @ _). apply whiskerR.
+      refine (whiskerR (ap_compose _ G (mon_map_id M N F))^ _ @ _).
+      refine (_ @ whiskerL _ (ap_compose G _ (mon_map_id M N F))).
+      destruct (mon_map_id M N F). cbn.
+      exact (concat_1p _ @ (concat_p1 _)^).
+    - intro x. simpl.
+      transitivity (ap G (ap F (mon_rid x))).
+      { apply (ap_compose F G). }
+      refine ( ap (ap G) (mon_map_rid _ _ F x) @ _).
+      refine (ap_pp G _ _ @ _).
+      refine (ap (fun p => p @ ap G (mon_rid (F x))) (ap_pp G _ _) @ _).
+      refine (whiskerL _ (mon_map_rid _ _ G (F x)) @ _).
+      repeat refine (concat_p_pp _ _ _ @ _). apply whiskerR.
+      repeat refine (concat_pp_p _ _ _ @ _).
+      repeat refine (_ @ concat_p_pp _ _ _). apply whiskerL.
+      refine (_ @ whiskerL _ (ap_pp (fun s : O => G (F x) ⊗ s) _ _)^).
+      repeat refine (_ @ concat_pp_p _ _ _).
+      repeat refine (concat_p_pp _ _ _ @ _). apply whiskerR.
+      refine (whiskerR (ap_compose _ G (mon_map_id M N F))^ _ @ _).
+      refine (_ @ whiskerL _ (ap_compose G _ (mon_map_id M N F))).
+      destruct (mon_map_id M N F). cbn.
+      exact (concat_1p _ @ (concat_p1 _)^).
+      
+            
+      refine (whiskerR (whiskerL _ ^) _ @ _).
+      
+      refine (_ @ whiskerR (whiskerL _ (whiskerR (ap_compose _ G (mon_map_id M N F))^ _)) _).
+
+      
+      rewrite (mon_map_lid _ _ G (F x)).
+      repeat rewrite (concat_pp_p).
+      apply whiskerL.
+      repeat rewrite (concat_p_pp).
+      apply whiskerR.
+      rewrite (ap_pp (fun s : O => s ⊗ G (F x))).
+      repeat rewrite (concat_p_pp).
+      apply whiskerR. 
+      rewrite (ap_pp G).
+
+      
+
+      Lemma test:
+        forall (M N O : Monoidal_1Type) (F : Monoidal_Map M N) (G : Monoidal_Map N O) (x : M),
+          ap G (ap (fun s : N => s ⊗ F x) (mon_map_id M N F)) @ mon_map_mult N O G mon_id (F x) =
+          mon_map_mult N O G (F mon_id) (F x) @ ap (fun s : O => s ⊗ G (F x)) (ap G (mon_map_id M N F)).
+      Proof.
+        
+
+
+
+      repeat rewrite (concat_p_pp). apply 
+      
+      apply concat2.
+
+      
+      
+      
+
+
+      admit.
+    - intro x. admit.
+    
+
+  (* Given a 1-Type X, the type X->X is a monoidal 1-type *)
+  Definition endofunctor (X : 1-Type) : Monoidal_1Type.
+  Proof.
+    srapply @Build_Monoidal_1Type.
+    - apply (BuildTruncType 1 (X -> X)).
+    - intros f g. exact (f o g).
+    - cbn. exact idmap.
+    - cbn. unfold associative. reflexivity.
+    - cbn. unfold left_identity. reflexivity.
+    - cbn. unfold right_identity. reflexivity.
+    - unfold coherence_triangle. cbn. reflexivity.
+    - unfold coherence_pentagon. cbn. reflexivity.
+  Defined.
+
+  Definition monoidal_action (M : Monoidal_1Type) (X : 1-Type) := Monoidal_Map M (endofunctor X).
+  Definition mon_act_mult {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X)
+             (m1 m2 : M) (x : X) :
+    a (m1 ⊗ m2) x = a m1 (a m2 x).
+  Proof.
+    revert x. apply ap10. apply (mon_map_mult _ _ a).
+  Defined.
+
+  Definition mon_act_id {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X)
+             (x : X) :
+    a (mon_id) x = x.
+  Proof.
+    revert x. apply ap10. apply (mon_map_id _ _ a).
+  Defined.
+
+  (* Todo: mon_act_assoc, mon_act_lid, mon_act_rid *)
+
+  (* Definition left_cancellation_monoid (M : Monoidal_1Type) := left_cancellation (@mon_mult M). *)
+
+End Monoidal_1Type.
+
+Section Group_Completion.
+  Require Import HoTT.Categories.
+  (* If we have a monoidal action with left_cancellation, we can build a category with objects X and arrows*)
+  (* {m : M & m ⊗ x = m ⊗ y} *)
+  Definition monoidal_action_morphism (M : Monoidal_1Type) (X : 1-Type) (a : monoidal_action M X) :
+    (X -> X -> Type) := fun x y => {s : M & a s x = y}.
+  
+  Definition monoidal_action_cat (M : Monoidal_1Type) (X : 1-Type) (a : monoidal_action M X) : PreCategory.
+  Proof.
+    srapply (Build_PreCategory (monoidal_action_morphism M X a)).
+    (* identity *)
+    - intro x. exists mon_id. apply mon_act_id.
+    - intros x y z. 
+      apply (ap01 (mon_map_id a)).
+      
+    
+  
 
 (*Defining the monoidal 1-type of finite sets and isomorphisms*)
-Section iFin_1Type.
+Section BΣ.
   (*This type corresponds to the category of finite sets and isomorphisms*)
-  Local Notation "'iFin'" := { S : Type & Finite S }.
+  Definition BΣ := { S : Type & Finite S}.
+  Definition path_BΣ (S T : BΣ) : S.1 <~> T.1 -> S = T
+    := path_finite_types_sum S T.
+  
+  (* Local Notation "'iFin'" := { S : Type & Finite S }. *)
 
-  (*Finite types are sets *)
-  Definition isset_Fin (n : nat) : IsHSet (Fin n).
-  Proof.
-    induction n.
-    - exact _.
-    - apply hset_sum.
-  Defined.
+  (* (*Finite types are sets *) *)
+  (* Definition isset_Fin (n : nat) : IsHSet (Fin n). *)
+  (* Proof. *)
+  (*   induction n. *)
+  (*   - exact _. *)
+  (*   - apply hset_sum. *)
+  (* Defined. *)
 
-  Definition isset_Finite (A : Type) :
-    Finite A -> IsHSet A.
-  Proof.
-    intros [m finA]. strip_truncations.
-    apply (trunc_equiv' (Fin m) finA^-1).
-  Defined.
+  (* Definition isset_Finite (A : Type) : *)
+  (*   Finite A -> IsHSet A. *)
+  (* Proof. *)
+  (*   intros [m finA]. strip_truncations. *)
+  (*   apply (trunc_equiv' (Fin m) finA^-1). *)
+  (* Defined. *)
     
   (*ishprop_finite*)
   (*path_sigma_hprop*)
   (*Could also go via [istrunc_trunctype] . . .*)
-  Definition istrunc_iFin : IsTrunc 1 iFin.
+  Definition istrunc_BΣ : IsTrunc 1 BΣ.
   Proof.
-    apply trunc_sigma'.
-    - exact (fun a => _).
-    - intros A B.
-      srapply @istrunc_paths_Type.
-      apply isset_Finite. exact B.2.
+    apply trunc_sigma'. intro A. exact _.
+    intros A B.
+    srapply @istrunc_paths_Type. 
+    apply isset_Finite. exact B.2.
   Defined.
 
   (*For convinience: Any type of 2-paths in sigma is thus an hprop.*)
-  Instance isprop_2path_iFin {S1 S2 : iFin} {p1 p2 : S1 = S2} : IsHProp (p1 = p2) :=
-    istrunc_iFin S1 S2 p1 p2.
+  Instance isprop_2path_BΣ {S1 S2 : BΣ} {p1 p2 : S1 = S2} : IsHProp (p1 = p2) :=
+    istrunc_BΣ S1 S2 p1 p2.
     
-  (*The cardinal of the finite set*)
-  Definition cardinal (S : iFin) : nat := @fcard S.1 S.2.
+  (* (*The cardinal of the finite set*) *)
+  Definition cardinal (S : BΣ) : nat := @fcard S.1 S.2.
 
-  (*Canonical objects in iFin*)
-  Local Notation "[ n ]" := ( Fin n ; finite_fin n ).
-
-
+  (*Canonical objects in BΣ*)
+  Definition canon_BΣ (n : nat) : BΣ := (Fin n; Build_Finite (Fin n) n (tr 1%equiv)).
+  Notation "[ n ]" := (canon_BΣ n).
   (*Holds by definition: [cardinal [n] = n]*)
 
   (*Every object is canonical*)
-  Lemma canonical_iFin (S : iFin) : merely (S = [cardinal S]).
+  Lemma canonical_BΣ (S : BΣ) : merely (S = [cardinal S]).
   Proof.
-    refine (Trunc_rec (n:=-1) (A := ( S.1 <~> Fin (fcard S.1))) _ _).
-    - intro e.
-      apply tr.
-      apply path_sigma_hprop.
-      exact (path_universe e). 
-    - apply merely_equiv_fin.
+    destruct S as [A [n eA]]. strip_truncations. apply tr.
+    apply path_BΣ. cbn. exact eA.
   Defined.
 
-  (*The monoidal structure on iFin*)
-  Definition plus_sigma : iFin-> iFin -> iFin.
+  (*The monoidal structure on BΣ*)
+  Definition plus_BΣ : BΣ -> BΣ -> BΣ.
   Proof.
     intros [S1 fin_S1] [S2 fin_S2].
     refine (S1 + S2 ; finite_sum _ _)%type.
   Defined.
 
-  Local Notation "S1 + S2" := (plus_sigma S1 S2).
+  Local Notation "S1 ⊕ S2" := (plus_BΣ S1 S2) (at level 50, no associativity).
 
   (*The canonical objects respect sum*)
-  Definition sum_canonical (m n : nat) : [m + n]%nat = [m] + [n].
+  Definition sum_canonical (m n : nat) : [m + n]%nat = [m] ⊕ [n].
   Proof.
-    apply path_sigma_hprop. simpl.
-    induction m. simpl.
-    apply (path_universe (sum_empty_l (Fin n))^-1).
-    simpl.
-    rewrite IHm.
-    rewrite (path_universe (equiv_sum_assoc (Fin m) (Fin n) Unit)).
-    rewrite (path_universe (equiv_sum_assoc (Fin m) Unit (Fin n))).
-    rewrite (path_universe (equiv_sum_symm (Fin n) Unit)). reflexivity.
-  Qed.
-
-
-  Definition iFin_assoc : associative plus_sigma.
+    apply path_BΣ.
+    apply Fin_resp_sum.
+  Defined.
+  
+  Definition BΣ_assoc : associative plus_BΣ.
   Proof.
     intros S1 S2 S3.
-    refine (path_sigma_hprop _ _ _).
-    srapply @path_universe.
-    apply equiv_sum_assoc. exact _.
+    apply path_BΣ. 
+    apply equiv_inverse.
+    apply equiv_sum_assoc. 
   Defined.
 
-  (*If the goal is truncated, add this as a hypothesis. (Can speed things up)*)
-  Ltac trunc_goal n :=
-    match goal with
-        | [ |- ?g] => assert (istrunc_goal : IsTrunc n g) by (exact _)
-    end.
+  (* (*If the goal is truncated, add this as a hypothesis. (Can speed things up)*) *)
+  (* Ltac trunc_goal n := *)
+  (*   match goal with *)
+  (*       | [ |- ?g] => assert (istrunc_goal : IsTrunc n g) by (exact _) *)
+  (*   end. *)
   
   
-  Ltac reduce_iFin :=
-    repeat match goal with
-             | [S : iFin |- _] => trunc_rewrite (canonical_iFin S);
-                                  destruct S as [S [?n H]];
-                                  unfold cardinal; cbn; clear H; clear S
-           end.
+  (* Ltac reduce_BΣ := *)
+  (*   repeat match goal with *)
+  (*            | [S : BΣ |- _] => trunc_rewrite (canonical_BΣ S); *)
+  (*                                 destruct S as [S [?n H]]; *)
+  (*                                 unfold cardinal; cbn; clear H; clear S *)
+  (*          end. *)
 
-  Ltac simple_reduce_iFin S :=
-    trunc_rewrite (canonical_iFin S);
-    destruct S as [S [?n H]];
-    unfold cardinal; cbn; clear H; clear S.
+  (* Ltac simple_reduce_BΣ S := *)
+  (*   trunc_rewrite (canonical_BΣ S); *)
+  (*   destruct S as [S [?n H]]; *)
+  (*   unfold cardinal; cbn; clear H; clear S. *)
     
 
-  (*A proof that sigma is merely associative, just using associativity of natural numbers*)
-  Definition merely_iFin_assoc : forall S1 S2 S3 : iFin, merely (S1 + (S2 + S3) = (S1 + S2) + S3).
+  (* (*A proof that sigma is merely associative, just using associativity of natural numbers*) *)
+  (* Definition merely_BΣ_assoc : forall S1 S2 S3 : BΣ, merely (S1 ⊕ (S2 ⊕ S3) = (S1 ⊕ S2) ⊕ S3). *)
+  (* Proof. *)
+  (*   intros [S1 [n1 fin1]] [S2 [n2 fin2]] [S3 [n3 fin3]]. *)
+  (*   (* strip_truncations. *) *)
+  (*   apply tr. *)
+  (*   refine (path_sigma_hprop _ _ _). simpl. *)
+  (*   apply (path_universe (equiv_sum_assoc S1 S2 S3)^-1). *)
+  (* Defined. *)
+  
+  Definition BΣ_lid : left_identity plus_BΣ ([0]).
   Proof.
-    intros [S1 [n1 fin1]] [S2 [n2 fin2]] [S3 [n3 fin3]].
-    (* strip_truncations. *)
-    apply tr.
-    refine (path_sigma_hprop _ _ _). simpl.
-    apply (path_universe (equiv_sum_assoc S1 S2 S3)^-1).
+    intro S. apply path_BΣ.
+    apply sum_empty_l.
   Defined.
   
-  Definition iFin_lid : left_identity plus_sigma ([0]).
+  Definition BΣ_rid : right_identity plus_BΣ ([0]).
   Proof.
-    intro S.
-    refine (path_sigma_hprop _ _ _).
-    exact (path_universe (sum_empty_l S.1)).
+    intro S. apply path_BΣ.
+    apply sum_empty_r.
   Defined.
 
-  Definition iFin_rid : right_identity plus_sigma ([0]).
+  Definition BΣ_symmetric : symmetric plus_BΣ. 
   Proof.
-    intro S.
-    refine (path_sigma_hprop _ _ _).
-    exact (path_universe (sum_empty_r S.1)).
+    intros S1 S2. apply path_BΣ. apply equiv_sum_symm.
   Defined.
 
-  Definition iFin_symmetric : symmetric plus_sigma. 
-  Proof.
-    intros S1 S2.
-    refine (path_sigma_hprop _ _ _).
-    exact (path_universe (equiv_sum_symm S1.1 S2.1)).
-  Defined.
-
-  (**A few lemmas proving that [cardinal : nat -> iFin] preserves the monoidal structure **)
+  (**A few lemmas proving that [cardinal : nat -> BΣ] preserves the monoidal structure **)
   (*[cardinal] respects sum*)
-  Definition sum_cardinal (S1 S2 : iFin) : cardinal (S1 + S2) = (cardinal S1 + cardinal S2)%nat.
+  Definition sum_cardinal (S1 S2 : BΣ) : cardinal (S1 ⊕ S2) = (cardinal S1 + cardinal S2)%nat.
   Proof.
     destruct S1 as [S1 fin1].
     destruct S2 as [S2 fin2].
     apply fcard_sum.
   Defined.
 
-  (*[cardinal] respects associativity*)
-  Lemma assoc_cardinal (S1 S2 S3 : iFin) :
-    ap cardinal (iFin_assoc S1 S2 S3) @ sum_cardinal (S1 + S2) S3 @
-       ap (fun n => (n + (cardinal S3))%nat) (sum_cardinal S1 S2)  =
-    sum_cardinal S1 (S2 + S3) @ ap (fun n => ((cardinal S1) + n)%nat) (sum_cardinal S2 S3) @
-                 plus_assoc (cardinal S1) (cardinal S2) (cardinal S3).
-  Proof.
-    destruct S1 as [S1 [n1 fin1]]. destruct S2 as [S2 [n2 fin2]]. destruct S3 as [S3 [n3 fin3]].
-    strip_truncations.
+  (* (*[cardinal] respects associativity*) *)
+  (* Lemma assoc_cardinal (S1 S2 S3 : BΣ) : *)
+  (*   ap cardinal (BΣ_assoc S1 S2 S3) @ sum_cardinal (S1 + S2) S3 @ *)
+  (*      ap (fun n => (n + (cardinal S3))%nat) (sum_cardinal S1 S2)  = *)
+  (*   sum_cardinal S1 (S2 + S3) @ ap (fun n => ((cardinal S1) + n)%nat) (sum_cardinal S2 S3) @ *)
+  (*                plus_assoc (cardinal S1) (cardinal S2) (cardinal S3). *)
+  (* Proof. *)
+  (*   destruct S1 as [S1 [n1 fin1]]. destruct S2 as [S2 [n2 fin2]]. destruct S3 as [S3 [n3 fin3]]. *)
+  (*   strip_truncations. *)
     
-    (* simple_reduce_iFin S1. simple_reduce_iFin S2. simple_reduce_iFin S3. *)
+    (* simple_reduce_BΣ S1. simple_reduce_BΣ S2. simple_reduce_BΣ S3. *)
     (* unfold iFin_assoc. simpl. *)
     (* rewrite (ap_compose (fun S : iFin => S.1) fcard). *)
     
@@ -306,37 +403,38 @@ Section iFin_1Type.
     (* - unfold plus_assoc. simpl. *)
     
     (* unfold cardinal. unfold fcard. cbn. unfold sum_cardinal. unfold iFin_assoc. simpl. *)
-  Abort.
+  
 
   
   (*TODO: How [cardinal] respects associativity and identity proofs *)
-  Definition iFin_triangle : coherence_triangle iFin_assoc iFin_lid iFin_rid.
+  Definition BΣ_triangle : coherence_triangle BΣ_assoc BΣ_lid BΣ_rid.
   Proof.
-    intros S1 S2.
-    trunc_rewrite (canonical_iFin S1). trunc_rewrite (canonical_iFin S2).
-    unfold iFin_assoc.
+    intros [S1 f1] [S2 f2]. unfold BΣ_assoc. unfold BΣ_rid. unfold BΣ_lid.
+    simpl. 
+    trunc_rewrite (canonical_BΣ S1). trunc_rewrite (canonical_BΣ S2).
+    unfold BΣ_assoc.
     simpl.
     (*This was messy.*) Abort.
 
-  (*Definition iFin_pentagram : coherence_pentagram iFin_triangle.*)
+  (*Definition BΣ_pentagon : coherence_pentagon BΣ_triangle.*)
 
-  Definition iFin_lcancel : forall S1 S2 S3 : iFin, S1 + S2 = S1 + S3 -> merely (S2 = S3).
+  Definition BΣ_lcancel : forall S1 S2 S3 : BΣ, S1 + S2 = S1 + S3 -> merely (S2 = S3).
   Proof.
     intros S1 S2 S3.
     intro pth.
-    trunc_rewrite (canonical_iFin S2).
-    trunc_rewrite (canonical_iFin S3).
+    trunc_rewrite (canonical_BΣ S2).
+    trunc_rewrite (canonical_BΣ S3).
     apply tr. apply (ap (fun n : nat => [n])).
     apply (nat_plus_cancelL (cardinal S1)).
     refine ((sum_cardinal S1 S2)^ @ _ @ sum_cardinal S1 S3).
     exact (ap cardinal pth).
   Defined.
 
-  Definition sigma_minus (A : iFin) (m n : nat) :
+  Definition sigma_minus (A : BΣ) (m n : nat) :
     A + [m] = [n] -> merely (A = [nat_minus m n]).
   Proof.
     intro p.
-    pose proof (canonical_iFin A) as q.
+    pose proof (canonical_BΣ A) as q.
     revert q.
     apply (Trunc_rec (A:= A = [cardinal A])). intro q. rewrite q. rewrite q in p. clear q.
     destruct A as [A [l H]].
@@ -347,7 +445,7 @@ Section iFin_1Type.
     (* - simpl. simpl in p. *)
     (* induction m; simpl. *)
     (* - refine (_ @ p). *)
-    (*   apply (iFin_rid [l])^ . *)
+    (*   apply (BΣ_rid [l])^ . *)
     (* - induction n. *)
     (*   +  *)
   Abort.
@@ -357,21 +455,21 @@ Section iFin_1Type.
     
 
   Definition unique_choice_groupcompletion_arrow (m n : nat) :
-    {A : iFin & A + [m] = [n]} -> Trunc 0 {A : iFin & A + [m] = [n]}.
+    {A : BΣ & A + [m] = [n]} -> Trunc 0 {A : BΣ & A + [m] = [n]}.
   Proof.
     intros [A p].
-    (* pose proof (iFin_lcancel  *)
+    (* pose proof (BΣ_lcancel  *)
 
     
     (* apply trunc_sigma'. *)
-    (* - intro A. apply (istrunc_iFin (A + [m]) [n]). *)
+    (* - intro A. apply (istrunc_BΣ (A + [m]) [n]). *)
     (* - intros [A p] [B q]. simpl. *)
     (*   unfold IsHProp. unfold IsTrunc_internal. *)
     (*   intros p1 q1. *)
     (*   srapply @BuildContr. *)
     (*   destruct q1. *)
-    (*   reduce_iFin. *)
+    (*   reduce_BΣ. *)
     Abort.  
   
 
-End iFin_1Type.
+End BΣ_1Type.

@@ -17,6 +17,13 @@ Proof.
   apply inverse2. exact (inverse (ap10_path_arrow f g q _)). exact (inverse (ap10_path_arrow f g q _)).
 Defined.
 
+Definition ap011_pp_pp {A B C : Type} (f : A -> B -> C) {x x' x'' : A} {y y' y'' : B}
+           (p : x = x') (p' : x' = x'') (q : y = y') (q' : y' = y'') :
+  ap011 f (p @ p') (q @ q') = ap011 f p q @ ap011 f p' q'.
+Proof.
+  by path_induction.
+  (* destruct p, p', q, q'. exact idpath. *)
+Qed.
 
 
 

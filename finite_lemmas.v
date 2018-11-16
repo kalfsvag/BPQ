@@ -5,15 +5,9 @@ Require Import equiv_lemmas.
 Require Import UnivalenceAxiom.
 
 
-(* To be moved *)
-Lemma equiv_is_embedding {A B : Type} (f : A -> B) {isequiv_f : IsEquiv f}
-  : IsEmbedding f.
-Proof.
-  unfold IsEmbedding. intro b.
-  srapply @trunc_succ.
-  apply fcontr_isequiv. exact isequiv_f.
-Defined.
-
+Definition Embedding (A B : Type) := {f : A -> B & IsEmbedding f}.
+Definition fun_of_emb (A B : Type) : Embedding A B -> (A -> B) := pr1.
+Coercion fun_of_emb : Embedding >-> Funclass.
 
 (* The type of decidable propositions is finite *)
 Global Instance finite_dprop : Finite DProp.
@@ -276,18 +270,18 @@ Section Factorize_Monomorphism.
     destruct k; exact p.
   Defined.
 
-  Fixpoint minus_minus (n k : nat) :
-    (k <= n) -> n - (n - k) = k.
-  Proof.
-    destruct n. simpl. intros p. apply inverse. apply (leq_0 k p).
-    destruct k. simpl. intro t. apply path_nat. apply subnn.
-    intro p. simpl.
-    refine (_ @ ap S (minus_minus n k p)). destruct (n - k).  admit. simpl.
-    destruct n. reflexivity. destruct k. simpl.
+  (* Fixpoint minus_minus (n k : nat) : *)
+  (*   (k <= n) -> n - (n - k) = k. *)
+  (* Proof. *)
+  (*   destruct n. simpl. intros p. apply inverse. apply (leq_0 k p). *)
+  (*   destruct k. simpl. intro t. apply path_nat. apply subnn. *)
+  (*   intro p. simpl. *)
+  (*   refine (_ @ ap S (minus_minus n k p)). destruct (n - k).  admit. simpl. *)
+  (*   destruct n. simpl. reflexivity. destruct k. simpl. *)
     
-    simpl.
+  (*   simpl. *)
 
-    unfold leq. simpl.
+  (*   unfold leq. simpl. *)
   
   Definition fcard_compliment : fcard {b : B & not (hfiber f b)} = (fcard B) - (fcard A).
   Proof.
@@ -446,13 +440,16 @@ Section Finite_Subsets.
     exists I. exists (a o b). apply compose_embedding. exact emb_b. exact emb_a.
   Defined.
 
-  Definition include_subset_in_last {n k : nat} {A : Finite_Types n} {B : Finite_Subsets k A} :
-    B -> A.
-  Proof.
-    exact B.2.1.
-  Defined.
+  (* Definition include_subset_in_last {n k : nat} {A : Finite_Types n} {B : Finite_Subsets k A} : *)
+  (*   B -> A. *)
+  (* Proof. *)
+  (*   exact B.2.1. *)
+  (* Defined. *)
 
-  Coercion include_subset_in_last : Finite_Subsets >-> Funclass.
+  Definition incl {n k : nat} {A : Finite_Types n} (B : Finite_Subsets k A) :
+    Embedding B A := B.2.
+
+  (* Coercion include_subset_in_last : Finite_Subsets >-> Funclass. *)
 
   (* Definition check (n k: nat) (A : Finite_Types n) (B : Finite_Subsets k A): B -> A. apply B. *)
   
@@ -510,10 +507,10 @@ Section Finite_Subsets.
     simpl. reflexivity.
   Defined.
 
-  Definition equiv_compliment {n k : nat} {A : Finite_Types n} :
-      IsEquiv (@compliment n k A).
-  Proof.
-    srapply @isequiv_adjointify.
+  (* Definition equiv_compliment {n k : nat} {A : Finite_Types n} : *)
+  (*     IsEquiv (@compliment n k A). *)
+  (* Proof. *)
+  (*   srapply @isequiv_adjointify. *)
     
     
 

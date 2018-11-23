@@ -388,19 +388,19 @@ Section Monoidal_1Type.
   Definition ap010 {A B C : Type} (f : A -> B -> C) {x x' : A} (p : x = x') (y : B) : f x y = f x' y := ap10 (ap f p) y.
   Definition action_on_path {M} {X} (a : monoidal_action M X) {s t : M} (p : s = t) := ap10 (ap a p).
   
-  (* Definition mon_act_mult {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X) *)
-  (*            (m1 m2 : M) (x : X) : *)
-  (*   a (m1 ⊗ m2) x = a m1 (a m2 x). *)
-  (* Proof. *)
-  (*   revert x. apply ap10. apply (mon_map_mult a). *)
-  (* Defined. *)
+  Definition mon_act_mult {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X)
+             (m1 m2 : M) (x : X) :
+    a (m1 ⊗ m2) x = a m1 (a m2 x).
+  Proof.
+    revert x. apply ap10. apply (mon_map_mult a).
+  Defined.
 
-  (* Definition mon_act_id {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X) *)
-  (*            (x : X) : *)
-  (*   a (mon_id) x = x. *)
-  (* Proof. *)
-  (*   revert x. apply ap10. apply (mon_map_id a). *)
-  (* Defined. *)
+  Definition mon_act_id {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X)
+             (x : X) :
+    a (mon_id) x = x.
+  Proof.
+    revert x. apply ap10. apply (mon_map_id a).
+  Defined.
 
   (* Definition mon_act_assoc {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X) *)
 
@@ -471,11 +471,16 @@ Section Monoidal_1Type.
       refine (ap_functor_arrow _ _ (mon_mult mon_id) idmap mon_lid ).
   Defined.
 
-  Definition functor_prod_compose {A1 A2 B1 B2 C1 C2 : Type} {f1 : A1 -> B1} {f2 : A2 -> B2} {g1 : B1 -> C1} {g2 : B2 -> C2} :
-    functor_prod (g1 o f1) (g2 o f2) = (functor_prod g1 g2) o (functor_prod f1 f2) := idpath.
+  (* Definition functor_prod_compose {A1 A2 B1 B2 C1 C2 : Type} {f1 : A1 -> B1} {f2 : A2 -> B2} {g1 : B1 -> C1} {g2 : B2 -> C2} : *)
+  (*   functor_prod (g1 o f1) (g2 o f2) = (functor_prod g1 g2) o (functor_prod f1 f2) := idpath. *)
   
-  Definition functor_prod_id {A B: Type} :
-    functor_prod (fun a : A => a) (fun b : B => b) = idmap := idpath.
+  (* Definition functor_prod_id {A B: Type} : *)
+  (*   functor_prod (fun a : A => a) (fun b : B => b) = idmap := idpath. *)
+
+  (* Definition functor_prod_uncurried {A1 A2 B1 B2} : (A1 -> B1) * (A2 -> B2) -> ((A1*A2) -> B1*B2). *)
+  (* Proof. intros [f g]. exact (functor_prod f g). *)
+  (* Defined. *)
+  
              
   Definition act_on_prod (M : Monoidal_1Type) (X Y: 1-Type) (a1 : monoidal_action M X) (a2 : monoidal_action M Y):
     monoidal_action M (BuildTruncType 1 (X*Y)).
@@ -483,40 +488,78 @@ Section Monoidal_1Type.
     srapply @Build_Monoidal_Map.
     - simpl. intro s.
       apply (functor_prod (a1 s) (a2 s)).
-    - intros s t.
+    - intros s t. simpl.
       apply (ap011 functor_prod (mon_map_mult a1 _ _) (mon_map_mult a2 _ _)).
     - apply (ap011 functor_prod (mon_map_id a1) (mon_map_id a2)).
     - intros s t u. simpl.
-      transitivity  (path_prod (a1 (s ⊗ (t ⊗ u)), a2 (s ⊗ (t ⊗ u)))
-                               (a1 ((s ⊗ t) ⊗ u), a2 ((s ⊗ t) ⊗ u))
-                               (ap a1 (mon_assoc s t u)) (ap a2 (mon_assoc s t u))).
-      refine (ap_compose (fun s0 : M => (s0, s0)) (
-    - 
-      apply (mon_map_id a1). 
-
-      
-      simpl. refine (_ @ @functor_prod_id ).
-      apply path_arrow. intros [x y]. simpl.
-      simpl. 
-      
-
-      simpl. apply path_arrow. intros [m x].
-      apply path_prod; simpl.
-      + apply inverse. apply mon_assoc.
-      + apply mon_act_mult.
-    - simpl. apply path_arrow. intros [m x].
-      apply path_prod; simpl.
-      + apply mon_lid.
-      + apply mon_act_id.
-    - intros s t u. simpl. destruct X.
-      
-
-      
-      apply istrunc_trunctrunctype.
-       
-      
-
-  
+      (* transitivity (ap functor_prod_uncurried *)
+      (*              (ap (fun m : M * M => (a1 (fst m), a2 (snd m))) *)
+      (*                  (path_prod ((s ⊗ t) ⊗ u, (s ⊗ t) ⊗ u) (s ⊗ (t ⊗ u), s ⊗ (t ⊗ u)) (mon_assoc s t u) (mon_assoc s t u)))). *)
+      (* { destruct (mon_assoc s t u). reflexivity. } *)
+      transitivity (ap011 (functor_prod) (ap a1 (mon_assoc s t u)) (ap a2 (mon_assoc s t u))).
+      { destruct (mon_assoc s t u). reflexivity. } hott_simpl.
+      transitivity (ap011 functor_prod
+                          (((mon_map_mult a1 (s ⊗ t) u @ ap (fun x : (X -> X) => x o (a1 u)) (mon_map_mult a1 s t))
+                              @ (ap (mon_mult (a1 s)) (mon_map_mult a1 t u))^) @ (mon_map_mult a1 s (t ⊗ u))^)
+                          (((mon_map_mult a2 (s ⊗ t) u @ ap (fun y : (Y -> Y) => y o (a2 u)) (mon_map_mult a2 s t))
+                              @ (ap (mon_mult (a2 s)) (mon_map_mult a2 t u))^) @ (mon_map_mult a2 s (t ⊗ u))^)).
+      { apply (ap011 (ap011 functor_prod)).
+        - refine (mon_map_assoc a1 s t u @ _). simpl. hott_simpl.
+        - refine (mon_map_assoc a2 s t u @ _). simpl. hott_simpl. }
+      refine (ap011_pp_pp functor_prod _ _ _ _ @ _).
+      refine (whiskerR (ap011_pp_pp functor_prod _ _ _ _ ) _ @ _).
+      refine (whiskerR (whiskerR (ap011_pp_pp functor_prod _ _ _ _ ) _) _ @ _).
+      apply concat2. apply concat2. apply whiskerL.
+      + (* generalize (mon_map_mult a1 s t). intro p. *)
+        (* generalize (mon_map_mult a2 s t). intro q. *)
+        cut (forall (f1 f2 : X -> X) (g1 g2 : Y -> Y) (p : f1 = f2) (q : g1 = g2),
+                ap011 functor_prod (ap (fun f => f o (a1 u)) p) (ap (fun g => g o (a2 u)) q) =
+                ap (fun f => f o (functor_prod (a1 u) (a2 u))) (ap011 functor_prod p q)).
+        { intro H. apply H. }
+        by path_induction.
+      + simpl.
+        (* generalize (mon_map_mult a1 t u). intro p. *)
+        (* generalize (mon_map_mult a2 t u). intro q. *)
+        cut (forall (f1 f2 : X -> X) (g1 g2 : Y -> Y) (p : f1 = f2) (q : g1 = g2),
+                ap011 functor_prod (ap (fun f => (a1 s) o f) p)^ (ap (fun g => (a2 s) o g) q)^ =
+                (ap (fun f => (functor_prod (a1 s) (a2 s)) o f) (ap011 functor_prod p q))^).
+        { intro H. apply H. }
+        by path_induction.        
+      + cut (forall (f1 f2 : X -> X) (g1 g2 : Y -> Y) (p : f1 = f2) (q : g1 = g2),
+                ap011 functor_prod p^ q^ = (ap011 functor_prod p q)^).
+        { intro H. apply H. }
+        by path_induction.        
+    - intro s.
+      transitivity (ap011 functor_prod (ap a1 (mon_lid s)) (ap a2 (mon_lid s))).
+      { destruct (mon_lid s). reflexivity. }
+      transitivity (ap011 functor_prod
+                          ((mon_map_mult a1 mon_id s @ ap (fun f => f o (a1 s)) (mon_map_id a1)))
+                          ((mon_map_mult a2 mon_id s @ ap (fun f => f o (a2 s)) (mon_map_id a2)))).
+      { apply (ap011 (ap011 functor_prod)).
+        - refine (mon_map_lid a1 s @ _). hott_simpl.
+        - refine (mon_map_lid a2 s @ _). hott_simpl. }
+      refine (ap011_pp_pp functor_prod _ _ _ _ @ _). simpl. hott_simpl. apply whiskerL.
+      cut (forall (f1 f2 : X -> X) (g1 g2 : Y -> Y) (p : f1 = f2) (q : g1 = g2),
+              ap011 functor_prod (ap (fun f => f o (a1 s)) p) (ap (fun g => g o (a2 s)) q) =
+              ap (fun f => f o (functor_prod (a1 s) (a2 s))) (ap011 functor_prod p q)).
+      { intro H.  apply (H _ _ _ _ (mon_map_id a1) (mon_map_id a2)). }
+        by path_induction.
+    - intro s.
+      transitivity (ap011 functor_prod (ap a1 (mon_rid s)) (ap a2 (mon_rid s))).
+      { destruct (mon_rid s). reflexivity. }
+      transitivity (ap011 functor_prod
+                          ((mon_map_mult a1 s mon_id @ ap (mon_mult (a1 s)) (mon_map_id a1)))
+                          ((mon_map_mult a2 s mon_id @ ap (mon_mult (a2 s)) (mon_map_id a2)))).
+      { apply (ap011 (ap011 functor_prod)).
+        - refine (mon_map_rid a1 s @ _). hott_simpl.
+        - refine (mon_map_rid a2 s @ _). hott_simpl. }
+      refine (ap011_pp_pp functor_prod _ _ _ _ @ _). simpl. hott_simpl. apply whiskerL.
+      cut (forall (f1 f2 : X -> X) (g1 g2 : Y -> Y) (p : f1 = f2) (q : g1 = g2),
+              ap011 functor_prod (ap (fun f => (a1 s) o f) p) (ap (fun g => (a2 s) o g) q) =
+              ap (fun f => (functor_prod (a1 s) (a2 s)) o f) (ap011 functor_prod p q)).
+      { intro H.  apply (H _ _ _ _ (mon_map_id a1) (mon_map_id a2)). }
+        by path_induction.
+  Defined.  
 
   Require Import HoTT.Categories.
   (* If we have a monoidal action with left_cancellation, we can build a category with objects X and arrows*)
@@ -548,7 +591,6 @@ Section Monoidal_1Type.
       exact (mon_act_mult a s1 s2 x @ ap (a s1) p2 @ p1).
     (* associtivity *)
     - intros x1 x2 x3 x4 [s1 []] [s2 []] [s3 []]. repeat rewrite ap_1. repeat rewrite concat_p1.
-      apply inverse.
       srapply @path_sigma. apply mon_assoc. cbn.
       refine (transport_paths_Fl (mon_assoc s3 s2 s1) _ @ _).
       rewrite (ap_apply_Fl (mon_assoc s3 s2 s1) a x1).
@@ -558,9 +600,9 @@ Section Monoidal_1Type.
       repeat rewrite inv_V.
       repeat rewrite concat_pp_p. 
       apply whiskerL. apply concat2.
-      { apply (ap10_ap_precompose (a s1) (mon_map_mult a s3 s2)). }
+      { apply (ap10_ap_postcompose (a s3) (mon_map_mult a s2 s1)). }
       apply whiskerR. apply (ap inverse).
-      apply (ap10_ap_postcompose (a s3) (mon_map_mult a s2 s1)). 
+      apply (ap10_ap_precompose (a s1) (mon_map_mult a s3 s2)). 
     (* left identity *)
     - simpl.
       intros x1 x2 [s []]. simpl. rewrite concat_p1.
@@ -606,9 +648,30 @@ Section Monoidal_1Type.
         { apply moveL_pV. apply r1^. }
         { apply moveR_pV. apply r2. }
   Defined.
-      
-    
-  
+
+  Definition concat_fl {A : Type} {a1 a2 b1 b2 : A} (p1 : a1 = b1) (p2 : a2 = b2) :
+    a1 = a2 -> b1 = b2.
+  Proof. by path_induction. Defined.
+
+  Definition group_completion (M : Monoidal_1Type)
+             (left_cancel : forall (s t : M) (p q : s = t) (a : M),
+                 ap10 (ap mon_mult p) a = ap10 (ap mon_mult q) a -> p = q) : PreCategory.
+  Proof.
+    apply (monoidal_action_cat M (BuildTruncType 1 (M*M)) (act_on_prod M M M (act_on_self M) (act_on_self M))).
+    simpl. intros s t p q [a b].
+    unfold action_on_path. simpl.
+    intro H. apply (left_cancel _ _ _ _ a).
+    refine ((ap_fst_path_prod (z := (s ⊗ a, s ⊗ b )) (z' := (t ⊗ a, t ⊗ b ))
+                (ap10 (ap mon_mult p) a) (ap10 (ap mon_mult p) b))^ @ _ @
+             ap_fst_path_prod (z := (s ⊗ a, s ⊗ b )) (z' := (t ⊗ a, t ⊗ b ))
+                (ap10 (ap mon_mult q) a) (ap10 (ap mon_mult q) b)).
+    apply (ap (ap fst)).
+    revert H.
+    apply concat_fl.
+    - destruct p. reflexivity.
+    - destruct q. reflexivity.
+  Defined.
+End Monoidal_1Type.  
 
 (*Defining the monoidal 1-type of finite sets and isomorphisms*)
 Section BΣ.
@@ -616,6 +679,9 @@ Section BΣ.
   Definition BΣ := { S : Type & Finite S}.
   Definition path_BΣ (S T : BΣ) : S.1 <~> T.1 -> S = T
     := path_finite_types_sum S T.
+
+
+
   
   (* Local Notation "'iFin'" := { S : Type & Finite S }. *)
 

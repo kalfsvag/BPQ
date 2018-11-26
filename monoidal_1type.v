@@ -4,7 +4,6 @@ Load finite_lemmas.
 Load equiv_lemmas.
 Load path_lemmas.
 
-
 Section Finite.
   (*Fin respects sum*)
 
@@ -42,12 +41,12 @@ Section Monoidal_1Type.
   
   (* Definition associative {A : Type}  (m : A-> A -> A) := forall (a b : A), (m a) o (m b) = m (m a b). *)
   (* Definition left_identity {A : Type} (m : A->A->A) (e : A) := m e = idmap. *)
-  (* Definition right_identity {A : Type} (m : A->A->A) (e : A) := forall a : A, m a e = a. *)
-    (* Definition right_identity {A : Type} (m : A->A->A) (e : A) := (fun a : A => m a e) = idmap. *)
+  (* Definition right_identity_mult {A : Type} (m : A->A->A) (e : A) := forall a : A, m a e = a. *)
+    (* Definition right_identity_mult {A : Type} (m : A->A->A) (e : A) := (fun a : A => m a e) = idmap. *)
   
   Definition associative {A : Type}  (m : A-> A -> A) := forall (a b c: A),  m (m a b) c = m a (m b c).
-  Definition left_identity {A : Type} (m : A->A->A) (e : A) := forall a : A, m e a = a.
-  Definition right_identity {A : Type} (m : A->A->A) (e : A) := forall a : A, m a e = a.
+  Definition left_identity_mult {A : Type} (m : A->A->A) (e : A) := forall a : A, m e a = a.
+  Definition right_identity_mult {A : Type} (m : A->A->A) (e : A) := forall a : A, m a e = a.
 
   (* Definition left_cancellation {A : Type} (m : A->A->A) := *)
   (*   forall a b c : A, m a b = m a c -> b = c . *)
@@ -62,12 +61,12 @@ Section Monoidal_1Type.
   
   (* Unneccesary but easier to just assume *)
   Definition coherence_triangle1 {A : Type} {m : A -> A -> A} {e : A}
-             (assoc : associative m) (lid : left_identity m e)  :=
+             (assoc : associative m) (lid : left_identity_mult m e)  :=
     forall a b : A,
       ap (fun x => m x b) (lid a) = assoc e a b @ lid (m a b).
   
   Definition coherence_triangle2 {A : Type} {m : A -> A -> A} {e : A}
-             (assoc : associative m) (lid : left_identity m e) (rid : right_identity m e) :=
+             (assoc : associative m) (lid : left_identity_mult m e) (rid : right_identity_mult m e) :=
     forall a b : A,
       ap (fun c => m c b) (rid a) = assoc a e b @ ap (m a) (lid b).
 
@@ -82,8 +81,8 @@ Section Monoidal_1Type.
                                     mon_mult  : mon_type->mon_type->mon_type;
                                     mon_id : mon_type;
                                     mon_assoc : associative mon_mult;
-                                    mon_lid : left_identity mon_mult mon_id ;
-                                    mon_rid : right_identity mon_mult mon_id ;
+                                    mon_lid : left_identity_mult mon_mult mon_id ;
+                                    mon_rid : right_identity_mult mon_mult mon_id ;
                                     mon_triangle1 : coherence_triangle1 mon_assoc mon_lid ;
                                     mon_triangle2 : coherence_triangle2 mon_assoc mon_lid mon_rid ;
                                     mon_pentagon : coherence_pentagon mon_assoc
@@ -369,8 +368,8 @@ Section Monoidal_1Type.
     - intros f g. exact (f o g).
     - cbn. exact idmap.
     - cbn. unfold associative. reflexivity.
-    - cbn. unfold left_identity. reflexivity.
-    - cbn. unfold right_identity. reflexivity.
+    - cbn. unfold left_identity_mult. reflexivity.
+    - cbn. unfold right_identity_mult. reflexivity.
     - unfold coherence_triangle1. cbn. reflexivity.
     - unfold coherence_triangle2. cbn. reflexivity.
     - unfold coherence_pentagon. cbn. reflexivity.
@@ -562,7 +561,7 @@ Section Monoidal_1Type.
   Defined.  
 
   Require Import HoTT.Categories.
-  (* If we have a monoidal action with left_cancellation, we can build a category with objects X and arrows*)
+  (* if we have a monoidal action with left_cancellation, we can build a category with objects X and arrows*)
   (* {m : M & m ⊗ x = m ⊗ y} *)
   Definition monoidal_action_morphism (M : Monoidal_1Type) (X : 1-Type) (a : monoidal_action M X) :
     (X -> X -> Type) := fun x y => {s : M & a s x = y}.
@@ -675,10 +674,19 @@ End Monoidal_1Type.
 
 (*Defining the monoidal 1-type of finite sets and isomorphisms*)
 Section BΣ.
+    
   (*This type corresponds to the category of finite sets and isomorphisms*)
   Definition BΣ := { S : Type & Finite S}.
-  Definition path_BΣ (S T : BΣ) : S.1 <~> T.1 -> S = T
+  Definition type_of_fin : BΣ -> Type := pr1.
+  Coercion type_of_fin : BΣ  >-> Sortclass.
+  Definition path_BΣ {S T : BΣ} : S <~> T -> S = T
     := path_finite_types_sum S T.
+
+  Definition path_BΣ_compose (S T U : BΣ) (e1 : T <~> S) (e2 : U <~> T) :
+    path_BΣ e2 @ path_BΣ e1 = path_BΣ (e1 oE e2).
+  Proof.
+    unfold path_BΣ. unfold path_finite_types_sum. Admitted.
+    
 
 
 
@@ -749,8 +757,7 @@ Section BΣ.
   Definition BΣ_assoc : associative plus_BΣ.
   Proof.
     intros S1 S2 S3.
-    apply path_BΣ. 
-    apply equiv_inverse.
+    apply path_BΣ.
     apply equiv_sum_assoc. 
   Defined.
 
@@ -784,13 +791,13 @@ Section BΣ.
   (*   apply (path_universe (equiv_sum_assoc S1 S2 S3)^-1). *)
   (* Defined. *)
   
-  Definition BΣ_lid : left_identity plus_BΣ ([0]).
+  Definition BΣ_lid : left_identity_mult plus_BΣ ([0]).
   Proof.
     intro S. apply path_BΣ.
     apply sum_empty_l.
   Defined.
   
-  Definition BΣ_rid : right_identity plus_BΣ ([0]).
+  Definition BΣ_rid : right_identity_mult plus_BΣ ([0]).
   Proof.
     intro S. apply path_BΣ.
     apply sum_empty_r.
@@ -833,15 +840,52 @@ Section BΣ.
     
     (* unfold cardinal. unfold fcard. cbn. unfold sum_cardinal. unfold iFin_assoc. simpl. *)
   
+  Definition natural_path_BΣ {S1 S2 S3: BΣ} (e : S1 <~> S2) :
+    ap (fun x : BΣ => x ⊕ S3) (path_BΣ e) = path_BΣ (S := S1 ⊕ S3) (T := S2 ⊕ S3) (equiv_functor_sum_r (B := S3) e).
+  Proof.
+    unfold path_BΣ.
+    apply (equiv_inj (path_finite_types_sum _ _)^-1).
+    refine (_ @ (eissect (path_finite_types_sum (S1 ⊕ S3) (S2 ⊕ S3)) (equiv_functor_sum_r e))^).
+    apply path_equiv. (* apply path_arrow. *) simpl.
+    (* intros [s1 | s3]. simpl. *)
+    (* destruct S1 as [S1 fin1]. destruct S2 as [S2 fin2]. destruct S3 as [S3 fin3]. simpl in *. *)
+    unfold pr1_path. 
+    transitivity
+      (transport idmap (ap (fun X : Type => X + S3) (ap pr1 (path_sigma_hprop S1 S2 (path_universe_uncurried e))))).
+    { apply (ap (transport idmap)).
+      refine ((ap_compose (fun x : BΣ => x ⊕ S3) pr1 _)^ @ ap_compose pr1 (fun X : Type => X + S3) _). }
+    apply path_arrow. intro s.
+    refine ((transport_idmap_ap _ _ _ _ _ _)^ @ _).
+    transitivity (transport (fun X : Type => X + S3) (path_universe_uncurried e) s).
+    { apply (ap (fun p => transport (fun X : Type => X + S3) p s)).
+      apply (ap_pr1_path_sigma_hprop). }
+    destruct s as [s1 | s2].
+    - simpl.      
+      destruct S1 as [S1 fin1]. destruct S2 as [S2 fin2]. destruct S3 as [S3 fin3]. simpl in *.
+      clear fin1 fin2 fin3.
+
+      revert s1. revert e.
+      apply (equiv_induction
+               (fun S2 e => forall s1 : S1, transport (fun X : Type => X + S3) (path_universe_uncurried e) (inl s1) = inl (e s1))).
+      intros s1. simpl.
+      change (path_universe_uncurried 1) with (path_universe (A := S1) idmap).      
+      rewrite path_universe_1. reflexivity.
+    - simpl.
+      destruct S1 as [S1 fin1]. destruct S2 as [S2 fin2]. destruct S3 as [S3 fin3]. simpl in *.
+      clear fin1 fin2 fin3. destruct (path_universe_uncurried e). reflexivity.
+  Defined.
+
+
 
   
+  
   (*TODO: How [cardinal] respects associativity and identity proofs *)
-  Definition BΣ_triangle : coherence_triangle BΣ_assoc BΣ_lid BΣ_rid.
+  Definition BΣ_triangle : coherence_triangle1 BΣ_assoc BΣ_lid.
   Proof.
-    intros [S1 f1] [S2 f2]. unfold BΣ_assoc. unfold BΣ_rid. unfold BΣ_lid.
+    intros S1 S2. unfold BΣ_lid. unfold BΣ_assoc. simpl.
+    unfold BΣ_assoc. unfold BΣ_lid.
     simpl. 
     trunc_rewrite (canonical_BΣ S1). trunc_rewrite (canonical_BΣ S2).
-    unfold BΣ_assoc.
     simpl.
     (*This was messy.*) Abort.
 

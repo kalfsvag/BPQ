@@ -4,28 +4,84 @@ Load finite_lemmas.
 Load equiv_lemmas.
 Load path_lemmas.
 
-Section Finite.
-  (*Fin respects sum*)
+(* Section Finite. *)
+(*   (*Fin respects sum*) *)
 
-  Definition Fin_resp_sum (m n : nat) : Fin (m + n) <~> (Fin m) + (Fin n).
+(*   Definition Fin_resp_sum (m n : nat) : Fin (m + n) <~> (Fin m) + (Fin n). *)
+(*   Proof. *)
+(*     induction m. *)
+(*     - (*m is 0*) *)
+(*       apply equiv_inverse. *)
+(*       apply (sum_empty_l (Fin n)). *)
+(*     - simpl. *)
+(*       refine (_ oE (equiv_functor_sum_r IHm)). *)
+(*       refine ((equiv_sum_assoc (Fin m) Unit (Fin n))^-1 oE _ oE equiv_sum_assoc (Fin m) (Fin n) Unit). *)
+(*       apply equiv_functor_sum_l. *)
+(*       apply equiv_sum_symm. *)
+(*   Defined. *)
+
+(*   Definition trivial_equiv_fin (m n : nat) : m = n -> (Fin m) <~> (Fin n). *)
+(*   Proof. *)
+(*     intros []. reflexivity. *)
+(*   Defined. *)
+(*   (* Definition trivial_is_idmap {m : nat} : trivial_equiv_fin m m idpath  *) *)
+(* End Finite. *)
+
+Section Type_to_Cat.
+  Require Import HoTT.Categories Category.Morphisms.
+  
+  Local Notation "x --> y" := (morphism _ x y) (at level 99, right associativity, y at level 200) : type_scope.
+  Definition Type_to_Cat : 1-Type -> PreCategory.
   Proof.
-    induction m.
-    - (*m is 0*)
-      apply equiv_inverse.
-      apply (sum_empty_l (Fin n)).
-    - simpl.
-      refine (_ oE (equiv_functor_sum_r IHm)).
-      refine ((equiv_sum_assoc (Fin m) Unit (Fin n))^-1 oE _ oE equiv_sum_assoc (Fin m) (Fin n) Unit).
-      apply equiv_functor_sum_l.
-      apply equiv_sum_symm.
+    intro X.
+    srapply (Build_PreCategory (fun x y : X => x = y)).
+    - reflexivity.
+    - cbn. intros x y z p q.
+      exact (q @ p).
+    - intros x1 x2 x3 x4 p q r. simpl. apply concat_p_pp.
+    - cbn. intros x1 x2 p. apply concat_p1.
+    - intros x y p. simpl. apply concat_1p.
   Defined.
 
-  Definition trivial_equiv_fin (m n : nat) : m = n -> (Fin m) <~> (Fin n).
+  Global Instance isgroupoid_type_to_cat (X : 1-Type) (x1 x2 : (Type_to_Cat X)) (f : x1 --> x2) :
+    IsIsomorphism f.
   Proof.
-    intros []. reflexivity.
+    srapply @Build_IsIsomorphism.
+    - exact f^.
+    - apply concat_pV.
+    - apply concat_Vp.
   Defined.
-  (* Definition trivial_is_idmap {m : nat} : trivial_equiv_fin m m idpath  *)
-End Finite.
+    
+
+  Definition arrow_to_functor {X Y : 1-Type} (F : X -> Y) :
+    Functor (Type_to_Cat X) (Type_to_Cat Y).
+  Proof.
+    srapply @Build_Functor. exact F.
+    - intros x1 x2. simpl.
+      exact (ap F).
+    - simpl. intros x1 x2 x3 p q.
+      apply ap_pp.
+    - simpl. reflexivity.
+  Defined.
+
+  Definition cat_of_arrow (X Y : 1-Type) :
+    Functor (Type_to_Cat (BuildTruncType 1 (X -> Y))) (functor_category (Type_to_Cat X) (Type_to_Cat Y)).
+  Proof.
+    srapply @Build_Functor; simpl.
+    apply arrow_to_functor.
+    - intros f g p.
+      srapply @Build_NaturalTransformation; simpl.
+      + apply (ap10 p).
+      + intros x1 x2 q.
+        destruct p, q. reflexivity.        
+    - intros f g h p q. simpl.
+      unfold NaturalTransformation.Composition.Core.compose. simpl. destruct p, q. simpl.
+      apply NaturalTransformation.path_natural_transformation. simpl. intro x. reflexivity.
+    - intro f. simpl.
+      apply NaturalTransformation.path_natural_transformation. simpl. intro x. reflexivity.
+  Defined.
+End Type_to_Cat.
+
 
         
 (*Defining the type of monoidal 1-Types (this corresponds to a monoidal category*)
@@ -375,13 +431,22 @@ Section Monoidal_1Type.
     - unfold coherence_pentagon. cbn. reflexivity.
   Defined.
 
-  Definition monoidal_action (M : Monoidal_1Type) (X : 1-Type) := Monoidal_Map M (endomorphism X).
+  (* Definition monoidal_action (M : Monoidal_1Type) (X : 1-Type) := Monoidal_Map M (endomorphism X). *)
 
-  (* Definition Build_Monoidal_Action (M : Monoidal_1Type) (X : 1-Type) *)
-  (*            (a : M -> X -> X) *)
-  (*            (mon_act_mult : forall (s t : M) (x : X), a s (a t x) = a (s ⊗ t) x) *)
-  (*            (mon_act_id : forall x : X, a mon_id x = x) *)
-             
+  Record monoidal_action (M : Monoidal_1Type) (X : 1-Type) :=
+    { act :> M -> X -> X;
+      mon_act_mult : forall (s t : M) (x : X), act (s ⊗ t) x = act s (act t x) ;
+      mon_act_id : forall x : X, act mon_id x = x;
+      mon_act_triangle1 : forall (a : M) (x : X),
+          ap (fun m : M => act m x) (mon_lid a) = mon_act_mult mon_id a x @ mon_act_id (act a x);
+      mon_act_triangle2 : forall (a : M) (x : X),
+          ap (fun m : M => act m x) (mon_rid a) = mon_act_mult a mon_id x @ ap (fun y : X => act a y) (mon_act_id x);
+      mon_act_pentagon : forall (a b c : M) (x : X),
+          ap (fun m : M => act m x) (mon_assoc a b c) =
+          mon_act_mult (a ⊗ b) c x @ mon_act_mult a b (act c x) @ (ap (act a) (mon_act_mult b c x))^ @ (mon_act_mult a (b ⊗ c) x)^ }.
+
+  Arguments mon_act_mult {M} {X} a s t x : rename.
+  Arguments mon_act_id {M} {X} a x : rename.
              
 
   (* Definition ap010 {A B C : Type} (f : A -> B -> C) {x x' : A} (p : x = x') (y : B) : f x y = f x' y := ap10 (ap f p) y. *)
@@ -390,19 +455,19 @@ Section Monoidal_1Type.
     (* ap10 (ap a p). *)
 
   
-  Definition mon_act_mult {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X)
-             (m1 m2 : M) (x : X) :
-    a (m1 ⊗ m2) x = a m1 (a m2 x).
-  Proof.
-    revert x. apply ap10. apply (mon_map_mult a).
-  Defined.
+  (* Definition mon_act_mult {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X) *)
+  (*            (m1 m2 : M) (x : X) : *)
+  (*   a (m1 ⊗ m2) x = a m1 (a m2 x). *)
+  (* Proof. *)
+  (*   revert x. apply ap10. apply (mon_map_mult a). *)
+  (* Defined. *)
 
-  Definition mon_act_id {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X)
-             (x : X) :
-    a (mon_id) x = x.
-  Proof.
-    revert x. apply ap10. apply (mon_map_id a).
-  Defined.
+  (* Definition mon_act_id {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X) *)
+  (*            (x : X) : *)
+  (*   a (mon_id) x = x. *)
+  (* Proof. *)
+  (*   revert x. apply ap10. apply (mon_map_id a). *)
+  (* Defined. *)
 
   (* Definition mon_act_assoc {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X) *)
 
@@ -426,9 +491,21 @@ Section Monoidal_1Type.
       destruct (path_arrow_1 f)^. reflexivity.
     - apply (ap inverse). apply (ap (path_arrow f g)). apply (path_forall _ _ (ap10_path_arrow f g H)).
   Defined.
-  
+
   Definition act_on_self (M : Monoidal_1Type) : monoidal_action M M.
   Proof.
+    srapply @Build_monoidal_action.
+    - exact mon_mult.
+    - apply mon_assoc.
+    - apply mon_lid.
+    - apply mon_triangle1.
+    - apply mon_triangle2.
+    - apply mon_pentagon.
+  Defined.
+    
+  
+  Definition to_endomorphism (M : Monoidal_1Type) : Monoidal_Map M (endomorphism M).
+  Proof.    
     srapply @Build_Monoidal_Map.
     - simpl. apply mon_mult.
     - intros a b. apply path_arrow. intro c.
@@ -484,8 +561,8 @@ Section Monoidal_1Type.
   (* Defined. *)
   
              
-  Definition act_on_prod (M : Monoidal_1Type) (X Y: 1-Type) (a1 : monoidal_action M X) (a2 : monoidal_action M Y):
-    monoidal_action M (BuildTruncType 1 (X*Y)).
+  Definition old_act_on_prod (M : Monoidal_1Type) (X Y: 1-Type) (a1 : Monoidal_Map M (endomorphism X)) (a2 : Monoidal_Map M (endomorphism Y)):
+    Monoidal_Map M (endomorphism (BuildTruncType 1 (X*Y))).
   Proof.
     srapply @Build_Monoidal_Map.
     - simpl. intro s.
@@ -561,13 +638,75 @@ Section Monoidal_1Type.
               ap (fun f => (functor_prod (a1 s) (a2 s)) o f) (ap011 functor_prod p q)).
       { intro H.  apply (H _ _ _ _ (mon_map_id a1) (mon_map_id a2)). }
         by path_induction.
-  Defined.  
+  Defined.
+
+  Definition path_prod_VV {A B : Type} (z z' : A*B) (p1 : fst z = fst z') (p2 : snd z = snd z') :
+    path_prod z' z p1^ p2^ = (path_prod z z' p1 p2)^.
+  Proof.
+    destruct z as [z1 z2]. destruct z' as [z1' z2']. simpl in *. destruct p1, p2. reflexivity.
+  Defined.
+    
+
+  Definition act_on_prod (M : Monoidal_1Type) (X Y: 1-Type) (act1 : monoidal_action M X) (act2 : monoidal_action M Y) :
+    monoidal_action M (BuildTruncType 1 (X*Y)).
+  Proof.
+    srapply @Build_monoidal_action; simpl.
+    - intro s.
+      apply (functor_prod (act1 s) (act2 s)).
+    - simpl. intros s t x.
+      apply path_prod; apply mon_act_mult.
+    - simpl. intro x.
+      apply path_prod; apply mon_act_id.
+    - simpl. intros s x.
+      transitivity (path_prod (_,_) (_,_) (ap (fun m : M => act1 m (fst x)) (mon_lid s)) (ap (fun m : M => act2 m (snd x)) (mon_lid s))).
+      { destruct (mon_lid s). reflexivity. }
+      refine (_ @ path_prod_pp _ _ _ _ _ _ _).      
+      apply (ap011 (path_prod _ _)); apply mon_act_triangle1.
+    - intros s x. simpl.
+      transitivity (path_prod (_,_) (_,_) (ap (fun m : M => act1 m (fst x)) (mon_rid s)) (ap (fun m : M => act2 m (snd x)) (mon_rid s))).
+      { destruct (mon_rid s). reflexivity. }
+      refine (_ @ whiskerL _ (ap_functor_prod _ _ _ _ _ _)^).      
+      refine (_ @ path_prod_pp _ _ _ _ _ _ _).
+      apply (ap011 (path_prod _ _)); apply mon_act_triangle2.
+    - intros a b c x. simpl.
+      transitivity (path_prod (_,_) (_,_)
+                              (ap (fun m : M => act1 m (fst x)) (mon_assoc a b c)) (ap (fun m : M => act2 m (snd x)) (mon_assoc a b c))).
+      { destruct (mon_assoc a b c). reflexivity. }
+      rewrite (ap_functor_prod).
+      repeat rewrite <- path_prod_VV.
+      repeat rewrite <- path_prod_pp.
+      apply (ap011 (path_prod _ _)); apply mon_act_pentagon.
+  Defined.
+    
 
   Require Import HoTT.Categories.
   (* if we have a monoidal action with left_cancellation, we can build a category with objects X and arrows*)
   (* {m : M & m ⊗ x = m ⊗ y} *)
   Definition monoidal_action_morphism (M : Monoidal_1Type) (X : 1-Type) (a : monoidal_action M X) :
     (X -> X -> Type) := fun x y => {s : M & a s x = y}.
+
+  Instance isset_mon_morphism (M : Monoidal_1Type) (X : 1-Type) (a : monoidal_action M X) (x1 x2 : X)
+    (left_cancel : forall (s t : M) (p q : s = t) (x : X),
+                 action_on_path a x p = action_on_path a x q -> p = q) :
+    IsHSet (monoidal_action_morphism M X a x1 x2).
+  Proof.
+    unfold monoidal_action_morphism.
+    intros [s1 p1] [s2 p2].
+    apply (trunc_equiv' {q : s1 = s2 & transport (fun s => a s x1 = x2) q p1 = p2}).
+    { apply equiv_inverse. apply equiv_path_sigma. }
+    (* apply (trunc_equiv' {q : s1 = s2 & p1 = (ap (fun s => a s x1) q) @ p2}). *)
+    apply (trunc_equiv' {q : s1 = s2 & p1 = action_on_path a x1 q @ p2}).
+    { apply equiv_functor_sigma_id. intro q. destruct q. simpl. destruct p2. apply equiv_idmap. }
+    apply trunc_sigma'.
+    + intro p. exact _.
+    + simpl.
+      intros [q1 r1] [q2 r2]. simpl.
+      apply contr_inhabited_hprop. exact _.
+      apply (left_cancel _ _ q1 q2 x1).
+      transitivity (p1 @ p2^).
+      { apply moveL_pV. apply r1^. }
+      { apply moveR_pV. apply r2. }
+  Defined.
 
   (* Definition ap101 {A B C : Type} {f g : A -> B -> C} (p1 : f = g) { *)
   (*                                                      forall  *)
@@ -583,7 +722,7 @@ Section Monoidal_1Type.
                  action_on_path a x p = action_on_path a x q -> p = q)
     : PreCategory.
   Proof.
-    srapply (Build_PreCategory (monoidal_action_morphism M X a)).
+    srefine (Build_PreCategory (monoidal_action_morphism M X a) _ _ _ _ _ (fun x1 x2 => isset_mon_morphism M X a x1 x2 left_cancel)).
     (* identity *)
     - intro x. exists mon_id. apply mon_act_id.
     (* composition *)
@@ -595,60 +734,24 @@ Section Monoidal_1Type.
     - intros x1 x2 x3 x4 [s1 []] [s2 []] [s3 []]. repeat rewrite ap_1. repeat rewrite concat_p1.
       srapply @path_sigma. apply mon_assoc. cbn.
       refine (transport_paths_Fl (mon_assoc s3 s2 s1) _ @ _).
-      rewrite (ap_apply_Fl (mon_assoc s3 s2 s1) a x1).
-      rewrite (mon_map_assoc a). simpl. unfold mon_act_mult. rewrite concat_p1.
+      rewrite mon_act_pentagon. repeat rewrite inv_pp. repeat rewrite inv_V.
       apply moveR_pM.
-      repeat rewrite ap10_pp. repeat rewrite ap10_V. repeat rewrite inv_pp. 
-      repeat rewrite inv_V.
-      repeat rewrite concat_pp_p. 
-      apply whiskerL. apply concat2.
-      { apply (ap10_ap_postcompose (a s3) (mon_map_mult a s2 s1)). }
-      apply whiskerR. apply (ap inverse).
-      apply (ap10_ap_precompose (a s1) (mon_map_mult a s3 s2)). 
+      repeat rewrite concat_pp_p. apply whiskerL. apply whiskerL.
+      apply inverse. apply inv_pp.
     (* left identity *)
     - simpl.
       intros x1 x2 [s []]. simpl. rewrite concat_p1.
       srapply @path_sigma. apply mon_lid. simpl. 
       refine (transport_paths_Fl (mon_lid s) _ @ _).
-      apply moveR_Vp. refine (_ @ (concat_p1 _)^).
-      rewrite (ap_apply_Fl (mon_lid s) a x1).
-      unfold mon_act_mult. unfold mon_act_id.
-      rewrite (mon_map_lid a). simpl. rewrite concat_p1.
-      rewrite ap10_pp.
-      apply whiskerL.
-      apply inverse.
-      apply (ap10_ap_precompose (a s) (mon_map_id a)).
+      apply moveR_Vp. refine (_ @ (concat_p1 _)^). apply inverse.
+      apply mon_act_triangle1.
     (* right identity *)
     - simpl.
       intros x1 x2 [s []]. simpl. rewrite concat_p1.
       srapply @path_sigma. apply mon_rid. simpl. 
       refine (transport_paths_Fl (mon_rid s) _ @ _).
-      apply moveR_Vp. refine (_ @ (concat_p1 _)^).
-      rewrite (ap_apply_Fl (mon_rid s) a x1).
-      unfold mon_act_mult. unfold mon_act_id.
-      rewrite (mon_map_rid a). simpl. rewrite concat_p1.
-      rewrite ap10_pp.
-      apply whiskerL.
-      apply inverse.
-      apply (ap10_ap_postcompose (a s) (mon_map_id a)).
-    (* the morphisms form a set. . . *)
-    - intros x1 x2.
-      unfold monoidal_action_morphism.
-      intros [s1 p1] [s2 p2].
-      apply (trunc_equiv' {q : s1 = s2 & transport (fun s => a s x1 = x2) q p1 = p2}).
-      { apply equiv_inverse. apply equiv_path_sigma. }
-      (* apply (trunc_equiv' {q : s1 = s2 & p1 = (ap (fun s => a s x1) q) @ p2}). *)
-      apply (trunc_equiv' {q : s1 = s2 & p1 = action_on_path a x1 q @ p2}).
-      { apply equiv_functor_sigma_id. intro q. destruct q. simpl. destruct p2. apply equiv_idmap. }
-      apply trunc_sigma'.
-      + intro p. exact _.
-      + simpl.
-        intros [q1 r1] [q2 r2]. simpl.
-        apply contr_inhabited_hprop. exact _.
-        apply (left_cancel _ _ q1 q2 x1).
-        transitivity (p1 @ p2^).
-        { apply moveL_pV. apply r1^. }
-        { apply moveR_pV. apply r2. }
+      apply moveR_Vp. refine (_ @ (concat_p1 _)^). apply inverse.
+      apply mon_act_triangle2.
   Defined.
 
   Definition localize_action (M : Monoidal_1Type) (X : 1-Type) (act : monoidal_action M X)
@@ -673,6 +776,83 @@ Section Monoidal_1Type.
              (left_cancel : forall (s t : M) (p q : s = t) (a : M),
                  ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q) : PreCategory :=
     localize_action M M (act_on_self M) left_cancel.
+
+  
+
+  Definition contr_self_category (M : Monoidal_1Type)
+             (left_cancel : forall (s t : M) (p q : s = t) (a : M),
+                 ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q)
+    : forall x : object (monoidal_action_cat M M (act_on_self M) left_cancel),
+      Contr (morphism (monoidal_action_cat M M (act_on_self M) left_cancel) mon_id x).
+  Proof.
+    simpl. intro a. unfold monoidal_action_morphism. unfold act_on_self. simpl.
+    apply (contr_equiv' {s : M & s = a}).
+    - srapply @equiv_functor_sigma'. exact equiv_idmap.
+      intro m. simpl.
+      apply equiv_concat_l. apply mon_rid.
+    - apply contr_basedpaths'.
+  Defined.
+
+  Definition ap_homotopy_idmap {A : Type} (f : A -> A) (h : f == idmap) (a : A):
+    ap f (h a) = h (f a).
+  Proof.
+    cut (forall p : f a = a,
+              ap f p = h (f a) @ p @ (h a)^).
+    - intro H. refine (H (h a) @ _).
+      refine (concat_pp_p _ _ _ @ _). 
+      refine (whiskerL _ (concat_pV _) @ _). apply concat_p1.
+    - intros []. destruct (h (f a)). reflexivity.
+  Defined.    
+  
+  (* Definition ap_homotopic_idmap {A : Type} (f : A -> A) (h : f == idmap) {a b : A} (p : a = b) : *)
+  (*   ap f p = (h a) @ p @ (h b)^. *)
+  (* Proof. *)
+  (*   destruct p. destruct (h a). reflexivity. *)
+  (* Defined. *)
+
+  Definition prod_to_groupcompletion (S : Monoidal_1Type)
+             (left_cancel : forall (s t : S) (p q : s = t) (a : S),
+                 ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q):
+    Functor ((Type_to_Cat S)*(Type_to_Cat S))%category (group_completion S left_cancel).
+  Proof.
+    srapply @Build_Functor; simpl. exact idmap.
+    - intros a b [p q].
+      unfold monoidal_action_morphism.
+      exists mon_id. apply path_prod. apply (mon_lid _ @ p). apply (mon_lid _ @ q).
+    - intros [a1 a2] [b1 b2] [c1 c2] [p1 p2] [q1 q2]. simpl in *.
+      destruct q2, q1, p2, p1. simpl. repeat rewrite concat_p1.
+      srapply @path_sigma;simpl. apply inverse. apply mon_lid. 
+      refine (transport_paths_Fl (mon_lid mon_id)^
+              (path_prod (functor_prod (mon_mult mon_id) (mon_mult mon_id) (a1, a2)) (a1, a2) (mon_lid a1) (mon_lid a2)) @ _).
+      rewrite ap_V. rewrite inv_V.
+      apply whiskerR.
+      transitivity (path_prod ((mon_id ⊗ mon_id) ⊗ a1, (mon_id ⊗ mon_id) ⊗ a2) (_,_)
+
+                              (ap (fun x : S => mon_mult x a1) (mon_lid mon_id)) (ap (fun x : S => mon_mult x a2) (mon_lid mon_id))).
+      { destruct (mon_lid mon_id). reflexivity. }
+      rewrite ap_functor_prod.
+      rewrite <- path_prod_pp.
+      apply (ap011 (path_prod _ _));
+      refine (mon_triangle1 S mon_id _ @ _); apply whiskerL;
+      apply inverse; simpl; apply ap_homotopy_idmap.
+    - intro x. simpl. rewrite concat_p1. rewrite concat_p1. reflexivity.
+  Defined.
+
+  Definition to_prod (C : PreCategory) :
+    Functor C (C*C)%category.
+  Proof.
+    apply Functor.prod; apply Functor.identity.
+  Defined.
+  
+  Definition to_groupcompletion (S : Monoidal_1Type)
+           (left_cancel : forall (s t : S) (p q : s = t) (a : S),
+                 ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q):
+  Functor (Type_to_Cat S) (group_completion S left_cancel) :=
+    Functor.compose (prod_to_groupcompletion S left_cancel) (to_prod _).
+      
+
+  
+
 End Monoidal_1Type.  
 
 (*Defining the monoidal 1-type of finite sets and isomorphisms*)
@@ -682,15 +862,30 @@ Section BΣ.
   Definition BΣ := { S : Type & Finite S}.
   Definition type_of_fin : BΣ -> Type := pr1.
   Coercion type_of_fin : BΣ  >-> Sortclass.
+
+  Global Instance istrunc_BΣ : IsTrunc 1 BΣ.
+  Proof.
+    apply trunc_sigma'. intro A. exact _.
+    intros A B.
+    srapply @istrunc_paths_Type. 
+    apply isset_Finite. exact B.2.
+  Defined.
+
+  (*Canonical objects in BΣ*)
+  Definition canon_BΣ (n : nat) : BΣ := (Fin n; Build_Finite (Fin n) n (tr 1%equiv)).
+  
+
+
+  (* Describing the path type of BΣ *)
   Definition path_BΣ {S T : BΣ} : S <~> T <~> S = T
     := path_finite_types_sum S T.
 
+  (* path_BΣ respects composition *)
   Definition path_BΣ_compose {S1 S2 S3 : BΣ} (e1 : S2 <~> S1) (e2 : S3 <~> S2) :
     path_BΣ e2 @ path_BΣ e1 = path_BΣ (e1 oE e2).
   Proof.
-    unfold path_BΣ.
-    apply (equiv_inj (path_finite_types_sum _ _)^-1).
-    refine (_ @ (eissect (path_finite_types_sum S3 S1) (e1 oE e2))^).
+    apply (equiv_inj path_BΣ^-1).
+    refine (_ @ (eissect (path_BΣ) (e1 oE e2))^).
     apply path_equiv. (* apply path_arrow. *) simpl.
     unfold pr1_path.
     rewrite ap_pp.
@@ -700,157 +895,15 @@ Section BΣ.
     apply (ap10 (transport_idmap_path_universe e2)).
   Qed.
 
-
-
-  
-  (* Local Notation "'iFin'" := { S : Type & Finite S }. *)
-
-  (* (*Finite types are sets *) *)
-  (* Definition isset_Fin (n : nat) : IsHSet (Fin n). *)
-  (* Proof. *)
-  (*   induction n. *)
-  (*   - exact _. *)
-  (*   - apply hset_sum. *)
-  (* Defined. *)
-
-  (* Definition isset_Finite (A : Type) : *)
-  (*   Finite A -> IsHSet A. *)
-  (* Proof. *)
-  (*   intros [m finA]. strip_truncations. *)
-  (*   apply (trunc_equiv' (Fin m) finA^-1). *)
-  (* Defined. *)
-    
-  (*ishprop_finite*)
-  (*path_sigma_hprop*)
-  (*Could also go via [istrunc_trunctype] . . .*)
-  Global Instance istrunc_BΣ : IsTrunc 1 BΣ.
-  Proof.
-    apply trunc_sigma'. intro A. exact _.
-    intros A B.
-    srapply @istrunc_paths_Type. 
-    apply isset_Finite. exact B.2.
-  Defined.
-
-  (*For convinience: Any type of 2-paths in sigma is thus an hprop.*)
-  Instance isprop_2path_BΣ {S1 S2 : BΣ} {p1 p2 : S1 = S2} : IsHProp (p1 = p2) :=
-    istrunc_BΣ S1 S2 p1 p2.
-    
-  (* (*The cardinal of the finite set*) *)
-  Definition cardinal (S : BΣ) : nat := @fcard S.1 S.2.
-
-  (*Canonical objects in BΣ*)
-  Definition canon_BΣ (n : nat) : BΣ := (Fin n; Build_Finite (Fin n) n (tr 1%equiv)).
-  Notation "[ n ]" := (canon_BΣ n).
-  (*Holds by definition: [cardinal [n] = n]*)
-
-  (*Every object is canonical*)
-  Lemma canonical_BΣ (S : BΣ) : merely (S = [cardinal S]).
-  Proof.
-    destruct S as [A [n eA]]. strip_truncations. apply tr.
-    apply path_BΣ. cbn. exact eA.
-  Defined.
-
-  (*The monoidal structure on BΣ*)
   Definition plus_BΣ : BΣ -> BΣ -> BΣ.
   Proof.
     intros [S1 fin_S1] [S2 fin_S2].
     refine (S1 + S2 ; finite_sum _ _)%type.
   Defined.
 
-  Local Notation "S1 ⊕ S2" := (plus_BΣ S1 S2) (at level 50, no associativity).
+  Definition BΣ_id : BΣ := canon_BΣ 0.
 
-  (*The canonical objects respect sum*)
-  Definition sum_canonical (m n : nat) : [m + n]%nat = [m] ⊕ [n].
-  Proof.
-    apply path_BΣ.
-    apply Fin_resp_sum.
-  Defined.
-  
-  Definition BΣ_assoc : associative plus_BΣ.
-  Proof.
-    intros S1 S2 S3.
-    apply path_BΣ.
-    apply equiv_sum_assoc. 
-  Defined.
-
-  (* (*If the goal is truncated, add this as a hypothesis. (Can speed things up)*) *)
-  (* Ltac trunc_goal n := *)
-  (*   match goal with *)
-  (*       | [ |- ?g] => assert (istrunc_goal : IsTrunc n g) by (exact _) *)
-  (*   end. *)
-  
-  
-  (* Ltac reduce_BΣ := *)
-  (*   repeat match goal with *)
-  (*            | [S : BΣ |- _] => trunc_rewrite (canonical_BΣ S); *)
-  (*                                 destruct S as [S [?n H]]; *)
-  (*                                 unfold cardinal; cbn; clear H; clear S *)
-  (*          end. *)
-
-  (* Ltac simple_reduce_BΣ S := *)
-  (*   trunc_rewrite (canonical_BΣ S); *)
-  (*   destruct S as [S [?n H]]; *)
-  (*   unfold cardinal; cbn; clear H; clear S. *)
-    
-
-  (* (*A proof that sigma is merely associative, just using associativity of natural numbers*) *)
-  (* Definition merely_BΣ_assoc : forall S1 S2 S3 : BΣ, merely (S1 ⊕ (S2 ⊕ S3) = (S1 ⊕ S2) ⊕ S3). *)
-  (* Proof. *)
-  (*   intros [S1 [n1 fin1]] [S2 [n2 fin2]] [S3 [n3 fin3]]. *)
-  (*   (* strip_truncations. *) *)
-  (*   apply tr. *)
-  (*   refine (path_sigma_hprop _ _ _). simpl. *)
-  (*   apply (path_universe (equiv_sum_assoc S1 S2 S3)^-1). *)
-  (* Defined. *)
-  
-  Definition BΣ_lid : left_identity_mult plus_BΣ ([0]).
-  Proof.
-    intro S. apply path_BΣ.
-    apply sum_empty_l.
-  Defined.
-  
-  Definition BΣ_rid : right_identity_mult plus_BΣ ([0]).
-  Proof.
-    intro S. apply path_BΣ.
-    apply sum_empty_r.
-  Defined.
-
-  Definition BΣ_symmetric : symmetric plus_BΣ. 
-  Proof.
-    intros S1 S2. apply path_BΣ. apply equiv_sum_symm.
-  Defined.
-
-  (* (**A few lemmas proving that [cardinal : nat -> BΣ] preserves the monoidal structure **) *)
-  (* (*[cardinal] respects sum*) *)
-  (* Definition sum_cardinal (S1 S2 : BΣ) : cardinal (S1 ⊕ S2) = (cardinal S1 + cardinal S2)%nat. *)
-  (* Proof. *)
-  (*   destruct S1 as [S1 fin1]. *)
-  (*   destruct S2 as [S2 fin2]. *)
-  (*   apply fcard_sum. *)
-  (* Defined. *)
-
-  (* (*[cardinal] respects associativity*) *)
-  (* Lemma assoc_cardinal (S1 S2 S3 : BΣ) : *)
-  (*   ap cardinal (BΣ_assoc S1 S2 S3) @ sum_cardinal (S1 + S2) S3 @ *)
-  (*      ap (fun n => (n + (cardinal S3))%nat) (sum_cardinal S1 S2)  = *)
-  (*   sum_cardinal S1 (S2 + S3) @ ap (fun n => ((cardinal S1) + n)%nat) (sum_cardinal S2 S3) @ *)
-  (*                plus_assoc (cardinal S1) (cardinal S2) (cardinal S3). *)
-  (* Proof. *)
-  (*   destruct S1 as [S1 [n1 fin1]]. destruct S2 as [S2 [n2 fin2]]. destruct S3 as [S3 [n3 fin3]]. *)
-  (*   strip_truncations. *)
-    
-    (* simple_reduce_BΣ S1. simple_reduce_BΣ S2. simple_reduce_BΣ S3. *)
-    (* unfold iFin_assoc. simpl. *)
-    (* rewrite (ap_compose (fun S : iFin => S.1) fcard). *)
-    
-    (* induction n1. *)
-    (* simpl. rewrite ap_idmap. rewrite concat_p1. *)
-    (* unfold iFin_assoc.  *)
-    
-    
-    (* - unfold plus_assoc. simpl. *)
-    
-    (* unfold cardinal. unfold fcard. cbn. unfold sum_cardinal. unfold iFin_assoc. simpl. *)
+  Local Notation "S1 ⊕ S2" := (plus_BΣ S1 S2) (at level 50, no associativity).  
 
   (* path_BΣ behaves well with respect to sum *)
   Definition natural_path_BΣ_l {S1 S2 S3: BΣ} (e : S1 <~> S2) :
@@ -903,6 +956,63 @@ Section BΣ.
     rewrite path_universe_1. simpl.
     intros [s1 | s2]; reflexivity.
   Qed.
+
+
+  
+
+
+  (* (*For convinience: Any type of 2-paths in sigma is thus an hprop.*) *)
+  (* Instance isprop_2path_BΣ {S1 S2 : BΣ} {p1 p2 : S1 = S2} : IsHProp (p1 = p2) := *)
+  (*   istrunc_BΣ S1 S2 p1 p2. *)
+    
+  (* (*The cardinal of the finite set*) *)
+  (* Definition cardinal (S : BΣ) : nat := @fcard S.1 S.2. *)
+
+  (*The canonical objects respect sum*)
+  (* Definition sum_canonical (m n : nat) : canon_BΣ (m + n)%nat = canon_BΣ m ⊕ canon_BΣ n. *)
+  (* Proof. *)
+  (*   apply path_BΣ. *)
+  (*   apply Fin_resp_sum. *)
+  (* Defined. *)
+  (* Notation "[ n ]" := (canon_BΣ n). *)
+  (*Holds by definition: [cardinal [n] = n]*)
+
+  (* (*Every object is canonical*) *)
+  (* Lemma canonical_BΣ (S : BΣ) : merely (S = [cardinal S]). *)
+  (* Proof. *)
+  (*   destruct S as [A [n eA]]. strip_truncations. apply tr. *)
+  (*   apply path_BΣ. cbn. exact eA. *)
+  (* Defined. *)
+
+
+  
+  (*The monoidal structure on BΣ*)
+  
+  Definition BΣ_assoc : associative plus_BΣ.
+  Proof.
+    intros S1 S2 S3.
+    apply path_BΣ.
+    apply equiv_sum_assoc. 
+  Defined.
+
+  Definition BΣ_lid : left_identity_mult plus_BΣ (canon_BΣ 0).
+  Proof.
+    intro S. apply path_BΣ.
+    apply sum_empty_l.
+  Defined.
+  
+  Definition BΣ_rid : right_identity_mult plus_BΣ (canon_BΣ 0).
+  Proof.
+    intro S. apply path_BΣ.
+    apply sum_empty_r.
+  Defined.
+
+  Definition BΣ_symmetric : symmetric plus_BΣ. 
+  Proof.
+    intros S1 S2. apply path_BΣ. apply equiv_sum_symm.
+  Defined.
+
+
 
   
   
@@ -1038,9 +1148,138 @@ Section BΣ.
   
 
   Definition BΣ_moncat : Monoidal_1Type :=
-    Build_Monoidal_1Type (BuildTruncType 1 BΣ) plus_BΣ [0] BΣ_assoc BΣ_lid BΣ_rid BΣ_triangle1 BΣ_triangle2 BΣ_pentagon.
+    Build_Monoidal_1Type (BuildTruncType 1 BΣ) plus_BΣ (canon_BΣ 0) BΣ_assoc BΣ_lid BΣ_rid BΣ_triangle1 BΣ_triangle2 BΣ_pentagon.
 
   Definition group_completion_BΣ := group_completion BΣ_moncat BΣ_lcancel .
     
   
 End BΣ.
+
+Section Monoidal_Category.
+  Require Import Category.Morphisms.
+  Local Notation "x --> y" := (morphism _ x y) (at level 99, right associativity, y at level 200) : type_scope.
+  Open Scope morphism.
+
+  Definition BiFunctor (A B C : PreCategory) :=
+    Functor A (functor_category B C).
+
+  Definition morphism_of_1 {A B C : PreCategory} (F : BiFunctor A B C)
+             {a a' : A} (f : a --> a') (b : B)  :
+    F a b --> F a' b :=
+    morphism_of F f b.
+
+  Definition morphism_of_2 {A B C : PreCategory} (F : BiFunctor A B C)
+             (a : A) {b b' : B} (g : b --> b') :
+    F a b --> F a b' :=
+    morphism_of (F a) g.
+
+  Definition morphism_of_12 {A B C : PreCategory} (F : BiFunctor A B C)
+             {a a' : A} (f : a --> a') {b b' : B} (g : b --> b') :
+    F a b --> F a' b' :=
+    (morphism_of_2 F a' g) o (morphism_of_1 F f b).
+  (* Could define it the other way as well. . . *)    
+    
+
+  Record Monoidal_Category :=
+    {moncat : PreCategory;
+     moncat_mult : BiFunctor moncat moncat moncat;
+     moncat_id : moncat;
+     
+     moncat_assoc : forall a b c : moncat,
+          (moncat_mult (moncat_mult a b) c) --> (moncat_mult a (moncat_mult b c));
+     natl_assoc : forall (a b c a' b' c' : moncat)
+                         (f : a --> a') (g : b --> b') (h : c --> c'),
+         morphism_of_12 moncat_mult f (morphism_of_12 moncat_mult g h) o moncat_assoc a b c =
+         moncat_assoc a' b' c' o morphism_of_12 moncat_mult (morphism_of_12 moncat_mult f g) h;
+     iso_assoc : forall a b c : moncat,
+         IsIsomorphism (moncat_assoc a b c);
+     
+     moncat_lid : forall a : moncat,
+         (moncat_mult moncat_id a) --> a;
+     natl_lid : forall (a a' : moncat) (f : a --> a'),
+         f o (moncat_lid a) = (moncat_lid a') o (morphism_of_2 moncat_mult moncat_id f);
+     iso_lid : forall a : moncat,
+         IsIsomorphism (moncat_lid a);
+     
+     moncat_rid : forall a : moncat,
+         (moncat_mult a moncat_id) -->  a;
+     natl_rid : forall (a a' : moncat) (f : a --> a'),
+         f o (moncat_rid a) = (moncat_rid a') o (morphism_of_1 moncat_mult f moncat_id);
+     iso_rid : forall a : moncat,
+         IsIsomorphism (moncat_rid a);
+
+     moncat_triangle1 : forall (a b : moncat),
+         morphism_of_1 moncat_mult (moncat_lid a) b = moncat_lid (moncat_mult a b) o moncat_assoc moncat_id a b;
+     moncat_triangle2 : forall (a b : moncat),
+         morphism_of_1 moncat_mult (moncat_rid a) b = morphism_of_2 moncat_mult a (moncat_lid b) o moncat_assoc a moncat_id b;
+
+     moncat_pentagon : forall (a b c d : moncat),
+         morphism_of_1 moncat_mult (moncat_assoc a b c) d =
+         (moncat_assoc a (moncat_mult b c) d)^-1 o ((morphism_of_2 moncat_mult a (moncat_assoc b c d))^-1 o
+         (moncat_assoc a b (moncat_mult c d) o moncat_assoc (moncat_mult a b) c d))
+
+    }.
+
+    
+  Infix "⊗" := mon_mult (at level 50,no associativity).
+  Definition moncat_of_montype : Monoidal_1Type -> Monoidal_Category.
+  Proof.
+    
+    intros [S m e assoc lid rid triangle1 triangle2 pentagon].
+    refine
+      (Build_Monoidal_Category (Type_to_Cat S) (cat_of_arrow S S o (arrow_to_functor m))%functor e assoc _ _ lid _ _ rid _ _ _ _ _); simpl.
+    - intros a b c a' b' c' [] [] []. simpl. destruct (assoc a b c). reflexivity.
+    - intros a a' []. destruct (lid a). reflexivity.
+    - intros a a' []. destruct (rid a). reflexivity.
+    - intros a b. refine (_ @ triangle1 a b).
+      unfold morphism_of_1. simpl.
+      destruct (lid a). reflexivity.
+    - intros a b. refine (_ @ triangle2 a b).
+      unfold morphism_of_1. simpl.
+      destruct (rid a). reflexivity.
+    - intros a b c d.
+      unfold morphism_of_1. simpl.
+      refine (_ @ pentagon a b c d @ _).
+      + destruct (assoc a b c). reflexivity.
+      + apply whiskerR. apply whiskerL.
+        destruct (assoc b c d). reflexivity.      
+  Defined.
+
+  Definition moncat_group_completion (S : Monoidal_1Type)
+             (left_cancel : forall (s t : S) (p q : s = t) (a : S),
+                 ap (fun x => mon_mult x a) p = ap (fun x => mon_mult x a) q -> p = q) : Monoidal_Category.
+  Proof.
+    srefine (Build_Monoidal_Category (group_completion S left_cancel) _ _ _ _ (fun a b c => Build_IsIsomorphism _ _ _ _ _ _ _)
+                                    _ _ (fun a => Build_IsIsomorphism _ _ _ _ _ _ _) _ _ (fun a => Build_IsIsomorphism _ _ _ _ _ _ _)
+            _ _ _).
+    - unfold BiFunctor.
+      srapply @Build_Functor. simpl.
+      intro a. srapply @Build_Functor. simpl.
+      + exact (functor_prod (mon_mult (fst a)) (mon_mult (snd a))).
+      + simpl. intros b c.
+        unfold monoidal_action_morphism. simpl.
+        intros [s p].
+        exists s.
+        refine (_ @ ap (functor_prod (mon_mult (fst a)) (mon_mult (snd a))) p).
+        unfold functor_prod. apply path_prod; simpl. (* Need symmetry *)
+        
+        
+        simpl.
+        
+        apply path_prod; simpl.
+        
+        
+    
+
+             
+End Monoidal_Category.
+
+
+  
+  
+
+  
+     
+                   
+  
+  

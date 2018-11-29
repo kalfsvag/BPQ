@@ -4,29 +4,6 @@ Load finite_lemmas.
 Load equiv_lemmas.
 Load path_lemmas.
 
-(* Section Finite. *)
-(*   (*Fin respects sum*) *)
-
-(*   Definition Fin_resp_sum (m n : nat) : Fin (m + n) <~> (Fin m) + (Fin n). *)
-(*   Proof. *)
-(*     induction m. *)
-(*     - (*m is 0*) *)
-(*       apply equiv_inverse. *)
-(*       apply (sum_empty_l (Fin n)). *)
-(*     - simpl. *)
-(*       refine (_ oE (equiv_functor_sum_r IHm)). *)
-(*       refine ((equiv_sum_assoc (Fin m) Unit (Fin n))^-1 oE _ oE equiv_sum_assoc (Fin m) (Fin n) Unit). *)
-(*       apply equiv_functor_sum_l. *)
-(*       apply equiv_sum_symm. *)
-(*   Defined. *)
-
-(*   Definition trivial_equiv_fin (m n : nat) : m = n -> (Fin m) <~> (Fin n). *)
-(*   Proof. *)
-(*     intros []. reflexivity. *)
-(*   Defined. *)
-(*   (* Definition trivial_is_idmap {m : nat} : trivial_equiv_fin m m idpath  *) *)
-(* End Finite. *)
-
 Section Type_to_Cat.
   Require Import HoTT.Categories Category.Morphisms.
   
@@ -85,128 +62,51 @@ End Type_to_Cat.
 
         
 (*Defining the type of monoidal 1-Types (this corresponds to a monoidal category*)
-Section Monoidal_1Type.
-  (* Record preMonoidal_1Type : Type := *)
-  (*   { mon_type :> 1-Type; *)
-  (*     mon_mult : mon_type -> mon_type -> mon_type; *)
-  (*     mon_id : mon_type; *)
-  (*     mon_assoc : forall (a b c : mon_type), mon_mult (mon_mult a b) c = mon_mult a (mon_mult b c); *)
-  (*     mon_lid : forall (a : mon_type), mon_mult mon_id a = a; *)
-  (*     mon_rid : forall (a : mon_type), mon_mult a mon_id a = a; *)
-      
-  
-  (* Definition associative {A : Type}  (m : A-> A -> A) := forall (a b : A), (m a) o (m b) = m (m a b). *)
-  (* Definition left_identity {A : Type} (m : A->A->A) (e : A) := m e = idmap. *)
-  (* Definition right_identity_mult {A : Type} (m : A->A->A) (e : A) := forall a : A, m a e = a. *)
-    (* Definition right_identity_mult {A : Type} (m : A->A->A) (e : A) := (fun a : A => m a e) = idmap. *)
-  
-  Definition associative {A : Type}  (m : A-> A -> A) := forall (a b c: A),  m (m a b) c = m a (m b c).
-  Definition left_identity_mult {A : Type} (m : A->A->A) (e : A) := forall a : A, m e a = a.
-  Definition right_identity_mult {A : Type} (m : A->A->A) (e : A) := forall a : A, m a e = a.
 
-  (* Definition left_cancellation {A : Type} (m : A->A->A) := *)
-  (*   forall a b c : A, m a b = m a c -> b = c . *)
-  (* Definition right_cancellation {A : Type} (m : A->A->A) := *)
-  (*   forall a b c : A, m a b = m c b -> a = c . *)
-  
-  
-  (* Definition left_inverse {A : Type} (m : A -> A -> A) (e : A) (inv : A -> A) := *)
-  (*   forall a : A, m (inv a) a = e. *)
-  (* Definition right_inverse {A : Type} (m : A -> A -> A) (e : A) (inv : A -> A) := *)
-  (*   forall a : A, m a (inv a) = e. *)
-  
-  (* Unneccesary but easier to just assume *)
-  Definition coherence_triangle1 {A : Type} {m : A -> A -> A} {e : A}
-             (assoc : associative m) (lid : left_identity_mult m e)  :=
-    forall a b : A,
-      ap (fun x => m x b) (lid a) = assoc e a b @ lid (m a b).
-  
-  Definition coherence_triangle2 {A : Type} {m : A -> A -> A} {e : A}
-             (assoc : associative m) (lid : left_identity_mult m e) (rid : right_identity_mult m e) :=
-    forall a b : A,
-      ap (fun c => m c b) (rid a) = assoc a e b @ ap (m a) (lid b).
+Definition associative {A : Type}  (m : A-> A -> A) := forall (a b c: A),  m (m a b) c = m a (m b c).
+Definition left_identity_mult {A : Type} (m : A->A->A) (e : A) := forall a : A, m e a = a.
+Definition right_identity_mult {A : Type} (m : A->A->A) (e : A) := forall a : A, m a e = a.
 
-  Definition coherence_pentagon {A : Type} {m : A -> A -> A} (assoc : associative m) :=
-    forall a b c d: A,
-      ap (fun x => m x d) (assoc a b c) =
-      assoc (m a b) c d @ assoc a b (m c d) @ (ap (m a) (assoc b c d))^ @ (assoc a (m b c) d)^.
-      
+(* Unneccesary but perhaps easier to just assume *)
+Definition coherence_triangle1 {A : Type} {m : A -> A -> A} {e : A}
+           (assoc : associative m) (lid : left_identity_mult m e)  :=
+  forall a b : A,
+    ap (fun x => m x b) (lid a) = assoc e a b @ lid (m a b).
 
-  Record Monoidal_1Type : Type := { mon_type :> 1-Type;
-                                    (* mon_istrunc : IsTrunc 1 mon_type; *)
-                                    mon_mult  : mon_type->mon_type->mon_type;
-                                    mon_id : mon_type;
-                                    mon_assoc : associative mon_mult;
-                                    mon_lid : left_identity_mult mon_mult mon_id ;
-                                    mon_rid : right_identity_mult mon_mult mon_id ;
-                                    mon_triangle1 : coherence_triangle1 mon_assoc mon_lid ;
-                                    mon_triangle2 : coherence_triangle2 mon_assoc mon_lid mon_rid ;
-                                    mon_pentagon : coherence_pentagon mon_assoc
-                                  }.
+Definition coherence_triangle2 {A : Type} {m : A -> A -> A} {e : A}
+           (assoc : associative m) (lid : left_identity_mult m e) (rid : right_identity_mult m e) :=
+  forall a b : A,
+    ap (fun c => m c b) (rid a) = assoc a e b @ ap (m a) (lid b).
 
-  (*Makes mon_istrunc an implicit argument*)
-  (* Global Arguments *)
-  (*        Build_Monoidal_1Type mon_type (* {mon_istrunc} *) mon_mult mon_id mon_assoc mon_lid mon_rid *)
-  (*        mon_triangle mon_pentagon. *)
-  
-  Global Arguments mon_mult {m} m1 m2.
-  Global Arguments mon_id {m}.
-  Global Arguments mon_assoc {m} a b c.
-  Global Arguments mon_lid {m} a.
-  Global Arguments mon_rid {m} a.
-
-  
-  Infix "⊗" := mon_mult (at level 50,no associativity).
-  (* Lemma ap_mon_id (M : Monoidal_1Type) {a b : M} (p : a = b) : *)
-  (*   ap (mon_mult mon_id) p = (mon_lid a @ p @ (mon_lid b)^). *)
-  (* Proof. *)
-  (*   destruct p. hott_simpl. *)
-  (* Qed. *)
-
-  (* Lemma ap_mon_id_mon_lid (M : Monoidal_1Type) {a : M}: *)
-  (*   ap (mon_mult mon_id) (mon_lid a) = mon_lid (mon_mult mon_id a). *)
-  (* Proof. *)
-  (*   refine (ap_mon_id M _ @ _). hott_simpl. *)
-  (* Qed. *)
-
-  (* Lemma mon_assoc_mon_id (M : Monoidal_1Type) {a b : M} : *)
-  (*   mon_assoc mon_id a b = *)
-  (*   (mon_lid ((mon_id ⊗ a) ⊗ b))^ @ *)
-  (*    (((ap (fun x : M => x ⊗ b) (mon_assoc mon_id mon_id a) @ mon_assoc mon_id (mon_id ⊗ a) b)^ @ *)
-  (*   (mon_assoc (mon_id ⊗ mon_id) a b @ mon_assoc mon_id mon_id (a ⊗ b))) @ mon_lid (mon_id ⊗ (a ⊗ b))). *)
-  (* Proof. *)
-  (*   apply moveL_Vp. *)
-  (*   apply moveL_pM. *)
-  (*   refine ((ap_mon_id M _)^ @ _). *)
-  (*   apply moveL_Vp. apply moveR_pM. apply moveR_pM. apply (mon_pentagon M mon_id mon_id a b). *)
-  (* Qed.     *)
-
-  (* Definition mon_triangle2 (M : Monoidal_1Type) : forall (a b : M), *)
-  (*     ap (fun x => x ⊗ b) (mon_lid a) = *)
-  (*     mon_assoc mon_id a b @ mon_lid (a ⊗ b). *)
-  (* Proof. *)
-  (*   intros a b. *)
-  (*   apply moveL_Mp. *)
-  (*   apply (ap (concat (mon_lid (mon_id ⊗ (a ⊗ b)))))^-1. *)
-  (*   rewrite (mon_assoc_mon_id). hott_simpl. repeat rewrite concat_pp_p. *)
-  (*   Check (mon_triangle M mon_id a). *)
-  (*   Check (mon_triangle M mon_id a @ whiskerL _ (ap_mon_id_mon_lid M)). *)
-  (*   Check (moveR_pV _ _ _ (mon_triangle M mon_id a @ whiskerL _ (ap_mon_id_mon_lid M)))^. *)
-  (*   rewrite (moveR_pV _ _ _ (mon_triangle M mon_id a @ whiskerL _ (ap_mon_id_mon_lid M)))^. *)
-  (*   rewrite ap_pp. rewrite <- (ap_compose (fun c : M => c ⊗ a) (fun x : M => x ⊗ b)) . *)
-  (*   rewrite ap_V. *)
-  (*   repeat rewrite inv_pp. repeat rewrite inv_V. *)
-  (*   repeat rewrite concat_p_pp. *)
-  (*   Check (mon_triangle M a mon_id). *)
-    
-
-    
-    
+Definition coherence_pentagon {A : Type} {m : A -> A -> A} (assoc : associative m) :=
+  forall a b c d: A,
+    ap (fun x => m x d) (assoc a b c) =
+    assoc (m a b) c d @ assoc a b (m c d) @ (ap (m a) (assoc b c d))^ @ (assoc a (m b c) d)^.
 
 
-  (*Todo: Define symmetric monoidal category (check coherence criteria)*)
-  Definition symmetric {A : Type} (m : A->A->A) := forall a b : A, m a b = m b a.
+Record Monoidal_1Type : Type := { mon_type :> 1-Type;
+                                  mon_mult  : mon_type->mon_type->mon_type;
+                                  mon_id : mon_type;
+                                  mon_assoc : associative mon_mult;
+                                  mon_lid : left_identity_mult mon_mult mon_id ;
+                                  mon_rid : right_identity_mult mon_mult mon_id ;
+                                  mon_triangle1 : coherence_triangle1 mon_assoc mon_lid ;
+                                  mon_triangle2 : coherence_triangle2 mon_assoc mon_lid mon_rid ;
+                                  mon_pentagon : coherence_pentagon mon_assoc
+                                }.
 
+Global Arguments mon_mult {M} a b : rename.
+Global Arguments mon_id {M} : rename.
+Global Arguments mon_assoc {M} a b c : rename.
+Global Arguments mon_lid {M} a : rename.
+Global Arguments mon_rid {M} a : rename.
+
+
+Infix "⊗" := mon_mult (at level 50,no associativity).
+
+
+
+Section Monoidal_Map.
   Record Monoidal_Map (M N : Monoidal_1Type) :=
     {mon_map :> M -> N;
      mon_map_mult (a b : M) : mon_map (a ⊗ b) = (mon_map a) ⊗ (mon_map b) ;
@@ -220,36 +120,11 @@ Section Monoidal_1Type.
      mon_map_rid (x : M) : ap mon_map (mon_rid x) =
                            mon_map_mult x mon_id @ ap (mon_mult (mon_map x)) mon_map_id @ mon_rid (mon_map x) }.
          
-       
-       
-     
-
-       
-       (* ap mon_map (ap10 (mon_assoc x y) z) = *)
-     (*   mon_map_mult x (y ⊗ z) @ ap (fun s => mon_map x ⊗ s) (mon_map_mult y z) @ *)
-     (*                (ap10 (mon_assoc (mon_map x) (mon_map y)) (mon_map z) @ *)
-     (* (ap (fun s => s ⊗ mon_map z) (mon_map_mult x y))^ @ (mon_map_mult (x ⊗ y) z)^; *)
-     (* mon_map_lid (x : M) : ap mon_map (mon_lid x) = *)
-     (*                       mon_map_mult mon_id x @ ap (fun s => s ⊗ mon_map x) mon_map_id @ mon_lid (mon_map x); *)
-     (* mon_map_rid (x : M) : ap mon_map (mon_rid x) = *)
-     (*                       mon_map_mult x mon_id @ ap (fun s => mon_map x ⊗ s) mon_map_id @ mon_rid (mon_map x); *)
-     (* mon_map_mult (x y : M) : mon_map (x ⊗ y) = (mon_map x) ⊗ (mon_map y); *)
-     (* mon_map_id : mon_map (mon_id) = mon_id; *)
-     (* mon_map_assoc (x y z : M) : *)
-     (*   ap mon_map (ap10 (mon_assoc x y) z) = *)
-     (*   mon_map_mult x (y ⊗ z) @ ap (fun s => mon_map x ⊗ s) (mon_map_mult y z) @ *)
-     (*                (ap10 (mon_assoc (mon_map x) (mon_map y)) (mon_map z) @ *)
-     (* (ap (fun s => s ⊗ mon_map z) (mon_map_mult x y))^ @ (mon_map_mult (x ⊗ y) z)^; *)
-     (* mon_map_lid (x : M) : ap mon_map (mon_lid x) = *)
-     (*                       mon_map_mult mon_id x @ ap (fun s => s ⊗ mon_map x) mon_map_id @ mon_lid (mon_map x); *)
-     (* mon_map_rid (x : M) : ap mon_map (mon_rid x) = *)
-     (*                       mon_map_mult x mon_id @ ap (fun s => mon_map x ⊗ s) mon_map_id @ mon_rid (mon_map x); *)
-    (* }. *)
-  Arguments mon_map_mult {M N} F a b : rename.
-  Arguments mon_map_id {M N} F : rename.
-  Arguments mon_map_assoc {M N} F a b c : rename.
-  Arguments mon_map_lid {M N} F a : rename.
-  Arguments mon_map_rid {M N} F a : rename.
+  Global Arguments mon_map_mult {M N} F a b : rename.
+  Global Arguments mon_map_id {M N} F : rename.
+  Global Arguments mon_map_assoc {M N} F a b c : rename.
+  Global Arguments mon_map_lid {M N} F a : rename.
+  Global Arguments mon_map_rid {M N} F a : rename.
 
   Definition monoidal_map_id (M : Monoidal_1Type) : Monoidal_Map M M.
   Proof.
@@ -264,101 +139,6 @@ Section Monoidal_1Type.
     intros F G.
     srapply @Build_Monoidal_Map.
     - exact (G o F).
-    (* - intros a b . *)
-    (*   refine (ap (fun f => G o f) (mon_map_mult F m) @ _). *)
-    (*   apply (ap (fun f => f o F) (mon_map_mult G (F m))). *)
-    (* - apply (ap G (mon_map_id F) @ mon_map_id G). *)
-    (* - simpl. intros m n. *)
-        
-    (*   refine (ap_compose (fun f => F o f) (fun f => G o f) _ @ _). *)
-    (*   refine (ap (ap (fun f => G o f)) (mon_map_assoc F m n) @ _). *)
-      
-      
-      
-
-    (*   refine (ap_pp (fun f => G o f) _ _ @ _). *)
-    (*   refine (whiskerR (ap_pp (fun f => G o f) _ _ ) _ @ _). *)
-    (*   refine (whiskerR (whiskerR (ap_pp (fun f => G o f) _ _ ) _) _ @ _). *)
-    (*   refine (whiskerR (whiskerR (whiskerR (ap_pp (fun f => G o f) _ _ ) _) _) _ @ _). *)
-    (*   repeat rewrite ap_pp. *)
-    (*   repeat rewrite concat_pp_p. *)
-    (*   rewrite <- (ap_compose (fun (f : M -> N) (x : M) => G (f x)) (fun (f : M -> O) (x : M) => f (n ⊗ x))). *)
-    (*   rewrite <- (ap_compose (fun (f : N -> O) (x : M) => f (F x)) (fun (f : M -> O) (x : M) => f (n ⊗ x)) (mon_map_mult G (F m))). *)
-    (*   rewrite <- (ap_compose (fun (f : M -> N) (x : M) => G (f x)) (fun (f : M -> O) (x : M) => G (F m) ⊗ f x)). *)
-    (*   rewrite <- (ap_compose (fun (f : N -> O) (x : M) => f (F x)) (fun (f : M -> O) (x : M) => G (F m) ⊗ f x) (mon_map_mult G (F n))). *)
-    (*   rewrite ap10_pp. rewrite ap_pp. *)
-    (*   repeat rewrite inv_pp.  repeat rewrite ap_V.  *)
-    (*   repeat rewrite concat_pp_p. *)
-    (*   apply concat2. *)
-    (*   { apply inverse. *)
-    (*     apply (ap_compose (fun (f : M -> N) (x : M) => f (n ⊗ x)) (fun (f : M -> N) (x : M) => G (f x)) (mon_map_mult F m)). } *)
-    (*   Admitted. *)
-  (*     rewrite (ap10_ap_precompose G). *)
-      
-  (*     ap10_ap_precompose *)
-  (*     ap10_ap_postcompose *)
-
-
-  (*     apply whiskerL. *)
-  (*     repeat refine (concat_p_pp _ _ _ @ _). *)
-  (*     repeat refine (_ @ concat_pp_p _ _ _). *)
-  (*     refine (_ @ whiskerL _ (inv_pp _ _)^). *)
-  (*     repeat refine (_ @ concat_pp_p _ _ _). *)
-  (*     refine (concat2 _ (ap_V G _)). *)
-  (*     refine (whiskerL _ (ap_V G _) @ _). *)
-  (*     refine (whiskerL _ (ap inverse (ap_compose _ G (mon_map_mult F _ _))^) @ _). *)
-  (*     refine (whiskerR (whiskerR (ap_compose _ G (mon_map_mult F _ _))^ _) _ @ _). *)
-  (*     assert (H : forall (a b c : O) (p : a = b) (q : b = c), *)
-  (*                (ap (fun s : O => s ⊗ G (F z)) (p @ q))^ = *)
-  (*                (ap (fun s : O => s ⊗ G (F z)) q)^ @ (ap (fun s : O => s ⊗ G (F z)) p)^). *)
-  (*     { by path_induction. } *)
-  (*     refine (_ @ whiskerR (whiskerL _ (H _ _ _ _ _)^) _). clear H. *)
-
-  (*     repeat rewrite ap_pp. *)
-  (*     repeat rewrite <- (ap_compose G). *)
-  (*     rewrite (mon_map_assoc G (F x) (F y) (F z)). *)
-  (*     repeat rewrite concat_p_pp. *)
-  (*     refine (concat_pp_p _ _ _ @ _). *)
-  (*     refine (_ @ concat_p_pp _ _ _). *)
-  (*     apply concat2. *)
-  (*     + repeat apply whiskerR. destruct (mon_map_mult F _ _). cbn. destruct (mon_map_mult G _ _). reflexivity.         *)
-  (*     + destruct (mon_map_mult F _ _). cbn. destruct (mon_map_mult G _ _ ). reflexivity.  *)
-  (*   - intro x. simpl. *)
-  (*     transitivity (ap G (ap F (mon_lid x))). *)
-  (*     { apply (ap_compose F G). } *)
-  (*     refine ( ap (ap G) (mon_map_lid F x) @ _). *)
-  (*     refine (ap_pp G _ _ @ _). *)
-  (*     refine (ap (fun p => p @ ap G (mon_lid (F x))) (ap_pp G _ _) @ _). *)
-  (*     refine (whiskerL _ (mon_map_lid G (F x)) @ _). *)
-  (*     repeat refine (concat_p_pp _ _ _ @ _). apply whiskerR. *)
-  (*     repeat refine (concat_pp_p _ _ _ @ _). *)
-  (*     repeat refine (_ @ concat_p_pp _ _ _). apply whiskerL. *)
-  (*     refine (_ @ whiskerL _ (ap_pp (fun s : O => s ⊗ G (F x)) _ _)^). *)
-  (*     repeat refine (_ @ concat_pp_p _ _ _). *)
-  (*     repeat refine (concat_p_pp _ _ _ @ _). apply whiskerR. *)
-  (*     refine (whiskerR (ap_compose _ G (mon_map_id F))^ _ @ _). *)
-  (*     refine (_ @ whiskerL _ (ap_compose G _ (mon_map_id F))). *)
-  (*     destruct (mon_map_id F). cbn. *)
-  (*     exact (concat_1p _ @ (concat_p1 _)^). *)
-  (*   - intro x. simpl. *)
-  (*     transitivity (ap G (ap F (mon_rid x))). *)
-  (*     { apply (ap_compose F G). } *)
-  (*     refine ( ap (ap G) (mon_map_rid F x) @ _). *)
-  (*     refine (ap_pp G _ _ @ _). *)
-  (*     refine (ap (fun p => p @ ap G (mon_rid (F x))) (ap_pp G _ _) @ _). *)
-  (*     refine (whiskerL _ (mon_map_rid G (F x)) @ _). *)
-  (*     repeat refine (concat_p_pp _ _ _ @ _). apply whiskerR. *)
-  (*     repeat refine (concat_pp_p _ _ _ @ _). *)
-  (*     repeat refine (_ @ concat_p_pp _ _ _). apply whiskerL. *)
-  (*     refine (_ @ whiskerL _ (ap_pp (fun s : O => G (F x) ⊗ s) _ _)^). *)
-  (*     repeat refine (_ @ concat_pp_p _ _ _). *)
-  (*     repeat refine (concat_p_pp _ _ _ @ _). apply whiskerR. *)
-  (*     refine (whiskerR (ap_compose _ G (mon_map_id F))^ _ @ _). *)
-  (*     refine (_ @ whiskerL _ (ap_compose G _ (mon_map_id F))). *)
-  (*     destruct (mon_map_id F). cbn. *)
-  (*     exact (concat_1p _ @ (concat_p1 _)^). *)
-  (* Defined. *)
-  
     - intros a b.
       refine (ap G (mon_map_mult F a b) @ mon_map_mult G _ _).
     - refine (ap G (mon_map_id F) @ mon_map_id G).
@@ -431,55 +211,7 @@ Section Monoidal_1Type.
     - unfold coherence_pentagon. cbn. reflexivity.
   Defined.
 
-  (* Definition monoidal_action (M : Monoidal_1Type) (X : 1-Type) := Monoidal_Map M (endomorphism X). *)
-
-  Record monoidal_action (M : Monoidal_1Type) (X : 1-Type) :=
-    { act :> M -> X -> X;
-      mon_act_mult : forall (s t : M) (x : X), act (s ⊗ t) x = act s (act t x) ;
-      mon_act_id : forall x : X, act mon_id x = x;
-      mon_act_triangle1 : forall (a : M) (x : X),
-          ap (fun m : M => act m x) (mon_lid a) = mon_act_mult mon_id a x @ mon_act_id (act a x);
-      mon_act_triangle2 : forall (a : M) (x : X),
-          ap (fun m : M => act m x) (mon_rid a) = mon_act_mult a mon_id x @ ap (fun y : X => act a y) (mon_act_id x);
-      mon_act_pentagon : forall (a b c : M) (x : X),
-          ap (fun m : M => act m x) (mon_assoc a b c) =
-          mon_act_mult (a ⊗ b) c x @ mon_act_mult a b (act c x) @ (ap (act a) (mon_act_mult b c x))^ @ (mon_act_mult a (b ⊗ c) x)^ }.
-
-  Arguments mon_act_mult {M} {X} a s t x : rename.
-  Arguments mon_act_id {M} {X} a x : rename.
-             
-
-  (* Definition ap010 {A B C : Type} (f : A -> B -> C) {x x' : A} (p : x = x') (y : B) : f x y = f x' y := ap10 (ap f p) y. *)
-  (* Definition action_on_path {M} {X} (a : monoidal_action M X) {s t : M} (p : s = t) := ap10 (ap a p). *)
-  Definition action_on_path {M} {X} (a : monoidal_action M X) {s t : M} (x : X) (p : s = t)  := ap (fun s => a s x) p.
-    (* ap10 (ap a p). *)
-
-  
-  (* Definition mon_act_mult {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X) *)
-  (*            (m1 m2 : M) (x : X) : *)
-  (*   a (m1 ⊗ m2) x = a m1 (a m2 x). *)
-  (* Proof. *)
-  (*   revert x. apply ap10. apply (mon_map_mult a). *)
-  (* Defined. *)
-
-  (* Definition mon_act_id {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X) *)
-  (*            (x : X) : *)
-  (*   a (mon_id) x = x. *)
-  (* Proof. *)
-  (*   revert x. apply ap10. apply (mon_map_id a). *)
-  (* Defined. *)
-
-  (* Definition mon_act_assoc {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X) *)
-
-  (* Todo: mon_act_assoc, mon_act_lid, mon_act_rid *)
-
-  (* Definition left_cancellation_monoid (M : Monoidal_1Type) := left_cancellation (@mon_mult M). *)
-
-  (* Definition cancel_left_monoidal_action {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X) := *)
-  (*   forall (s t : M) (p q : s = t), *)
-  (*     (forall x : X, action_on_path a p  x = action_on_path a q x) -> p = q. *)
-
-  Definition path_arrow_V {A B : Type} {f g : A -> B} (H : f == g) :
+  Lemma path_arrow_V {A B : Type} {f g : A -> B} (H : f == g) :
     path_arrow g f (fun a => (H a)^) = (path_arrow f g H)^.
   Proof.
     transitivity (path_arrow f g (ap10 (path_forall _ _ H)))^.
@@ -491,18 +223,6 @@ Section Monoidal_1Type.
       destruct (path_arrow_1 f)^. reflexivity.
     - apply (ap inverse). apply (ap (path_arrow f g)). apply (path_forall _ _ (ap10_path_arrow f g H)).
   Defined.
-
-  Definition act_on_self (M : Monoidal_1Type) : monoidal_action M M.
-  Proof.
-    srapply @Build_monoidal_action.
-    - exact mon_mult.
-    - apply mon_assoc.
-    - apply mon_lid.
-    - apply mon_triangle1.
-    - apply mon_triangle2.
-    - apply mon_pentagon.
-  Defined.
-    
   
   Definition to_endomorphism (M : Monoidal_1Type) : Monoidal_Map M (endomorphism M).
   Proof.    
@@ -550,16 +270,6 @@ Section Monoidal_1Type.
       refine (ap_functor_arrow _ _ (mon_mult mon_id) idmap mon_lid ).
   Defined.
 
-  (* Definition functor_prod_compose {A1 A2 B1 B2 C1 C2 : Type} {f1 : A1 -> B1} {f2 : A2 -> B2} {g1 : B1 -> C1} {g2 : B2 -> C2} : *)
-  (*   functor_prod (g1 o f1) (g2 o f2) = (functor_prod g1 g2) o (functor_prod f1 f2) := idpath. *)
-  
-  (* Definition functor_prod_id {A B: Type} : *)
-  (*   functor_prod (fun a : A => a) (fun b : B => b) = idmap := idpath. *)
-
-  (* Definition functor_prod_uncurried {A1 A2 B1 B2} : (A1 -> B1) * (A2 -> B2) -> ((A1*A2) -> B1*B2). *)
-  (* Proof. intros [f g]. exact (functor_prod f g). *)
-  (* Defined. *)
-  
              
   Definition old_act_on_prod (M : Monoidal_1Type) (X Y: 1-Type) (a1 : Monoidal_Map M (endomorphism X)) (a2 : Monoidal_Map M (endomorphism Y)):
     Monoidal_Map M (endomorphism (BuildTruncType 1 (X*Y))).
@@ -571,10 +281,6 @@ Section Monoidal_1Type.
       apply (ap011 functor_prod (mon_map_mult a1 _ _) (mon_map_mult a2 _ _)).
     - apply (ap011 functor_prod (mon_map_id a1) (mon_map_id a2)).
     - intros s t u. simpl.
-      (* transitivity (ap functor_prod_uncurried *)
-      (*              (ap (fun m : M * M => (a1 (fst m), a2 (snd m))) *)
-      (*                  (path_prod ((s ⊗ t) ⊗ u, (s ⊗ t) ⊗ u) (s ⊗ (t ⊗ u), s ⊗ (t ⊗ u)) (mon_assoc s t u) (mon_assoc s t u)))). *)
-      (* { destruct (mon_assoc s t u). reflexivity. } *)
       transitivity (ap011 (functor_prod) (ap a1 (mon_assoc s t u)) (ap a2 (mon_assoc s t u))).
       { destruct (mon_assoc s t u). reflexivity. } hott_simpl.
       transitivity (ap011 functor_prod
@@ -589,16 +295,12 @@ Section Monoidal_1Type.
       refine (whiskerR (ap011_pp_pp functor_prod _ _ _ _ ) _ @ _).
       refine (whiskerR (whiskerR (ap011_pp_pp functor_prod _ _ _ _ ) _) _ @ _).
       apply concat2. apply concat2. apply whiskerL.
-      + (* generalize (mon_map_mult a1 s t). intro p. *)
-        (* generalize (mon_map_mult a2 s t). intro q. *)
-        cut (forall (f1 f2 : X -> X) (g1 g2 : Y -> Y) (p : f1 = f2) (q : g1 = g2),
+      + cut (forall (f1 f2 : X -> X) (g1 g2 : Y -> Y) (p : f1 = f2) (q : g1 = g2),
                 ap011 functor_prod (ap (fun f => f o (a1 u)) p) (ap (fun g => g o (a2 u)) q) =
                 ap (fun f => f o (functor_prod (a1 u) (a2 u))) (ap011 functor_prod p q)).
         { intro H. apply H. }
         by path_induction.
       + simpl.
-        (* generalize (mon_map_mult a1 t u). intro p. *)
-        (* generalize (mon_map_mult a2 t u). intro q. *)
         cut (forall (f1 f2 : X -> X) (g1 g2 : Y -> Y) (p : f1 = f2) (q : g1 = g2),
                 ap011 functor_prod (ap (fun f => (a1 s) o f) p)^ (ap (fun g => (a2 s) o g) q)^ =
                 (ap (fun f => (functor_prod (a1 s) (a2 s)) o f) (ap011 functor_prod p q))^).
@@ -639,13 +341,89 @@ Section Monoidal_1Type.
       { intro H.  apply (H _ _ _ _ (mon_map_id a1) (mon_map_id a2)). }
         by path_induction.
   Defined.
+End Monoidal_Map.
 
+Section Monoidal_Action.
+  (* Definition monoidal_action (M : Monoidal_1Type) (X : 1-Type) := Monoidal_Map M (endomorphism X). *)
+
+  Record monoidal_action (M : Monoidal_1Type) (X : 1-Type) :=
+    { act :> M -> X -> X;
+      mon_act_mult : forall (s t : M) (x : X), act (s ⊗ t) x = act s (act t x) ;
+      mon_act_id : forall x : X, act mon_id x = x;
+      mon_act_triangle1 : forall (a : M) (x : X),
+          ap (fun m : M => act m x) (mon_lid a) = mon_act_mult mon_id a x @ mon_act_id (act a x);
+      mon_act_triangle2 : forall (a : M) (x : X),
+          ap (fun m : M => act m x) (mon_rid a) = mon_act_mult a mon_id x @ ap (fun y : X => act a y) (mon_act_id x);
+      mon_act_pentagon : forall (a b c : M) (x : X),
+          ap (fun m : M => act m x) (mon_assoc a b c) =
+          mon_act_mult (a ⊗ b) c x @ mon_act_mult a b (act c x) @ (ap (act a) (mon_act_mult b c x))^ @ (mon_act_mult a (b ⊗ c) x)^ }.
+
+  Global Arguments mon_act_mult {M} {X} a s t x : rename.
+  Global Arguments mon_act_id {M} {X} a x : rename.
+             
+
+  Definition action_on_path {M} {X} (a : monoidal_action M X) {s t : M} (x : X) (p : s = t)  := ap (fun s => a s x) p.
+
+
+  Definition act_on_self (M : Monoidal_1Type) : monoidal_action M M.
+  Proof.
+    srapply @Build_monoidal_action.
+    - exact mon_mult.
+    - apply mon_assoc.
+    - apply mon_lid.
+    - apply mon_triangle1.
+    - apply mon_triangle2.
+    - apply mon_pentagon.
+  Defined.
+
+  Definition endomorphism_to_action (M : Monoidal_1Type) (X : 1-Type) (F : Monoidal_Map M (endomorphism X)):
+    monoidal_action M X.
+  Proof.
+    srapply @Build_monoidal_action.
+    - exact F.
+    - intros s t. apply ap10.
+      apply (mon_map_mult F).
+    - apply ap10.
+      apply (mon_map_id F).
+    - intros a x.      
+      refine (ap_compose F (fun f => f x) (mon_lid a) @ _).
+      rewrite mon_map_lid.
+      repeat rewrite ap_pp. simpl. rewrite concat_p1.
+      rewrite <- (ap_compose (fun (s : X -> X) (x0 : X) => s (F a x0)) (fun f : X -> X => f x) (mon_map_id F)). simpl.
+      rewrite ap_apply_l. rewrite ap_apply_l. reflexivity.
+    - intros a x.
+      refine (ap_compose F (fun f => f x) (mon_rid a) @ _).
+      rewrite mon_map_rid.
+      repeat rewrite ap_pp. simpl. rewrite concat_p1.
+      rewrite ap_apply_l. apply whiskerL.
+      rewrite ap_apply_l.
+      apply (ap10_ap_postcompose (F a) (mon_map_id F) x).
+    - intros a b c x. simpl.
+      refine (ap_compose F (fun f => f x) (mon_assoc a b c) @ _).
+      rewrite mon_map_assoc.
+      repeat rewrite ap_pp. simpl. rewrite concat_p1.
+      rewrite ap_apply_l. rewrite ap_apply_l. rewrite ap_apply_l. rewrite ap_apply_l.
+      apply concat2. apply concat2. apply whiskerL.
+      + apply (ap10_ap_precompose (F c) (mon_map_mult F a b) x ).
+      + rewrite ap10_V. apply (ap inverse).
+        apply (ap10_ap_postcompose (F a) (mon_map_mult F b c) x).
+      + apply (ap10_V (mon_map_mult F a (b ⊗ c)) x).
+  Defined.
+
+  Definition monmap_to_action {M : Monoidal_1Type} {X : Monoidal_1Type} (F : Monoidal_Map M X) :
+    monoidal_action M X.
+  Proof.
+    apply endomorphism_to_action.
+    apply (monoidal_map_compose M X (endomorphism X) F).
+    apply (to_endomorphism).
+  Defined.
+  
   Definition path_prod_VV {A B : Type} (z z' : A*B) (p1 : fst z = fst z') (p2 : snd z = snd z') :
     path_prod z' z p1^ p2^ = (path_prod z z' p1 p2)^.
   Proof.
     destruct z as [z1 z2]. destruct z' as [z1' z2']. simpl in *. destruct p1, p2. reflexivity.
   Defined.
-    
+  
 
   Definition act_on_prod (M : Monoidal_1Type) (X Y: 1-Type) (act1 : monoidal_action M X) (act2 : monoidal_action M Y) :
     monoidal_action M (BuildTruncType 1 (X*Y)).
@@ -677,8 +455,58 @@ Section Monoidal_1Type.
       repeat rewrite <- path_prod_pp.
       apply (ap011 (path_prod _ _)); apply mon_act_pentagon.
   Defined.
+
+  (* Definition act_from_monmap (M X : Monoidal_1Type) (F : Monoidal_Map M X) : *)
+  (*   monoidal_action M X. *)
+  (* Proof. *)
+  (*   srapply @Build_monoidal_action. *)
+  (*   - intros m x. exact ((F m) ⊗ x). *)
+  (*   - intros s t x. simpl. *)
+  (*     refine (ap (fun y => y ⊗ x) (mon_map_mult F s t) @ _). *)
+  (*     apply mon_assoc. *)
+  (*   - intro x. simpl. *)
+  (*     exact (ap (fun y => y ⊗ x) (mon_map_id F) @ (mon_lid x)). *)
+  (*   - intros a x. simpl. *)
+  (*     refine (ap_compose F (fun y : X => y ⊗ x) (mon_lid a) @ _). *)
+  (*     rewrite mon_map_lid. *)
+  (*     repeat rewrite ap_pp. *)
+  (*     rewrite mon_triangle1. *)
+  (*     repeat rewrite concat_p_pp. apply whiskerR. *)
+  (*     repeat rewrite concat_pp_p. apply whiskerL. *)
+  (*     rewrite <- (ap_compose (fun s : X => s ⊗ F a) (fun y : X => y ⊗ x)). *)
+  (*     destruct (mon_map_id F). simpl. *)
+  (*     destruct (mon_assoc (F mon_id) (F a) x). reflexivity. *)
+  (*   - intros a x. simpl. *)
+  (*     refine (ap_compose F (fun y : X => y ⊗ x) (mon_rid a) @ _). *)
+  (*     rewrite mon_map_rid. *)
+  (*     repeat rewrite ap_pp. *)
+  (*     rewrite mon_triangle2. *)
+  (*     repeat rewrite concat_p_pp. apply whiskerR. *)
+  (*     repeat rewrite concat_pp_p. apply whiskerL. *)
+  (*     rewrite <- (ap_compose (mon_mult (F a)) (fun y : X => y ⊗ x)). *)
+  (*     destruct (mon_map_id F). simpl. *)
+  (*     destruct (mon_assoc (F a) (F mon_id)  x). reflexivity. *)
+  (*   - intros a b c x. simpl. *)
+  (*     refine (ap_compose F (fun y : X => y ⊗ x) (mon_assoc a b c) @ _). *)
+  (*     rewrite mon_map_assoc. *)
+  (*     repeat rewrite ap_pp. *)
+  (*     rewrite mon_pentagon. *)
+  (*     repeat rewrite concat_pp_p. apply whiskerL. *)
+      
+  (*     repeat rewrite concat_p_pp. apply whiskerR. *)
+
+
+      
+      
+  (*     refine (ap_pp _ _ _ @ _). *)
+      
+  (*     refine (mon_triangle1 M _ _ @ _). *)
     
 
+    
+End Monoidal_Action.
+    
+Section Localize.
   Require Import HoTT.Categories.
   (* if we have a monoidal action with left_cancellation, we can build a category with objects X and arrows*)
   (* {m : M & m ⊗ x = m ⊗ y} *)
@@ -708,15 +536,6 @@ Section Monoidal_1Type.
       { apply moveR_pV. apply r2. }
   Defined.
 
-  (* Definition ap101 {A B C : Type} {f g : A -> B -> C} (p1 : f = g) { *)
-  (*                                                      forall  *)
-  
-
-  (* Ltac destruct_inverse p := *)
-  (*   set (q := p^); set (H := idpath : p^ = q); destruct q; . *)
-    
-  (*   recall p^ as q eqn:H; destruct q; destruct (ap inverse H^ @ inv_V p). *)
-  
   Definition monoidal_action_cat (M : Monoidal_1Type) (X : 1-Type) (a : monoidal_action M X)
              (left_cancel : forall (s t : M) (p q : s = t) (x : X),
                  action_on_path a x p = action_on_path a x q -> p = q)
@@ -730,7 +549,7 @@ Section Monoidal_1Type.
       intros [s1 p1] [s2 p2].
       exists (s1 ⊗ s2).
       exact (mon_act_mult a s1 s2 x @ ap (a s1) p2 @ p1).
-    (* associtivity *)
+    (* associativity *)
     - intros x1 x2 x3 x4 [s1 []] [s2 []] [s3 []]. repeat rewrite ap_1. repeat rewrite concat_p1.
       srapply @path_sigma. apply mon_assoc. cbn.
       refine (transport_paths_Fl (mon_assoc s3 s2 s1) _ @ _).
@@ -776,8 +595,6 @@ Section Monoidal_1Type.
              (left_cancel : forall (s t : M) (p q : s = t) (a : M),
                  ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q) : PreCategory :=
     localize_action M M (act_on_self M) left_cancel.
-
-  
 
   Definition contr_self_category (M : Monoidal_1Type)
              (left_cancel : forall (s t : M) (p q : s = t) (a : M),
@@ -849,11 +666,315 @@ Section Monoidal_1Type.
                  ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q):
   Functor (Type_to_Cat S) (group_completion S left_cancel) :=
     Functor.compose (prod_to_groupcompletion S left_cancel) (to_prod _).
+
+End Localize.
+
+Section Symmetric_Monoidal_Category.
+  
+  Definition symmetric {A : Type} (m : A->A->A) := forall a b : A, m a b = m b a.
+  Definition coherence_hexagon {A : Type} {m : A -> A -> A} (assoc : associative m) (symm : symmetric m) :=
+    forall (a b c : A),
+    ap (fun x : A => m x c) (symm a b) =
+           assoc a b c @ symm a (m b c) @ assoc b c a @ (ap (m b) (symm a c))^ @ (assoc b a c)^.
+
+  Record Symmetric_Monoidal_1Type : Type :=
+    { smon_type :> 1-Type;
+      smon_mult  : smon_type -> smon_type -> smon_type;
+      smon_id : smon_type;
+      smon_assoc : associative smon_mult;
+      smon_lid : left_identity_mult smon_mult smon_id ;
+      smon_rid : right_identity_mult smon_mult smon_id ;
+      smon_sym : symmetric smon_mult ;
+      smon_sym_inv : forall a b : smon_type, smon_sym a b = (smon_sym b a)^;
+      smon_triangle1 : coherence_triangle1 smon_assoc smon_lid ;
+      smon_triangle2 : coherence_triangle2 smon_assoc smon_lid smon_rid ;
+      smon_pentagon : coherence_pentagon smon_assoc;
+      smon_hexagon : coherence_hexagon smon_assoc smon_sym                                         
+    }.
+  Global Arguments smon_mult {S} a b : rename.
+  Global Arguments smon_id {S} : rename.
+  Global Arguments smon_assoc {S} a b c : rename.
+  Global Arguments smon_lid {S} a : rename.
+  Global Arguments smon_rid {S} a : rename.
+  Global Arguments smon_sym {S} a b : rename.
+
+  Definition forget_symmetry : Symmetric_Monoidal_1Type -> Monoidal_1Type :=
+    fun S => Build_Monoidal_1Type S smon_mult smon_id smon_assoc smon_lid smon_rid
+                                  (smon_triangle1 S) (smon_triangle2 S) (smon_pentagon S).
+
+  Coercion forget_symmetry : Symmetric_Monoidal_1Type >-> Monoidal_1Type.
+
+
+
+End Symmetric_Monoidal_Category.
       
 
-  
+Section Monoidal_Category.
+  Require Import Category.Morphisms.
+  Local Notation "x --> y" := (morphism _ x y) (at level 99, right associativity, y at level 200) : type_scope.
+  Open Scope morphism.
 
-End Monoidal_1Type.  
+  Definition BiFunctor (A B C : PreCategory) :=
+    Functor A (functor_category B C).
+
+  Definition morphism_of_1 {A B C : PreCategory} (F : BiFunctor A B C)
+             {a a' : A} (f : a --> a') (b : B)  :
+    F a b --> F a' b :=
+    morphism_of F f b.
+
+  Definition morphism_of_2 {A B C : PreCategory} (F : BiFunctor A B C)
+             (a : A) {b b' : B} (g : b --> b') :
+    F a b --> F a b' :=
+    morphism_of (F a) g.
+
+  Definition morphism_of_12 {A B C : PreCategory} (F : BiFunctor A B C)
+             {a a' : A} (f : a --> a') {b b' : B} (g : b --> b') :
+    F a b --> F a' b' :=
+    (morphism_of_2 F a' g) o (morphism_of_1 F f b).
+  (* Could define it the other way as well. . . *)    
+    
+
+  Record Monoidal_Category :=
+    {moncat : PreCategory;
+     moncat_mult : BiFunctor moncat moncat moncat;
+     moncat_id : moncat;
+     
+     moncat_assoc : forall a b c : moncat,
+          (moncat_mult (moncat_mult a b) c) --> (moncat_mult a (moncat_mult b c));
+     natl_assoc : forall (a b c a' b' c' : moncat)
+                         (f : a --> a') (g : b --> b') (h : c --> c'),
+         morphism_of_12 moncat_mult f (morphism_of_12 moncat_mult g h) o moncat_assoc a b c =
+         moncat_assoc a' b' c' o morphism_of_12 moncat_mult (morphism_of_12 moncat_mult f g) h;
+     iso_assoc : forall a b c : moncat,
+         IsIsomorphism (moncat_assoc a b c);
+     
+     moncat_lid : forall a : moncat,
+         (moncat_mult moncat_id a) --> a;
+     natl_lid : forall (a a' : moncat) (f : a --> a'),
+         f o (moncat_lid a) = (moncat_lid a') o (morphism_of_2 moncat_mult moncat_id f);
+     iso_lid : forall a : moncat,
+         IsIsomorphism (moncat_lid a);
+     
+     moncat_rid : forall a : moncat,
+         (moncat_mult a moncat_id) -->  a;
+     natl_rid : forall (a a' : moncat) (f : a --> a'),
+         f o (moncat_rid a) = (moncat_rid a') o (morphism_of_1 moncat_mult f moncat_id);
+     iso_rid : forall a : moncat,
+         IsIsomorphism (moncat_rid a);
+
+     moncat_triangle1 : forall (a b : moncat),
+         morphism_of_1 moncat_mult (moncat_lid a) b = moncat_lid (moncat_mult a b) o moncat_assoc moncat_id a b;
+     moncat_triangle2 : forall (a b : moncat),
+         morphism_of_1 moncat_mult (moncat_rid a) b = morphism_of_2 moncat_mult a (moncat_lid b) o moncat_assoc a moncat_id b;
+
+     moncat_pentagon : forall (a b c d : moncat),
+         morphism_of_1 moncat_mult (moncat_assoc a b c) d =
+         (moncat_assoc a (moncat_mult b c) d)^-1 o ((morphism_of_2 moncat_mult a (moncat_assoc b c d))^-1 o
+         (moncat_assoc a b (moncat_mult c d) o moncat_assoc (moncat_mult a b) c d))
+
+    }.
+
+    
+  Infix "⊗" := smon_mult (at level 50,no associativity).
+  Definition moncat_of_montype : Monoidal_1Type -> Monoidal_Category.
+  Proof.
+    
+    intros [S m e assoc lid rid triangle1 triangle2 pentagon].
+    refine
+      (Build_Monoidal_Category (Type_to_Cat S) (cat_of_arrow S S o (arrow_to_functor m))%functor e assoc _ _ lid _ _ rid _ _ _ _ _); simpl.
+    - intros a b c a' b' c' [] [] []. simpl. destruct (assoc a b c). reflexivity.
+    - intros a a' []. destruct (lid a). reflexivity.
+    - intros a a' []. destruct (rid a). reflexivity.
+    - intros a b. refine (_ @ triangle1 a b).
+      unfold morphism_of_1. simpl.
+      destruct (lid a). reflexivity.
+    - intros a b. refine (_ @ triangle2 a b).
+      unfold morphism_of_1. simpl.
+      destruct (rid a). reflexivity.
+    - intros a b c d.
+      unfold morphism_of_1. simpl.
+      refine (_ @ pentagon a b c d @ _).
+      + destruct (assoc a b c). reflexivity.
+      + apply whiskerR. apply whiskerL.
+        destruct (assoc b c d). reflexivity.      
+  Defined.
+
+  (* Definition moncat_action_category (S : Symmetric_Monoidal_1Type) (X : Monoidal_1Type) (F : Monoidal_Map S X) *)
+  (*            (left_cancel : forall (s t : S) (p q : s = t) (a : S), *)
+  (*                ap (fun x => smon_mult x a) p = ap (fun x => smon_mult x a) q -> p = q) : Monoidal_Category. *)
+  (* Proof. *)
+  (*   srefine (Build_Monoidal_Category (monoidal_action_cat S X (monmap_to_action F) left_cancel) _ _ _ _ (fun a b c => Build_IsIsomorphism _ _ _ _ _ _ _) *)
+  (*                                    _ _ (fun a => Build_IsIsomorphism _ _ _ _ _ _ _) _ _ (fun a => Build_IsIsomorphism _ _ _ _ _ _ _)). *)
+  Lemma ap_homotopy {A B : Type} {a b : A} (p : a = b) (f g : A -> B) (H : g == f) :
+    ap f p = (H a)^ @ (ap g p) @ (H b).
+  Proof.
+    destruct p. simpl. destruct (H a). reflexivity.
+  Defined.
+  
+  Definition moncat_group_completion (S : Symmetric_Monoidal_1Type)
+             (left_cancel : forall (s t : S) (p q : s = t) (a : S),
+                 ap (fun x => smon_mult x a) p = ap (fun x => smon_mult x a) q -> p = q) : Monoidal_Category.
+  Proof.
+    srefine (Build_Monoidal_Category (group_completion S left_cancel) _ _ _ _ (fun a b c => Build_IsIsomorphism _ _ _ _ _ _ _)
+                                    _ _ (fun a => Build_IsIsomorphism _ _ _ _ _ _ _) _ _ (fun a => Build_IsIsomorphism _ _ _ _ _ _ _)
+            _ _ _).
+    - unfold BiFunctor.
+      srapply @Build_Functor. simpl.
+      intro a. srapply @Build_Functor. simpl.
+      + exact (functor_prod (smon_mult (fst a)) (smon_mult (snd a))).
+      + simpl. intros b c.
+        unfold monoidal_action_morphism. simpl. unfold functor_prod. simpl.
+        intros [s p].
+        exists s.
+        refine (_ @ ap (functor_prod (smon_mult (fst a)) (smon_mult (snd a))) p).
+        unfold functor_prod. simpl. apply path_prod; simpl; refine ((smon_assoc _ _ _)^ @ _ @ smon_assoc _ _ _);
+        apply (ap (fun x => x ⊗ _ b) (smon_sym s (_ a))).
+      + intros b c d. simpl in b,c,d.
+        intros [s p] [t q]. simpl in p,q.  simpl. destruct p,q. simpl.
+        srapply @path_sigma. reflexivity. simpl.
+        repeat rewrite ap_pp.
+        repeat rewrite ap_functor_prod. simpl. repeat rewrite concat_p1. 
+        repeat rewrite <- path_prod_pp.
+        apply (ap011 (path_prod _ _)).
+        * destruct a as [a1 a2]; destruct b as [b1 b2]; simpl.
+          repeat rewrite ap_pp. rewrite ap_V.
+          assert (p : ap (smon_mult t) (ap (fun x : S => x ⊗ b1) (smon_sym s a1)) =
+                  (mon_assoc t (s ⊗ a1) b1)^ @ ap (fun x : S => x ⊗ b1) (ap (fun x : S => t ⊗ x) (smon_sym s a1)) @ mon_assoc t (a1 ⊗ s) b1).
+            destruct (smon_sym s a1). simpl.
+            destruct (smon_assoc t (s ⊗ a1) b1). simpl.  reflexivity.
+          rewrite p. clear p. repeat rewrite concat_pp_p.
+          assert (p : ap (fun x : S => x ⊗ (s ⊗ b1)) (smon_sym t a1) =
+                      (smon_assoc (t ⊗ a1) s b1)^ @ ap (fun x : S => x ⊗ b1) (ap (fun x : S => x ⊗ s) (smon_sym t a1)) @ smon_assoc (a1 ⊗ t) s b1).
+            destruct (smon_sym t a1). simpl.
+            destruct (smon_assoc (t ⊗ a1) s b1). simpl. reflexivity.
+          rewrite p. clear p.
+          rewrite (smon_sym_inv S t a1). repeat rewrite ap_V.
+          rewrite (smon_hexagon S a1 t s).
+          repeat rewrite ap_pp. repeat rewrite ap_V.
+          repeat rewrite concat_pp_p.
+          rewrite (smon_pentagon S a1 t s b1). rewrite (smon_pentagon S t a1 s b1). rewrite smon_pentagon.
+          (* rewrite smon_pentagon. *)
+          repeat rewrite inv_pp. repeat rewrite inv_V. 
+          repeat rewrite concat_pp_p.
+          repeat rewrite concat_V_pp. rewrite concat_Vp. rewrite concat_p1.
+          rewrite concat_p_Vp. rewrite concat_p_Vp.
+          rewrite (smon_sym_inv S a1 (t ⊗ s)). rewrite ap_V. rewrite inv_V.
+          rewrite (smon_sym_inv S s a1). rewrite ap_V. rewrite ap_V.
+          repeat rewrite concat_V_pp. 
+          repeat rewrite concat_p_pp. repeat apply whiskerR. rewrite concat_pV.
+          apply inverse. apply concat_1p.
+          destruct (smon_assoc (t ⊗ s) a1 b1). 
+reflexivity.
+
+          apply whiskerL.
+          rewrite <- (ap_compose (fun x : S => t ⊗ x) (fun x : S => x ⊗ b1)).
+          rewrite <- (ap_compose (smon_mult a1) (fun x : S => x ⊗ b1)).
+          repeat rewrite concat_p_pp. apply whiskerR. apply whiskerR.
+          repeat rewrite concat_pp_p.
+          repeat refine (_ @ concat_pp_p _ _ _). refine (_ @ concat_p_pp _ _ _). apply concat2.
+           apply concat2.
+          hott_simpl.
+          
+          
+          repeat rewrite ap_pp. repeat rewrite ap_V.
+
+          apply moveL_Mp. apply moveL_Vp. apply moveL_Vp.
+          
+          apply moveR_Vp. apply moveR_pM.
+          
+          
+          
+          repeat rewrite smon_hexagon. repeat rewrite ap_pp.
+
+          rewrite concat_Vp. rewrite concat_p1.
+          repeat rewrite ap_V.
+          repeat rewrite concat_V_pp.
+          repeat rewrite concat_p_pp. apply moveL_pV. repeat rewrite concat_pp_p.
+          repeat rewrite <- ap_V.
+          rewrite <- (ap_compose (smon_mult a1) (smon_mult t)).          
+          repeat rewrite ap_V.
+          rewrite (ap_homotopy (smon_sym s b1) (fun x : S => t ⊗ (a1 ⊗ x)) (fun x : S => (t ⊗ a1) ⊗ x) (mon_assoc t a1)).
+          repeat rewrite inv_pp.
+          repeat rewrite concat_pp_p. rewrite inv_V.
+          rewrite smon_hexagon.
+            
+          rewrite (ap_compose 
+
+          
+          repeat rewrite <- ap_pp.
+          repeat rewrite concat_p_pp. 
+          apply moveL_pM. apply moveL_pM. repeat rewrite concat_pp_p.
+          repeat rewrite <- ap_pp.
+          repeat rewrite concat_p_pp.
+          apply moveR_pV. apply moveR_pV. repeat rewrite concat_pp_p. apply moveL_Mp.
+          repeat rewrite concat_p_pp.
+          generalize (((smon_assoc t s (a1 ⊗ b1))^ @ smon_sym (t ⊗ s) (a1 ⊗ b1)) @ smon_assoc a1 b1 (t ⊗ s)). intro p.
+          generalize (
+
+              ap (smon_mult a1) (smon_sym s b1)^) @ smon_sym t (a1 ⊗ (s ⊗ b1))) @
+  smon_assoc a1 (s ⊗ b1) t
+          generalize (smon_sym (t ⊗ s) (a1 ⊗ b1) @ smon_assoc a1 b1 (t ⊗ s)). intro p.
+          generalize (smon_sym t (a1 ⊗ (s ⊗ b1))) @ smon_assoc a1 (s ⊗ b1) t.
+          
+          
+          rewrite <- (ap_pp (smon_mult a1)).
+
+          
+
+
+          concat_V_pp: forall (A : Type) (x y z : A) (p : x = y) (q : y = z), p^ @ (p @ q) = q
+concat_p_Vp: forall (A : Type) (x y z : A) (p : x = y) (q : x = z), p @ (p^ @ q) = q
+concat_pp_V: forall (A : Type) (x y z : A) (p : x = y) (q : y = z), (p @ q) @ q^ = p
+concat_pV_p: forall (A : Type) (x y z : A) (p : x = z) (q : y = z), (p @ q^) @ q = p
+                                                                                     
+          rewrite smon_hexagon. rewrite ap_pp. repeat rewrite ap_V. repeat rewrite ap_pp.
+          repeat rewrite concat_pp_p. apply moveL_Mp. repeat rewrite concat_p_pp. rewrite concat_Vp. rewrite concat_1p.
+          apply moveL_pV. apply moveL_pM. apply moveL_pM. apply moveL_pV.
+          repeat rewrite concat_pp_p.          
+          rewrite concat_Vp. rewrite concat_p1. repeat rewrite concat_pp_p.
+          rewrite smon_hexagon. simpl.
+          repeat rewrite inv_pp. repeat rewrite inv_V. repeat rewrite concat_pp_p.
+          apply moveR_Vp. apply moveR_Mp. apply moveR_Mp.
+          apply moveR_Vp. apply moveR_Mp.
+          repeat rewrite concat_p_pp. rewrite concat_Vp. rewrite concat_1p. repeat rewrite concat_pp_p.
+          
+
+          repeat rewrite <- ap_pp. 
+          apply moveR_Mp. repeat rewrite <- ap_V.
+          repeat rewrite inv_pp. repeat rewrite inv_V. repeat rewrite concat_p_pp.
+          repeat rewrite <- ap_pp. repeat rewrite concat_pp_p.
+          
+          
+          
+          rewrite (ap_compose _ _ (smon_sym t a1)).
+
+          
+          rewrite <- (ap_compose (fun x : S => x ⊗ b1)(smon_mult t)). 
+          
+
+          hott_simpl.
+          assert (smon_assoc a1 (t ⊗ s) b1 @ ap (smon_mult a1) (smon_assoc t s b1) =
+                  ap (fun x : S => x ⊗ (s ⊗ b1)) (smon_sym t a1) @ smon_assoc a1 t (s ⊗ b1)).
+          
+        
+        rewrite ap_functor_prod.
+        
+        apply path_sigma_1.
+        
+        
+
+        (* Need symmetry *)
+  Abort.
+        
+        
+    
+
+             
+End Monoidal_Category.
+
+
+  
+  
 
 (*Defining the monoidal 1-type of finite sets and isomorphisms*)
 Section BΣ.
@@ -866,7 +987,7 @@ Section BΣ.
   Global Instance istrunc_BΣ : IsTrunc 1 BΣ.
   Proof.
     apply trunc_sigma'. intro A. exact _.
-    intros A B.
+S    intros A B.
     srapply @istrunc_paths_Type. 
     apply isset_Finite. exact B.2.
   Defined.
@@ -886,7 +1007,7 @@ Section BΣ.
   Proof.
     apply (equiv_inj path_BΣ^-1).
     refine (_ @ (eissect (path_BΣ) (e1 oE e2))^).
-    apply path_equiv. (* apply path_arrow. *) simpl.
+    apply path_equiv. simpl.
     unfold pr1_path.
     rewrite ap_pp.
     rewrite ap_pr1_path_sigma_hprop. rewrite ap_pr1_path_sigma_hprop. apply path_arrow. intro s.
@@ -911,9 +1032,7 @@ Section BΣ.
   Proof.
     apply (equiv_inj (path_BΣ)^-1).
     refine (_ @ (eissect (path_finite_types_sum (S1 ⊕ S3) (S2 ⊕ S3)) (equiv_functor_sum_r e))^).
-    apply path_equiv. (* apply path_arrow. *) simpl.
-    (* intros [s1 | s3]. simpl. *)
-    (* destruct S1 as [S1 fin1]. destruct S2 as [S2 fin2]. destruct S3 as [S3 fin3]. simpl in *. *)
+    apply path_equiv. simpl.
     unfold pr1_path. 
     transitivity
       (transport idmap (ap (fun X : Type => X + S3) (ap pr1 (path_sigma_hprop S1 S2 (path_universe_uncurried e))))).
@@ -937,9 +1056,7 @@ Section BΣ.
   Proof.
     apply (equiv_inj (path_BΣ)^-1).
     refine (_ @ (eissect (path_finite_types_sum (S1 ⊕ S2) (S1 ⊕ S3)) (equiv_functor_sum_l e))^).
-    apply path_equiv. (* apply path_arrow. *) simpl.
-    (* intros [s1 | s3]. simpl. *)
-    (* destruct S1 as [S1 fin1]. destruct S2 as [S2 fin2]. destruct S3 as [S3 fin3]. simpl in *. *)
+    apply path_equiv. simpl.
     unfold pr1_path. 
     transitivity
       (transport idmap (ap (fun X : Type => S1 + X) (ap pr1 (path_sigma_hprop S2 S3 (path_universe_uncurried e))))).
@@ -956,35 +1073,6 @@ Section BΣ.
     rewrite path_universe_1. simpl.
     intros [s1 | s2]; reflexivity.
   Qed.
-
-
-  
-
-
-  (* (*For convinience: Any type of 2-paths in sigma is thus an hprop.*) *)
-  (* Instance isprop_2path_BΣ {S1 S2 : BΣ} {p1 p2 : S1 = S2} : IsHProp (p1 = p2) := *)
-  (*   istrunc_BΣ S1 S2 p1 p2. *)
-    
-  (* (*The cardinal of the finite set*) *)
-  (* Definition cardinal (S : BΣ) : nat := @fcard S.1 S.2. *)
-
-  (*The canonical objects respect sum*)
-  (* Definition sum_canonical (m n : nat) : canon_BΣ (m + n)%nat = canon_BΣ m ⊕ canon_BΣ n. *)
-  (* Proof. *)
-  (*   apply path_BΣ. *)
-  (*   apply Fin_resp_sum. *)
-  (* Defined. *)
-  (* Notation "[ n ]" := (canon_BΣ n). *)
-  (*Holds by definition: [cardinal [n] = n]*)
-
-  (* (*Every object is canonical*) *)
-  (* Lemma canonical_BΣ (S : BΣ) : merely (S = [cardinal S]). *)
-  (* Proof. *)
-  (*   destruct S as [A [n eA]]. strip_truncations. apply tr. *)
-  (*   apply path_BΣ. cbn. exact eA. *)
-  (* Defined. *)
-
-
   
   (*The monoidal structure on BΣ*)
   
@@ -1091,62 +1179,6 @@ Section BΣ.
       - apply inverse. apply eisretr.
   Defined.
 
-    
-
-  (* Definition BΣ_lcancel : forall S1 S2 S3 : BΣ, S1 + S2 = S1 + S3 -> merely (S2 = S3). *)
-  (* Proof. *)
-  (*   intros S1 S2 S3. *)
-  (*   intro pth. *)
-  (*   trunc_rewrite (canonical_BΣ S2). *)
-  (*   trunc_rewrite (canonical_BΣ S3). *)
-  (*   apply tr. apply (ap (fun n : nat => [n])). *)
-  (*   apply (nat_plus_cancelL (cardinal S1)). *)
-  (*   refine ((sum_cardinal S1 S2)^ @ _ @ sum_cardinal S1 S3). *)
-  (*   exact (ap cardinal pth). *)
-  (* Defined. *)
-
-  (* Definition sigma_minus (A : BΣ) (m n : nat) : *)
-  (*   A + [m] = [n] -> merely (A = [nat_minus m n]). *)
-  (* Proof. *)
-  (*   intro p. *)
-  (*   pose proof (canonical_BΣ A) as q. *)
-  (*   revert q. *)
-  (*   apply (Trunc_rec (A:= A = [cardinal A])). intro q. rewrite q. rewrite q in p. clear q. *)
-  (*   destruct A as [A [l H]]. *)
-  (*   unfold cardinal in p. simpl in p. *)
-  (*   unfold cardinal. simpl. *)
-  (*   apply tr. *)
-  (*   induction m, n. *)
-  (*   (* - simpl. simpl in p. *) *)
-  (*   (* induction m; simpl. *) *)
-  (*   (* - refine (_ @ p). *) *)
-  (*   (*   apply (BΣ_rid [l])^ . *) *)
-  (*   (* - induction n. *) *)
-  (*   (*   +  *) *)
-  (* Abort. *)
-    
-          
-    
-    
-
-  (* Definition unique_choice_groupcompletion_arrow (m n : nat) : *)
-  (*   {A : BΣ & A + [m] = [n]} -> Trunc 0 {A : BΣ & A + [m] = [n]}. *)
-  (* Proof. *)
-  (*   intros [A p]. *)
-  (*   (* pose proof (BΣ_lcancel  *) *)
-
-    
-  (*   (* apply trunc_sigma'. *) *)
-  (*   (* - intro A. apply (istrunc_BΣ (A + [m]) [n]). *) *)
-  (*   (* - intros [A p] [B q]. simpl. *) *)
-  (*   (*   unfold IsHProp. unfold IsTrunc_internal. *) *)
-  (*   (*   intros p1 q1. *) *)
-  (*   (*   srapply @BuildContr. *) *)
-  (*   (*   destruct q1. *) *)
-  (*   (*   reduce_BΣ. *) *)
-  (*   Abort.   *)
-  
-
   Definition BΣ_moncat : Monoidal_1Type :=
     Build_Monoidal_1Type (BuildTruncType 1 BΣ) plus_BΣ (canon_BΣ 0) BΣ_assoc BΣ_lid BΣ_rid BΣ_triangle1 BΣ_triangle2 BΣ_pentagon.
 
@@ -1155,130 +1187,7 @@ Section BΣ.
   
 End BΣ.
 
-Section Monoidal_Category.
-  Require Import Category.Morphisms.
-  Local Notation "x --> y" := (morphism _ x y) (at level 99, right associativity, y at level 200) : type_scope.
-  Open Scope morphism.
 
-  Definition BiFunctor (A B C : PreCategory) :=
-    Functor A (functor_category B C).
-
-  Definition morphism_of_1 {A B C : PreCategory} (F : BiFunctor A B C)
-             {a a' : A} (f : a --> a') (b : B)  :
-    F a b --> F a' b :=
-    morphism_of F f b.
-
-  Definition morphism_of_2 {A B C : PreCategory} (F : BiFunctor A B C)
-             (a : A) {b b' : B} (g : b --> b') :
-    F a b --> F a b' :=
-    morphism_of (F a) g.
-
-  Definition morphism_of_12 {A B C : PreCategory} (F : BiFunctor A B C)
-             {a a' : A} (f : a --> a') {b b' : B} (g : b --> b') :
-    F a b --> F a' b' :=
-    (morphism_of_2 F a' g) o (morphism_of_1 F f b).
-  (* Could define it the other way as well. . . *)    
-    
-
-  Record Monoidal_Category :=
-    {moncat : PreCategory;
-     moncat_mult : BiFunctor moncat moncat moncat;
-     moncat_id : moncat;
-     
-     moncat_assoc : forall a b c : moncat,
-          (moncat_mult (moncat_mult a b) c) --> (moncat_mult a (moncat_mult b c));
-     natl_assoc : forall (a b c a' b' c' : moncat)
-                         (f : a --> a') (g : b --> b') (h : c --> c'),
-         morphism_of_12 moncat_mult f (morphism_of_12 moncat_mult g h) o moncat_assoc a b c =
-         moncat_assoc a' b' c' o morphism_of_12 moncat_mult (morphism_of_12 moncat_mult f g) h;
-     iso_assoc : forall a b c : moncat,
-         IsIsomorphism (moncat_assoc a b c);
-     
-     moncat_lid : forall a : moncat,
-         (moncat_mult moncat_id a) --> a;
-     natl_lid : forall (a a' : moncat) (f : a --> a'),
-         f o (moncat_lid a) = (moncat_lid a') o (morphism_of_2 moncat_mult moncat_id f);
-     iso_lid : forall a : moncat,
-         IsIsomorphism (moncat_lid a);
-     
-     moncat_rid : forall a : moncat,
-         (moncat_mult a moncat_id) -->  a;
-     natl_rid : forall (a a' : moncat) (f : a --> a'),
-         f o (moncat_rid a) = (moncat_rid a') o (morphism_of_1 moncat_mult f moncat_id);
-     iso_rid : forall a : moncat,
-         IsIsomorphism (moncat_rid a);
-
-     moncat_triangle1 : forall (a b : moncat),
-         morphism_of_1 moncat_mult (moncat_lid a) b = moncat_lid (moncat_mult a b) o moncat_assoc moncat_id a b;
-     moncat_triangle2 : forall (a b : moncat),
-         morphism_of_1 moncat_mult (moncat_rid a) b = morphism_of_2 moncat_mult a (moncat_lid b) o moncat_assoc a moncat_id b;
-
-     moncat_pentagon : forall (a b c d : moncat),
-         morphism_of_1 moncat_mult (moncat_assoc a b c) d =
-         (moncat_assoc a (moncat_mult b c) d)^-1 o ((morphism_of_2 moncat_mult a (moncat_assoc b c d))^-1 o
-         (moncat_assoc a b (moncat_mult c d) o moncat_assoc (moncat_mult a b) c d))
-
-    }.
-
-    
-  Infix "⊗" := mon_mult (at level 50,no associativity).
-  Definition moncat_of_montype : Monoidal_1Type -> Monoidal_Category.
-  Proof.
-    
-    intros [S m e assoc lid rid triangle1 triangle2 pentagon].
-    refine
-      (Build_Monoidal_Category (Type_to_Cat S) (cat_of_arrow S S o (arrow_to_functor m))%functor e assoc _ _ lid _ _ rid _ _ _ _ _); simpl.
-    - intros a b c a' b' c' [] [] []. simpl. destruct (assoc a b c). reflexivity.
-    - intros a a' []. destruct (lid a). reflexivity.
-    - intros a a' []. destruct (rid a). reflexivity.
-    - intros a b. refine (_ @ triangle1 a b).
-      unfold morphism_of_1. simpl.
-      destruct (lid a). reflexivity.
-    - intros a b. refine (_ @ triangle2 a b).
-      unfold morphism_of_1. simpl.
-      destruct (rid a). reflexivity.
-    - intros a b c d.
-      unfold morphism_of_1. simpl.
-      refine (_ @ pentagon a b c d @ _).
-      + destruct (assoc a b c). reflexivity.
-      + apply whiskerR. apply whiskerL.
-        destruct (assoc b c d). reflexivity.      
-  Defined.
-
-  Definition moncat_group_completion (S : Monoidal_1Type)
-             (left_cancel : forall (s t : S) (p q : s = t) (a : S),
-                 ap (fun x => mon_mult x a) p = ap (fun x => mon_mult x a) q -> p = q) : Monoidal_Category.
-  Proof.
-    srefine (Build_Monoidal_Category (group_completion S left_cancel) _ _ _ _ (fun a b c => Build_IsIsomorphism _ _ _ _ _ _ _)
-                                    _ _ (fun a => Build_IsIsomorphism _ _ _ _ _ _ _) _ _ (fun a => Build_IsIsomorphism _ _ _ _ _ _ _)
-            _ _ _).
-    - unfold BiFunctor.
-      srapply @Build_Functor. simpl.
-      intro a. srapply @Build_Functor. simpl.
-      + exact (functor_prod (mon_mult (fst a)) (mon_mult (snd a))).
-      + simpl. intros b c.
-        unfold monoidal_action_morphism. simpl.
-        intros [s p].
-        exists s.
-        refine (_ @ ap (functor_prod (mon_mult (fst a)) (mon_mult (snd a))) p).
-        unfold functor_prod. apply path_prod; simpl. (* Need symmetry *)
-        
-        
-        simpl.
-        
-        apply path_prod; simpl.
-        
-        
-    
-
-             
-End Monoidal_Category.
-
-
-  
-  
-
-  
      
                    
   

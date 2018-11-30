@@ -104,6 +104,10 @@ Global Arguments mon_rid {M} a : rename.
 
 Infix "⊗" := mon_mult (at level 50,no associativity).
 
+Definition left_faithful {A B : Type} (m : A -> B -> B) :=
+  forall (s t : A) (p q : s = t) (b : B),
+                 ap (fun x => m x b) p = ap (fun x => m x b) q -> p = q.
+
 
 
 Section Monoidal_Map.
@@ -514,8 +518,9 @@ Section Localize.
     (X -> X -> Type) := fun x y => {s : M & a s x = y}.
 
   Instance isset_mon_morphism (M : Monoidal_1Type) (X : 1-Type) (a : monoidal_action M X) (x1 x2 : X)
-    (left_cancel : forall (s t : M) (p q : s = t) (x : X),
-                 action_on_path a x p = action_on_path a x q -> p = q) :
+           (left_cancel : left_faithful a)
+    (* (left_cancel : forall (s t : M) (p q : s = t) (x : X), *)
+    (*              action_on_path a x p = action_on_path a x q -> p = q)  *):
     IsHSet (monoidal_action_morphism M X a x1 x2).
   Proof.
     unfold monoidal_action_morphism.
@@ -537,8 +542,9 @@ Section Localize.
   Defined.
 
   Definition monoidal_action_cat (M : Monoidal_1Type) (X : 1-Type) (a : monoidal_action M X)
-             (left_cancel : forall (s t : M) (p q : s = t) (x : X),
-                 action_on_path a x p = action_on_path a x q -> p = q)
+             (left_cancel : left_faithful a)
+             (* (left_cancel : forall (s t : M) (p q : s = t) (x : X), *)
+             (*     action_on_path a x p = action_on_path a x q -> p = q) *)
     : PreCategory.
   Proof.
     srefine (Build_PreCategory (monoidal_action_morphism M X a) _ _ _ _ _ (fun x1 x2 => isset_mon_morphism M X a x1 x2 left_cancel)).
@@ -574,13 +580,14 @@ Section Localize.
   Defined.
 
   Definition localize_action (M : Monoidal_1Type) (X : 1-Type) (act : monoidal_action M X)
-             (left_cancel : forall (s t : M) (p q : s = t) (a : M),
-                 ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q) : PreCategory.
+             (left_cancel : left_faithful (@mon_mult M))
+             (* (left_cancel : forall (s t : M) (p q : s = t) (a : M), *)
+             (*     ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q)  *): PreCategory.
   Proof.
     apply (monoidal_action_cat M (BuildTruncType 1 (M*X)) (act_on_prod M M X (act_on_self M) act)). simpl.
     intros s t p q [a x].
     unfold action_on_path. simpl.
-    intro H. apply (left_cancel _ _ _ _ a). 
+    intro H. apply (left_cancel s t p q a). 
     refine ((ap_fst_path_prod (z := (s ⊗ a, act s x )) (z' := (t ⊗ a, act t x ))
                 (ap (fun m : M => m ⊗ a) p) (ap (fun m : M => act m x) p))^ @ _ @
              ap_fst_path_prod (z := (s ⊗ a, act s x )) (z' := (t ⊗ a, act t x ))
@@ -592,13 +599,15 @@ Section Localize.
   Defined.    
 
   Definition group_completion (M : Monoidal_1Type)
-             (left_cancel : forall (s t : M) (p q : s = t) (a : M),
-                 ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q) : PreCategory :=
+             (left_cancel : left_faithful (@mon_mult M))
+             (* (left_cancel : forall (s t : M) (p q : s = t) (a : M), *)
+             (*     ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q) *) : PreCategory :=
     localize_action M M (act_on_self M) left_cancel.
 
   Definition contr_self_category (M : Monoidal_1Type)
-             (left_cancel : forall (s t : M) (p q : s = t) (a : M),
-                 ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q)
+             (left_cancel : left_faithful (@mon_mult M))
+             (* (left_cancel : forall (s t : M) (p q : s = t) (a : M), *)
+             (*     ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q) *)
     : forall x : object (monoidal_action_cat M M (act_on_self M) left_cancel),
       Contr (morphism (monoidal_action_cat M M (act_on_self M) left_cancel) mon_id x).
   Proof.
@@ -628,8 +637,9 @@ Section Localize.
   (* Defined. *)
 
   Definition prod_to_groupcompletion (S : Monoidal_1Type)
-             (left_cancel : forall (s t : S) (p q : s = t) (a : S),
-                 ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q):
+             (left_cancel : left_faithful (@mon_mult S))
+             (* (left_cancel : forall (s t : S) (p q : s = t) (a : S), *)
+             (*     ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q) *):
     Functor ((Type_to_Cat S)*(Type_to_Cat S))%category (group_completion S left_cancel).
   Proof.
     srapply @Build_Functor; simpl. exact idmap.
@@ -662,8 +672,9 @@ Section Localize.
   Defined.
   
   Definition to_groupcompletion (S : Monoidal_1Type)
-           (left_cancel : forall (s t : S) (p q : s = t) (a : S),
-                 ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q):
+             (left_cancel : left_faithful (@mon_mult S))
+           (* (left_cancel : forall (s t : S) (p q : s = t) (a : S), *)
+           (*       ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q) *):
   Functor (Type_to_Cat S) (group_completion S left_cancel) :=
     Functor.compose (prod_to_groupcompletion S left_cancel) (to_prod _).
 
@@ -810,6 +821,262 @@ Section Monoidal_Category.
   Proof.
     destruct p. simpl. destruct (H a). reflexivity.
   Defined.
+
+  Lemma grp_complete_bifun_lem1' (S : Symmetric_Monoidal_1Type) (a b s t : S) :
+      (((smon_assoc (t ⊗ s) a b)^ @ ap (fun x : S => x ⊗ b) (smon_sym (t ⊗ s) a)) @ smon_assoc a (t ⊗ s) b) @
+           ap (smon_mult a) (smon_assoc t s b) =
+      (smon_assoc t s (a ⊗ b) @ ap (smon_mult t) (((smon_assoc s a b)^ @ ap (fun x : S => x ⊗ b) (smon_sym s a)) @ smon_assoc a s b))
+        @ (((smon_assoc t a (s ⊗ b))^ @ ap (fun x : S => x ⊗ (s ⊗ b)) (smon_sym t a)) @ smon_assoc a t (s ⊗ b)).
+  Proof.
+    repeat rewrite ap_pp. rewrite ap_V.
+    assert (p : ap (smon_mult t) (ap (fun x : S => x ⊗ b) (smon_sym s a)) =
+                (smon_assoc t (s ⊗ a) b)^ @ ap (fun x : S => x ⊗ b) (ap (fun x : S => t ⊗ x) (smon_sym s a)) @ smon_assoc t (a ⊗ s) b).
+    destruct (smon_sym s a). simpl.
+    destruct (smon_assoc t (s ⊗ a) b). simpl.  reflexivity.
+    rewrite p. clear p. repeat rewrite concat_pp_p.
+    assert (p : ap (fun x : S => x ⊗ (s ⊗ b)) (smon_sym t a) =
+                (smon_assoc (t ⊗ a) s b)^ @ ap (fun x : S => x ⊗ b) (ap (fun x : S => x ⊗ s) (smon_sym t a)) @ smon_assoc (a ⊗ t) s b).
+    destruct (smon_sym t a). simpl.
+    destruct (smon_assoc (t ⊗ a) s b). simpl. reflexivity.
+    rewrite p. clear p.
+    rewrite (smon_sym_inv S t a). repeat rewrite ap_V.
+    rewrite (smon_hexagon S a t s).
+    repeat rewrite ap_pp. repeat rewrite ap_V.
+    repeat rewrite concat_pp_p.
+    repeat rewrite (smon_pentagon).
+    repeat rewrite inv_pp. repeat rewrite inv_V.
+    repeat rewrite concat_pp_p.
+    repeat rewrite concat_V_pp. rewrite concat_Vp. rewrite concat_p1.
+    rewrite concat_p_Vp. rewrite concat_p_Vp.
+    rewrite (smon_sym_inv S a (t ⊗ s)). rewrite ap_V. rewrite inv_V.
+    rewrite (smon_sym_inv S s a). rewrite ap_V. rewrite ap_V.
+    repeat rewrite concat_V_pp. 
+    repeat rewrite concat_p_pp. repeat apply whiskerR. rewrite concat_pV.
+    apply inverse. apply concat_1p.
+  Qed.
+
+  Lemma grp_complete_bifun_lem1 
+        (S : Symmetric_Monoidal_1Type)
+        (a1 a2 b1 b2 : S) (c d : S * S) (s : S)
+        (p : functor_prod (smon_mult s) (smon_mult s) (b1, b2) = c) (t : S)
+        (q : functor_prod (smon_mult t) (smon_mult t) c = d) : 
+    path_prod ((t ⊗ s) ⊗ (a1 ⊗ b1), (t ⊗ s) ⊗ (a2 ⊗ b2)) (a1 ⊗ ((t ⊗ s) ⊗ b1), a2 ⊗ ((t ⊗ s) ⊗ b2))
+              (((smon_assoc (t ⊗ s) a1 b1)^ @ ap (fun x : S => x ⊗ b1) (smon_sym (t ⊗ s) a1)) @ smon_assoc a1 (t ⊗ s) b1)
+              (((smon_assoc (t ⊗ s) a2 b2)^ @ ap (fun x : S => x ⊗ b2) (smon_sym (t ⊗ s) a2)) @ smon_assoc a2 (t ⊗ s) b2) @
+              ap (functor_prod (smon_mult a1) (smon_mult a2))
+              ((path_prod (functor_prod (smon_mult (t ⊗ s)) (smon_mult (t ⊗ s)) (b1, b2))
+                          (functor_prod (smon_mult t) (smon_mult t) (functor_prod (smon_mult s) (smon_mult s) (b1, b2)))
+                          (smon_assoc t s b1) (smon_assoc t s b2) @ ap (functor_prod (smon_mult t) (smon_mult t)) p) @ q) =
+    (path_prod (functor_prod (smon_mult (t ⊗ s)) (smon_mult (t ⊗ s)) (functor_prod (smon_mult a1) (smon_mult a2) (b1, b2)))
+               (functor_prod (smon_mult t) (smon_mult t)
+                             (functor_prod (smon_mult s) (smon_mult s) (functor_prod (smon_mult a1) (smon_mult a2) (b1, b2))))
+               (smon_assoc t s (a1 ⊗ b1)) (smon_assoc t s (a2 ⊗ b2)) @
+               ap (functor_prod (smon_mult t) (smon_mult t))
+               (path_prod (s ⊗ (a1 ⊗ b1), s ⊗ (a2 ⊗ b2)) (a1 ⊗ (s ⊗ b1), a2 ⊗ (s ⊗ b2))
+                          (((smon_assoc s a1 b1)^ @ ap (fun x : S => x ⊗ b1) (smon_sym s a1)) @ smon_assoc a1 s b1)
+                          (((smon_assoc s a2 b2)^ @ ap (fun x : S => x ⊗ b2) (smon_sym s a2)) @ smon_assoc a2 s b2) @
+                          ap (functor_prod (smon_mult a1) (smon_mult a2)) p))
+      @ (path_prod (t ⊗ (a1 ⊗ fst c), t ⊗ (a2 ⊗ snd c)) (a1 ⊗ (t ⊗ fst c), a2 ⊗ (t ⊗ snd c))
+                   (((smon_assoc t a1 (fst c))^ @ ap (fun x : S => x ⊗ (let (fst, _) := c in fst))
+                                                  (smon_sym t a1)) @ smon_assoc a1 t (fst c))
+                   (((smon_assoc t a2 (snd c))^ @ ap (fun x : S => x ⊗ (let (_, snd) := c in snd)) (smon_sym t a2))
+                      @ smon_assoc a2 t (snd c))
+                   @ ap (functor_prod (smon_mult a1) (smon_mult a2)) q).
+  Proof.
+    destruct p,q.    
+    repeat rewrite ap_pp.
+    repeat rewrite ap_functor_prod. simpl. repeat rewrite concat_p1. 
+    repeat rewrite <- path_prod_pp.
+    apply (ap011 (path_prod _ _)); apply grp_complete_bifun_lem1'.
+  Qed.
+
+  Lemma grp_complete_bifun_lem2 (S : Symmetric_Monoidal_1Type) (a b : S) :
+            (((smon_assoc smon_id a b)^ @ ap (fun x : S => x ⊗ b) (smon_sym smon_id a)) @ smon_assoc a smon_id b)
+              @ ap (smon_mult a) (smon_lid b) = smon_lid (a ⊗ b).
+  Proof.
+    rewrite smon_sym_inv. rewrite ap_V.
+    rewrite smon_hexagon.
+    rewrite inv_pp. rewrite inv_pp. rewrite inv_pp. rewrite inv_pp.
+    rewrite inv_V. rewrite inv_V.
+    repeat rewrite concat_pp_p.
+    rewrite concat_V_pp. rewrite concat_V_pp.
+    assert (natl : ap (smon_mult smon_id) (smon_sym a b) =
+                       smon_lid (a ⊗ b) @ smon_sym a b @ (smon_lid (b ⊗ a))^).
+    { destruct (smon_sym a b). destruct (smon_lid (a ⊗ b)). reflexivity. }
+    rewrite natl. clear natl.
+    assert (natl : smon_sym a (smon_id ⊗ b) =
+                   ap (smon_mult a) (smon_lid b) @ smon_sym a b @ (ap (fun x => x ⊗ a) (smon_lid b))^).
+    { destruct (smon_lid b). simpl.
+      destruct (smon_sym a (smon_id ⊗ b)). reflexivity. }
+    rewrite natl. clear natl.
+    rewrite smon_triangle1.
+    rewrite inv_pp. rewrite inv_pp. rewrite inv_pp. rewrite inv_pp. rewrite inv_V. rewrite inv_V. 
+    repeat rewrite concat_pp_p.
+
+    repeat rewrite concat_V_pp. rewrite concat_p_Vp. rewrite concat_Vp.
+    apply concat_p1.
+  Qed.
+
+  Lemma grp_complete_bifun_lem3' (S : Symmetric_Monoidal_1Type) (a s c t : S):
+    (ap (fun x : S => x ⊗ (a ⊗ c)) (smon_sym s t))^
+    @ ((smon_assoc s t (a ⊗ c) @ (((ap (smon_mult s) (smon_assoc t a c))^
+       @ ap (smon_mult s) (ap (fun x : S => x ⊗ c) (smon_sym t a)))
+       @ ap (smon_mult s) (smon_assoc a t c))) @ (smon_assoc s a (t ⊗ c))^) =
+          (smon_assoc t s (a ⊗ c) @ (ap (smon_mult t) (smon_assoc s a c))^)
+            @ (((smon_assoc t (s ⊗ a) c)^ @ ap (fun x : S => x ⊗ c) (smon_sym t (s ⊗ a))) @ smon_assoc (s ⊗ a) t c).
+  Proof.
+    assert (p : (ap (fun x : S => x ⊗ (a ⊗ c)) (smon_sym s t)) =
+                (smon_assoc (s ⊗ t) a c)^ @ ap (fun x : S => x ⊗ c) (ap (fun x : S => x ⊗ a) (smon_sym t s))^ @
+                                                                                                                    (smon_assoc (t ⊗ s) a c)).
+    { rewrite (smon_sym_inv S t s). destruct (smon_sym s t). simpl.
+      destruct (smon_assoc (s ⊗ t) a c). reflexivity. }
+    rewrite p. clear p.
+    assert (p : ap (smon_mult s) (ap (fun x : S => x ⊗ c) (smon_sym t a)) =
+                (smon_assoc s (t ⊗ a) c)^ @ ap (fun x => x ⊗ c) (ap (fun x => s ⊗ x) (smon_sym t a)) @
+                                              smon_assoc s (a ⊗ t) c).
+    { destruct (smon_sym t a). simpl.
+      destruct (smon_assoc s (t ⊗ a) c). reflexivity. }
+    rewrite p. clear p.                  
+    repeat rewrite inv_pp. rewrite ap_V. repeat rewrite inv_V.
+    rewrite (smon_hexagon S t s).
+    repeat rewrite ap_pp. repeat rewrite ap_V. 
+    repeat rewrite concat_pp_p.
+    repeat rewrite smon_pentagon.
+    repeat rewrite inv_pp. repeat rewrite inv_V.
+    change (fun x : S => s ⊗ x) with (smon_mult s).
+    repeat rewrite concat_pp_p.
+    repeat rewrite concat_V_pp.
+    repeat rewrite concat_p_Vp.
+    repeat rewrite concat_V_pp.
+    repeat apply whiskerL. rewrite concat_pV. apply concat_p1.
+  Qed.
+
+  Lemma grp_complete_bifun_lem3
+        (S : Symmetric_Monoidal_1Type) (left_cancel : left_faithful mon_mult) (a1 a2 : S) (b : S * S) (s : S)
+        (p : functor_prod (smon_mult s) (smon_mult s) (a1, a2) = b) (c1 c2 : S) (d : Core.object (group_completion S left_cancel)) 
+        (t : S) (q : functor_prod (smon_mult t) (smon_mult t) (c1, c2) = d): 
+    (ap (fun x : S => functor_prod (smon_mult x) (smon_mult x) (functor_prod (smon_mult a1) (smon_mult a2) (c1, c2))) (smon_sym s t))^
+    @ ((path_prod (functor_prod (smon_mult (s ⊗ t)) (smon_mult (s ⊗ t)) (functor_prod (smon_mult a1) (smon_mult a2) (c1, c2)))
+                  (functor_prod (smon_mult s) (smon_mult s)
+                                (functor_prod (smon_mult t) (smon_mult t) (functor_prod (smon_mult a1) (smon_mult a2) (c1, c2))))
+                  (smon_assoc s t (a1 ⊗ c1)) (smon_assoc s t (a2 ⊗ c2))
+                  @ ap (functor_prod (smon_mult s) (smon_mult s)) (path_prod (t ⊗ (a1 ⊗ c1), t ⊗ (a2 ⊗ c2)) (a1 ⊗ (t ⊗ c1), a2 ⊗ (t ⊗ c2))
+                    (((smon_assoc t a1 c1)^ @ ap (fun x : S => x ⊗ c1) (smon_sym t a1)) @ smon_assoc a1 t c1)
+                    (((smon_assoc t a2 c2)^ @ ap (fun x : S => x ⊗ c2) (smon_sym t a2)) @ smon_assoc a2 t c2) @
+                    ap (functor_prod (smon_mult a1) (smon_mult a2)) q))
+         @ (path_prod (s ⊗ (a1 ⊗ fst d), s ⊗ (a2 ⊗ snd d)) ((s ⊗ a1) ⊗ fst d, (s ⊗ a2) ⊗ snd d) (smon_assoc s a1 (fst d))^
+            (smon_assoc s a2 (snd d))^ @ ap (fun b0 : S * S => functor_prod (smon_mult (fst b0)) (smon_mult (snd b0)) d) p)) =
+    (path_prod (functor_prod (smon_mult (t ⊗ s)) (smon_mult (t ⊗ s)) (functor_prod (smon_mult a1) (smon_mult a2) (c1, c2)))
+               (functor_prod (smon_mult t) (smon_mult t)
+                             (functor_prod (smon_mult s) (smon_mult s) (functor_prod (smon_mult a1) (smon_mult a2) (c1, c2))))
+               (smon_assoc t s (a1 ⊗ c1)) (smon_assoc t s (a2 ⊗ c2)) @ ap (functor_prod (smon_mult t) (smon_mult t))
+               (path_prod (s ⊗ (a1 ⊗ c1), s ⊗ (a2 ⊗ c2)) ((s ⊗ a1) ⊗ c1, (s ⊗ a2) ⊗ c2) (smon_assoc s a1 c1)^ (smon_assoc s a2 c2)^
+                @ ap (fun b0 : S * S => functor_prod (smon_mult (fst b0)) (smon_mult (snd b0)) (c1, c2)) p))
+      @ (path_prod (t ⊗ (fst b ⊗ c1), t ⊗ (snd b ⊗ c2)) (fst b ⊗ (t ⊗ c1), snd b ⊗ (t ⊗ c2))
+                   (((smon_assoc t (fst b) c1)^ @ ap (fun x : S => x ⊗ c1) (smon_sym t (let (fst, _) := b in fst)))
+                      @ smon_assoc (fst b) t c1)
+                   (((smon_assoc t (snd b) c2)^ @ ap (fun x : S => x ⊗ c2) (smon_sym t (let (_, snd) := b in snd)))
+                      @ smon_assoc (snd b) t c2) @ ap (functor_prod (smon_mult (fst b)) (smon_mult (snd b))) q).
+  Proof.
+    destruct p,q. simpl.
+    repeat rewrite concat_p1.
+    repeat rewrite ap_functor_prod.
+    assert (p :
+              (ap (fun x : S => functor_prod (smon_mult x) (smon_mult x) (functor_prod (smon_mult a1) (smon_mult a2) (c1, c2)))
+                  (smon_sym s t) =
+               path_prod (_,_) (_,_)
+                         (ap (fun x => x ⊗ (a1 ⊗ c1)) (smon_sym s t)) (ap (fun x => x ⊗ (a2 ⊗ c2)) (smon_sym s t)))).
+    { destruct (smon_sym s t). simpl. reflexivity. }
+    rewrite p. clear p.
+    rewrite <- path_prod_VV.
+    repeat rewrite <- path_prod_pp. repeat rewrite ap_pp. repeat rewrite ap_V. 
+    apply (ap011 (path_prod _ _)); apply grp_complete_bifun_lem3'.
+  Qed.  
+
+  Definition mult_group_completion_fix_fst (S : Symmetric_Monoidal_1Type) (left_cancel : left_faithful (@mon_mult S))
+             (a : group_completion S left_cancel) :
+    Functor (group_completion S left_cancel) (group_completion S left_cancel).
+  Proof.
+    srapply @Build_Functor.
+    + simpl.
+      exact (functor_prod (smon_mult (fst a)) (smon_mult (snd a))).
+    + simpl. intros b c.
+      unfold monoidal_action_morphism. simpl. unfold functor_prod. simpl.
+
+      intros [s p].
+      exists s.
+      refine (_ @ ap (functor_prod (smon_mult (fst a)) (smon_mult (snd a))) p).
+      unfold functor_prod. simpl. apply path_prod; simpl; refine ((smon_assoc _ _ _)^ @ _ @ smon_assoc _ _ _);
+                                    apply (ap (fun x => x ⊗ _ b) (smon_sym s (_ a))).
+    + intros b c d. simpl in b,c,d.        
+      intros [s p] [t q]. simpl in p,q.  simpl.
+      destruct a as [a1 a2]; destruct b as [b1 b2]; simpl.
+      srapply @path_sigma. reflexivity. simpl.
+      apply grp_complete_bifun_lem1.
+    + simpl. intro b.
+      srapply @path_sigma. simpl. reflexivity. simpl.
+      refine (whiskerL _ (ap_functor_prod _ _ _ _ _ _) @ _).
+      destruct a as [a1 a2]. destruct b as [b1 b2]. simpl.
+      refine ((path_prod_pp _ _ _ _ _ _ _)^ @ _).
+      apply (ap011 (path_prod _ _)); apply grp_complete_bifun_lem2.
+  Defined.
+  
+  Definition mult_group_completion (S : Symmetric_Monoidal_1Type) (left_cancel : left_faithful (@mon_mult S)) :
+    BiFunctor (group_completion S left_cancel) (group_completion S left_cancel) (group_completion S left_cancel).
+  Proof.
+    unfold BiFunctor.
+    srapply (Build_Functor (group_completion S left_cancel) (group_completion S left_cancel -> group_completion S left_cancel)
+                         (fun (a : (group_completion S left_cancel)) => (mult_group_completion_fix_fst S left_cancel a))).
+    - intros a b. simpl in a, b. simpl.
+      intros [s p]. simpl in p. 
+      srapply @Build_NaturalTransformation.
+      + simpl. intro c.
+        unfold monoidal_action_morphism. simpl.
+        exists s.
+        refine (_ @ ap (fun b => functor_prod (smon_mult (fst b)) (smon_mult (snd b)) c) p).
+        unfold functor_prod. simpl.
+        apply path_prod;
+          apply ((smon_assoc _ _ _)^).
+      + destruct a as [a1 a2]. intros [c1 c2] d.
+        intros [t q]. simpl in q.
+        srapply @path_sigma. apply smon_sym.
+        refine (transport_paths_Fl (smon_sym s t) _ @ _). cbn.
+        apply grp_complete_bifun_lem3.
+    - intros a b c [s p] [t q].
+      apply NaturalTransformation.path_natural_transformation. simpl.
+      intro d. destruct p, q.
+      srapply @path_sigma. reflexivity. simpl.
+      repeat rewrite concat_p1.
+
+      destruct q. destruct p.
+simpl.
+        apply group_complete_bifun_lem3.
+
+          
+        
+        
+        
+          
+        
+          destruct 
+          apply inverse
+                  
+        rewrite (ap_functor_prod 
+        
+
+        
+        refine ((smon_assoc _ _ _)^ @ _). apply (ap (fun x => x ⊗ _) 
+        
+
+        
+          
+        
+        
+    - 
+      
+    
+    
+    
   
   Definition moncat_group_completion (S : Symmetric_Monoidal_1Type)
              (left_cancel : forall (s t : S) (p q : s = t) (a : S),
@@ -829,14 +1096,25 @@ Section Monoidal_Category.
         refine (_ @ ap (functor_prod (smon_mult (fst a)) (smon_mult (snd a))) p).
         unfold functor_prod. simpl. apply path_prod; simpl; refine ((smon_assoc _ _ _)^ @ _ @ smon_assoc _ _ _);
         apply (ap (fun x => x ⊗ _ b) (smon_sym s (_ a))).
+      
       + intros b c d. simpl in b,c,d.
         intros [s p] [t q]. simpl in p,q.  simpl. destruct p,q. simpl.
-        srapply @path_sigma. reflexivity. simpl.
+        srapply @path_sigma. reflexivity. simpl. destruct a as [a1 a2]; destruct b as [b1 b2]; simpl.
+        
+apply grp_complete_moncat_diagram1.
+      + 
+
+
+        
         repeat rewrite ap_pp.
         repeat rewrite ap_functor_prod. simpl. repeat rewrite concat_p1. 
         repeat rewrite <- path_prod_pp.
         apply (ap011 (path_prod _ _)).
-        * destruct a as [a1 a2]; destruct b as [b1 b2]; simpl.
+          * destruct a as [a1 a2]; destruct b as [b1 b2]; simpl.
+
+
+
+                                      
           repeat rewrite ap_pp. rewrite ap_V.
           assert (p : ap (smon_mult t) (ap (fun x : S => x ⊗ b1) (smon_sym s a1)) =
                   (mon_assoc t (s ⊗ a1) b1)^ @ ap (fun x : S => x ⊗ b1) (ap (fun x : S => t ⊗ x) (smon_sym s a1)) @ mon_assoc t (a1 ⊗ s) b1).
@@ -863,13 +1141,45 @@ Section Monoidal_Category.
           repeat rewrite concat_V_pp. 
           repeat rewrite concat_p_pp. repeat apply whiskerR. rewrite concat_pV.
           apply inverse. apply concat_1p.
-          destruct (smon_assoc (t ⊗ s) a1 b1). 
+
+                                      destruct a as [a1 a2]; destruct b as [b1 b2]; simpl.
+          repeat rewrite ap_pp. rewrite ap_V.
+          assert (p : ap (smon_mult t) (ap (fun x : S => x ⊗ b2) (smon_sym s a2)) =
+                  (mon_assoc t (s ⊗ a2) b2)^ @ ap (fun x : S => x ⊗ b2) (ap (fun x : S => t ⊗ x) (smon_sym s a2)) @ mon_assoc t (a2 ⊗ s) b2).
+            destruct (smon_sym s a2). simpl.
+            destruct (smon_assoc t (s ⊗ a2) b2). simpl.  reflexivity.
+          rewrite p. clear p. repeat rewrite concat_pp_p.
+          assert (p : ap (fun x : S => x ⊗ (s ⊗ b2)) (smon_sym t a2) =
+                      (smon_assoc (t ⊗ a2) s b2)^ @ ap (fun x : S => x ⊗ b2) (ap (fun x : S => x ⊗ s) (smon_sym t a2)) @ smon_assoc (a2 ⊗ t) s b2).
+            destruct (smon_sym t a2). simpl.
+            destruct (smon_assoc (t ⊗ a2) s b2). simpl. reflexivity.
+          rewrite p. clear p.
+          rewrite (smon_sym_inv S t a2). repeat rewrite ap_V.
+          rewrite (smon_hexagon S a2 t s).
+          repeat rewrite ap_pp. repeat rewrite ap_V.
+          repeat rewrite concat_pp_p.
+          rewrite (smon_pentagon S a2 t s b2). rewrite (smon_pentagon S t a2 s b2). rewrite smon_pentagon.
+          (* rewrite smon_pentagon. *)
+          repeat rewrite inv_pp. repeat rewrite inv_V. 
+          repeat rewrite concat_pp_p.
+          repeat rewrite concat_V_pp. rewrite concat_Vp. rewrite concat_p1.
+          rewrite concat_p_Vp. rewrite concat_p_Vp.
+          rewrite (smon_sym_inv S a2 (t ⊗ s)). rewrite ap_V. rewrite inv_V.
+          rewrite (smon_sym_inv S s a2). rewrite ap_V. rewrite ap_V.
+          repeat rewrite concat_V_pp. 
+          repeat rewrite concat_p_pp. repeat apply whiskerR. rewrite concat_pV.
+          apply inverse. apply concat_1p.
+          
+          
+          
+          
+destruct (smon_assoc (t ⊗ s) a1 b1). 
 reflexivity.
 
           apply whiskerL.
           rewrite <- (ap_compose (fun x : S => t ⊗ x) (fun x : S => x ⊗ b1)).
           rewrite <- (ap_compose (smon_mult a1) (fun x : S => x ⊗ b1)).
-          repeat rewrite concat_p_pp. apply whiskerR. apply whiskerR.
+          repeat rewrite concat_p_pp. apply whiskerR. apply whiskerR. 
           repeat rewrite concat_pp_p.
           repeat refine (_ @ concat_pp_p _ _ _). refine (_ @ concat_p_pp _ _ _). apply concat2.
            apply concat2.

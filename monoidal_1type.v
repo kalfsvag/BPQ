@@ -1046,238 +1046,113 @@ Section Monoidal_Category.
       apply NaturalTransformation.path_natural_transformation. simpl.
       intro d. destruct p, q.
       srapply @path_sigma. reflexivity. simpl.
-      repeat rewrite concat_p1.
+      abstract (
+          repeat rewrite concat_p1;
+          destruct d as [d1 d2]; simpl;
+          change (fun b : S * S => functor_prod (smon_mult (fst b)) (smon_mult (snd b)) (d1, d2)) with
+          (functor_prod (fun b : S =>  b ⊗ d1) (fun b : S => b ⊗ d2));
+          repeat rewrite ap_functor_prod;
+          repeat rewrite <- path_prod_pp;
 
-      destruct q. destruct p.
-simpl.
-        apply group_complete_bifun_lem3.
-
-          
-        
-        
-        
-          
-        
-          destruct 
-          apply inverse
-                  
-        rewrite (ap_functor_prod 
-        
-
-        
-        refine ((smon_assoc _ _ _)^ @ _). apply (ap (fun x => x ⊗ _) 
-        
-
-        
-          
-        
-        
-    - 
-      
+          apply (ap011 (path_prod _ _));
+          rewrite smon_pentagon;
+          repeat rewrite concat_p_pp;
+          apply whiskerR;
+          apply concat2;
+          try rewrite concat_Vp; try apply concat_1p;
+          try apply inverse; apply ap_V).
+    - intros [a1 a2].
+      apply NaturalTransformation.path_natural_transformation. simpl.
+      intros [b1 b2]. simpl.
+      srapply @path_sigma. reflexivity.
+      simpl.
+      change (fun b : S * S => functor_prod (smon_mult (fst b)) (smon_mult (snd b)) (b1, b2))
+             with
+             (functor_prod (fun c : S => c ⊗ b1) (fun c : S => c ⊗ b2)).
+      abstract (
+          rewrite ap_functor_prod;
+          rewrite <- path_prod_pp;
+          apply (ap011 (path_prod _ _));
+          rewrite smon_triangle1;
+          rewrite concat_V_pp; reflexivity).
+  Defined.
     
     
-    
+   Lemma ap_pair_path_prod {A B : Type} (f g : A -> B) {a b : A} (p : a = b) :
+     ap (fun a : A => (f a, g a)) p = path_prod (f a, g a) (f b, g b) (ap f p) (ap g p).
+   Proof.
+     destruct p. reflexivity.
+   Defined.
   
   Definition moncat_group_completion (S : Symmetric_Monoidal_1Type)
              (left_cancel : forall (s t : S) (p q : s = t) (a : S),
                  ap (fun x => smon_mult x a) p = ap (fun x => smon_mult x a) q -> p = q) : Monoidal_Category.
   Proof.
-    srefine (Build_Monoidal_Category (group_completion S left_cancel) _ _ _ _ (fun a b c => Build_IsIsomorphism _ _ _ _ _ _ _)
-                                    _ _ (fun a => Build_IsIsomorphism _ _ _ _ _ _ _) _ _ (fun a => Build_IsIsomorphism _ _ _ _ _ _ _)
-            _ _ _).
-    - unfold BiFunctor.
-      srapply @Build_Functor. simpl.
-      intro a. srapply @Build_Functor. simpl.
-      + exact (functor_prod (smon_mult (fst a)) (smon_mult (snd a))).
-      + simpl. intros b c.
-        unfold monoidal_action_morphism. simpl. unfold functor_prod. simpl.
-        intros [s p].
-        exists s.
-        refine (_ @ ap (functor_prod (smon_mult (fst a)) (smon_mult (snd a))) p).
-        unfold functor_prod. simpl. apply path_prod; simpl; refine ((smon_assoc _ _ _)^ @ _ @ smon_assoc _ _ _);
-        apply (ap (fun x => x ⊗ _ b) (smon_sym s (_ a))).
-      
-      + intros b c d. simpl in b,c,d.
-        intros [s p] [t q]. simpl in p,q.  simpl. destruct p,q. simpl.
-        srapply @path_sigma. reflexivity. simpl. destruct a as [a1 a2]; destruct b as [b1 b2]; simpl.
-        
-apply grp_complete_moncat_diagram1.
-      + 
-
-
-        
-        repeat rewrite ap_pp.
-        repeat rewrite ap_functor_prod. simpl. repeat rewrite concat_p1. 
-        repeat rewrite <- path_prod_pp.
-        apply (ap011 (path_prod _ _)).
-          * destruct a as [a1 a2]; destruct b as [b1 b2]; simpl.
-
-
-
-                                      
-          repeat rewrite ap_pp. rewrite ap_V.
-          assert (p : ap (smon_mult t) (ap (fun x : S => x ⊗ b1) (smon_sym s a1)) =
-                  (mon_assoc t (s ⊗ a1) b1)^ @ ap (fun x : S => x ⊗ b1) (ap (fun x : S => t ⊗ x) (smon_sym s a1)) @ mon_assoc t (a1 ⊗ s) b1).
-            destruct (smon_sym s a1). simpl.
-            destruct (smon_assoc t (s ⊗ a1) b1). simpl.  reflexivity.
-          rewrite p. clear p. repeat rewrite concat_pp_p.
-          assert (p : ap (fun x : S => x ⊗ (s ⊗ b1)) (smon_sym t a1) =
-                      (smon_assoc (t ⊗ a1) s b1)^ @ ap (fun x : S => x ⊗ b1) (ap (fun x : S => x ⊗ s) (smon_sym t a1)) @ smon_assoc (a1 ⊗ t) s b1).
-            destruct (smon_sym t a1). simpl.
-            destruct (smon_assoc (t ⊗ a1) s b1). simpl. reflexivity.
-          rewrite p. clear p.
-          rewrite (smon_sym_inv S t a1). repeat rewrite ap_V.
-          rewrite (smon_hexagon S a1 t s).
-          repeat rewrite ap_pp. repeat rewrite ap_V.
-          repeat rewrite concat_pp_p.
-          rewrite (smon_pentagon S a1 t s b1). rewrite (smon_pentagon S t a1 s b1). rewrite smon_pentagon.
-          (* rewrite smon_pentagon. *)
-          repeat rewrite inv_pp. repeat rewrite inv_V. 
-          repeat rewrite concat_pp_p.
-          repeat rewrite concat_V_pp. rewrite concat_Vp. rewrite concat_p1.
-          rewrite concat_p_Vp. rewrite concat_p_Vp.
-          rewrite (smon_sym_inv S a1 (t ⊗ s)). rewrite ap_V. rewrite inv_V.
-          rewrite (smon_sym_inv S s a1). rewrite ap_V. rewrite ap_V.
-          repeat rewrite concat_V_pp. 
-          repeat rewrite concat_p_pp. repeat apply whiskerR. rewrite concat_pV.
-          apply inverse. apply concat_1p.
-
-                                      destruct a as [a1 a2]; destruct b as [b1 b2]; simpl.
-          repeat rewrite ap_pp. rewrite ap_V.
-          assert (p : ap (smon_mult t) (ap (fun x : S => x ⊗ b2) (smon_sym s a2)) =
-                  (mon_assoc t (s ⊗ a2) b2)^ @ ap (fun x : S => x ⊗ b2) (ap (fun x : S => t ⊗ x) (smon_sym s a2)) @ mon_assoc t (a2 ⊗ s) b2).
-            destruct (smon_sym s a2). simpl.
-            destruct (smon_assoc t (s ⊗ a2) b2). simpl.  reflexivity.
-          rewrite p. clear p. repeat rewrite concat_pp_p.
-          assert (p : ap (fun x : S => x ⊗ (s ⊗ b2)) (smon_sym t a2) =
-                      (smon_assoc (t ⊗ a2) s b2)^ @ ap (fun x : S => x ⊗ b2) (ap (fun x : S => x ⊗ s) (smon_sym t a2)) @ smon_assoc (a2 ⊗ t) s b2).
-            destruct (smon_sym t a2). simpl.
-            destruct (smon_assoc (t ⊗ a2) s b2). simpl. reflexivity.
-          rewrite p. clear p.
-          rewrite (smon_sym_inv S t a2). repeat rewrite ap_V.
-          rewrite (smon_hexagon S a2 t s).
-          repeat rewrite ap_pp. repeat rewrite ap_V.
-          repeat rewrite concat_pp_p.
-          rewrite (smon_pentagon S a2 t s b2). rewrite (smon_pentagon S t a2 s b2). rewrite smon_pentagon.
-          (* rewrite smon_pentagon. *)
-          repeat rewrite inv_pp. repeat rewrite inv_V. 
-          repeat rewrite concat_pp_p.
-          repeat rewrite concat_V_pp. rewrite concat_Vp. rewrite concat_p1.
-          rewrite concat_p_Vp. rewrite concat_p_Vp.
-          rewrite (smon_sym_inv S a2 (t ⊗ s)). rewrite ap_V. rewrite inv_V.
-          rewrite (smon_sym_inv S s a2). rewrite ap_V. rewrite ap_V.
-          repeat rewrite concat_V_pp. 
-          repeat rewrite concat_p_pp. repeat apply whiskerR. rewrite concat_pV.
-          apply inverse. apply concat_1p.
-          
-          
-          
-          
-destruct (smon_assoc (t ⊗ s) a1 b1). 
-reflexivity.
-
-          apply whiskerL.
-          rewrite <- (ap_compose (fun x : S => t ⊗ x) (fun x : S => x ⊗ b1)).
-          rewrite <- (ap_compose (smon_mult a1) (fun x : S => x ⊗ b1)).
-          repeat rewrite concat_p_pp. apply whiskerR. apply whiskerR. 
-          repeat rewrite concat_pp_p.
-          repeat refine (_ @ concat_pp_p _ _ _). refine (_ @ concat_p_pp _ _ _). apply concat2.
-           apply concat2.
-          hott_simpl.
-          
-          
-          repeat rewrite ap_pp. repeat rewrite ap_V.
-
-          apply moveL_Mp. apply moveL_Vp. apply moveL_Vp.
-          
-          apply moveR_Vp. apply moveR_pM.
-          
-          
-          
-          repeat rewrite smon_hexagon. repeat rewrite ap_pp.
-
-          rewrite concat_Vp. rewrite concat_p1.
-          repeat rewrite ap_V.
-          repeat rewrite concat_V_pp.
-          repeat rewrite concat_p_pp. apply moveL_pV. repeat rewrite concat_pp_p.
-          repeat rewrite <- ap_V.
-          rewrite <- (ap_compose (smon_mult a1) (smon_mult t)).          
-          repeat rewrite ap_V.
-          rewrite (ap_homotopy (smon_sym s b1) (fun x : S => t ⊗ (a1 ⊗ x)) (fun x : S => (t ⊗ a1) ⊗ x) (mon_assoc t a1)).
-          repeat rewrite inv_pp.
-          repeat rewrite concat_pp_p. rewrite inv_V.
-          rewrite smon_hexagon.
-            
-          rewrite (ap_compose 
-
-          
-          repeat rewrite <- ap_pp.
-          repeat rewrite concat_p_pp. 
-          apply moveL_pM. apply moveL_pM. repeat rewrite concat_pp_p.
-          repeat rewrite <- ap_pp.
-          repeat rewrite concat_p_pp.
-          apply moveR_pV. apply moveR_pV. repeat rewrite concat_pp_p. apply moveL_Mp.
-          repeat rewrite concat_p_pp.
-          generalize (((smon_assoc t s (a1 ⊗ b1))^ @ smon_sym (t ⊗ s) (a1 ⊗ b1)) @ smon_assoc a1 b1 (t ⊗ s)). intro p.
-          generalize (
-
-              ap (smon_mult a1) (smon_sym s b1)^) @ smon_sym t (a1 ⊗ (s ⊗ b1))) @
-  smon_assoc a1 (s ⊗ b1) t
-          generalize (smon_sym (t ⊗ s) (a1 ⊗ b1) @ smon_assoc a1 b1 (t ⊗ s)). intro p.
-          generalize (smon_sym t (a1 ⊗ (s ⊗ b1))) @ smon_assoc a1 (s ⊗ b1) t.
-          
-          
-          rewrite <- (ap_pp (smon_mult a1)).
-
-          
-
-
-          concat_V_pp: forall (A : Type) (x y z : A) (p : x = y) (q : y = z), p^ @ (p @ q) = q
-concat_p_Vp: forall (A : Type) (x y z : A) (p : x = y) (q : x = z), p @ (p^ @ q) = q
-concat_pp_V: forall (A : Type) (x y z : A) (p : x = y) (q : y = z), (p @ q) @ q^ = p
-concat_pV_p: forall (A : Type) (x y z : A) (p : x = z) (q : y = z), (p @ q^) @ q = p
-                                                                                     
-          rewrite smon_hexagon. rewrite ap_pp. repeat rewrite ap_V. repeat rewrite ap_pp.
-          repeat rewrite concat_pp_p. apply moveL_Mp. repeat rewrite concat_p_pp. rewrite concat_Vp. rewrite concat_1p.
-          apply moveL_pV. apply moveL_pM. apply moveL_pM. apply moveL_pV.
-          repeat rewrite concat_pp_p.          
-          rewrite concat_Vp. rewrite concat_p1. repeat rewrite concat_pp_p.
-          rewrite smon_hexagon. simpl.
-          repeat rewrite inv_pp. repeat rewrite inv_V. repeat rewrite concat_pp_p.
-          apply moveR_Vp. apply moveR_Mp. apply moveR_Mp.
-          apply moveR_Vp. apply moveR_Mp.
-          repeat rewrite concat_p_pp. rewrite concat_Vp. rewrite concat_1p. repeat rewrite concat_pp_p.
-          
-
-          repeat rewrite <- ap_pp. 
-          apply moveR_Mp. repeat rewrite <- ap_V.
-          repeat rewrite inv_pp. repeat rewrite inv_V. repeat rewrite concat_p_pp.
-          repeat rewrite <- ap_pp. repeat rewrite concat_pp_p.
-          
-          
-          
-          rewrite (ap_compose _ _ (smon_sym t a1)).
-
-          
-          rewrite <- (ap_compose (fun x : S => x ⊗ b1)(smon_mult t)). 
-          
-
-          hott_simpl.
-          assert (smon_assoc a1 (t ⊗ s) b1 @ ap (smon_mult a1) (smon_assoc t s b1) =
-                  ap (fun x : S => x ⊗ (s ⊗ b1)) (smon_sym t a1) @ smon_assoc a1 t (s ⊗ b1)).
-          
-        
-        rewrite ap_functor_prod.
-        
-        apply path_sigma_1.
-        
-        
-
-        (* Need symmetry *)
-  Abort.
-        
-        
-    
+    srefine (Build_Monoidal_Category
+               (group_completion S left_cancel) (mult_group_completion S left_cancel)
+               (smon_id, smon_id)
+               _ _ (fun a b c => Build_IsIsomorphism _ _ _ _ _ _ _)
+               _ _ (fun a => Build_IsIsomorphism _ _ _ _ _ _ _)
+               _ _ (fun a => Build_IsIsomorphism _ _ _ _ _ _ _) _ _ _).
+    (* associative *)
+    - intros a b c. simpl.
+      unfold monoidal_action_morphism. simpl.
+      destruct a as [a1 a2]. destruct b as [b1 b2]. destruct c as [c1 c2].
+      unfold functor_prod. simpl.
+      exists smon_id.
+      apply path_prod; refine (smon_lid _ @ _); apply smon_assoc.
+    (* asssociativity is natural *)
+    - intros [a1 a2] [b1 b2] [c1 c2] a' b' c' [s p] [t q] [u r]. destruct p,q,r. simpl.
+      srapply @path_sigma. simpl.
+      { refine (smon_rid _ @ (smon_assoc _ _ _) @ (smon_lid _)^). }
+      simpl.
+      refine (transport_paths_Fl
+                ((smon_rid ((u ⊗ t) ⊗ s) @ smon_assoc u t s) @ (smon_lid (u ⊗ (t ⊗ s)))^) _ @ _).
+      repeat rewrite ap_pp.       repeat rewrite concat_p1.
+      repeat rewrite ap_V. repeat rewrite inv_V.
+      repeat rewrite ap_pair_path_prod. simpl.
+      repeat rewrite <- path_prod_pp.
+      rewrite <- path_prod_VV.
+      rewrite <- path_prod_pp. rewrite <- path_prod_VV.
+      rewrite <- path_prod_pp.
+      apply (ap011 (path_prod _ _)).
+      rewrite inv_pp. rewrite inv_pp. rewrite inv_V.
+      repeat rewrite concat_p_pp. admit. admit.
+    (* inverse associative *)
+    - simpl. unfold monoidal_action_morphism. simpl. unfold functor_prod. simpl.
+      destruct a as [a1 a2]. destruct b as [b1 b2]. destruct c as [c1 c2]. simpl.
+      exists smon_id.
+      apply path_prod; refine (smon_lid _ @ _); apply inverse; apply smon_assoc.
+    - destruct a as [a1 a2]. destruct b as [b1 b2]. destruct c as [c1 c2]. simpl.
+      rewrite ap_functor_prod. rewrite <- path_prod_pp. rewrite <- path_prod_pp. unfold functor_prod.
+      srapply @path_sigma.
+      apply smon_lid.           (* smon_rid works as well *)
+      simpl.
+      refine (transport_paths_Fl (smon_lid smon_id) _ @ _).
+      admit.
+    - simpl. admit.
+    (* Left identity *)
+    - intros [a1 a2]. simpl.
+      unfold monoidal_action_morphism. simpl. unfold functor_prod. simpl.
+      exists smon_id.
+      apply path_prod; refine (smon_lid _ @ smon_lid _).
+    - intros [a1 a2] a' [s p]. simpl in p. unfold functor_prod in p. simpl in p. destruct p.
+      simpl. admit.
+    - admit.
+    - admit.
+    - admit.
+    (* right identity *)
+    - intros [a1 a2]. simpl. unfold monoidal_action_morphism. simpl. unfold functor_prod. simpl.
+      exists smon_id. apply path_prod; refine (smon_lid _ @ smon_rid _).
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    (* Coherence diagrams *)
+    - simpl. admit.
+    - admit.
+    - admit.
+  Admitted.    
 
              
 End Monoidal_Category.

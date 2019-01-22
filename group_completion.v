@@ -1,6 +1,6 @@
 Require Import HoTT.
 Require Import UnivalenceAxiom.
-Load monoids_and_groups. (*stuff.v should also be loaded now?*)
+Load monoids_and_groups. 
 
 Section Group_completion.
   (*The Grothendieck group completion*)

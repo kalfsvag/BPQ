@@ -1,66 +1,85 @@
-Load stuff.
 Require Import UnivalenceAxiom.
+Load group_complete_1type.
+(* Load monoidal_1type. *)
 
 
 Section Monoids_and_Groups.
-  Definition associative {A : Type}  (m : A->A->A) := forall a b c : A, m a (m b c) = m (m a b) c.
-  Definition left_identity {A : Type} (m : A->A->A) (e : A) := forall a : A, m e a = a.
-  Definition right_identity {A : Type} (m : A->A->A) (e : A) := forall a : A, m a e = a.
-  Definition symmetric {A : Type} (m : A->A->A) := forall a b : A, m a b = m b a.
+  (* Definition associative {A : Type}  (m : A->A->A) := forall a b c : A, m a (m b c) = m (m a b) c. *)
+  (* Definition left_identity {A : Type} (m : A->A->A) (e : A) := forall a : A, m e a = a. *)
+  (* Definition right_identity {A : Type} (m : A->A->A) (e : A) := forall a : A, m a e = a. *)
+  (* Definition symmetric {A : Type} (m : A->A->A) := forall a b : A, m a b = m b a. *)
   Definition left_inverse {A : Type} (m : A -> A -> A) (e : A) (inv : A -> A) :=
     forall a : A, m (inv a) a = e.
   Definition right_inverse {A : Type} (m : A -> A -> A) (e : A) (inv : A -> A) :=
     forall a : A, m a (inv a) = e.
 
 
-  Record Monoid : Type := { mon_set : hSet;
+  Record Monoid : Type := { mon_set :> hSet;
                             (* mon_isset : IsHSet mon_set; *)
                             mon_mult  : mon_set->mon_set->mon_set;
                             mon_id : mon_set;
                             mon_assoc : associative mon_mult;
-                            mon_lid : left_identity mon_mult mon_id ;
-                            mon_rid : right_identity mon_mult mon_id
+                            mon_lid : left_identity_mult mon_mult mon_id ;
+                            mon_rid : right_identity_mult mon_mult mon_id
                           }.
+
+  (* Definition type_to_monoid : Monoidal_1Type -> Monoid. *)
+  (* Proof. *)
+  (*   intro M. *)
+  (*   srapply (Build_Monoid (BuildTruncType 0 (Trunc 0 M))). *)
+  (*   simpl. *)
+  (*   (@mon_mult M)). *)
+    
+
+  Definition monoid_to_1type : Monoid -> Monoidal_1Type.
+  Proof.
+    intro M.
+    srapply
+      (Build_Monoidal_1Type (BuildTruncType 1 M)
+                            (mon_mult M) (mon_id M) (mon_assoc M) (mon_lid M) (mon_rid M)).
+    - intros a b. apply (istrunc_trunctype_type M).
+    - intros a b. apply (istrunc_trunctype_type M).
+    - intros a b c d. apply (istrunc_trunctype_type M).
+  Defined.
+
+  Coercion monoid_to_1type : Monoid >-> Monoidal_1Type.
   
 
-  Record Symmetric_Monoid : Type := {mon : Monoid;
+  Record Symmetric_Monoid : Type := {mon :> Monoid;
                                      mon_sym : symmetric (mon_mult mon) }.
-  Global Arguments mon_sym {s} {a} {b}.
+  Global Arguments mon_sym {S} {a} {b} :rename.
 
   (* (*Makes mon_isset an implicit argument*) *)
   (* Global Arguments Build_Monoid mon_set {mon_isset} mon_mult mon_id mon_assoc mon_lid mon_rid. *)
 
-
-  Coercion mon_set : Monoid >-> TruncType.
-  Coercion mon : Symmetric_Monoid >-> Monoid.
-  Global Arguments mon_mult {m} m1 m2.
-  Global Arguments mon_assoc {m} {a} {b} {c}.
-  Global Arguments mon_lid {m} a.
-  Global Arguments mon_rid {m} a.
+  Global Arguments mon_id {M} : rename.
+  Global Arguments mon_mult {M} a b : rename.
+  Global Arguments mon_assoc {M} {a} {b} {c} : rename.
+  Global Arguments mon_lid {M} a : rename.
+  Global Arguments mon_rid {M} a : rename.
 
   
 
-  Global Instance ispointed_M {M : Monoid} : IsPointed M := (mon_id M).
+  Global Instance ispointed_M {M : Monoid} : IsPointed M := (@mon_id M).
 
 (*  (*Formulate the cancellation law for a monoid*)
   Definition right_cancellation_law (M : Monoid) :=
     forall a b s : M, a + s = b + s -> a = b.   *)
   
-  Record Group : Type := {grp_mon : Monoid;
+  Record Group : Type := {grp_mon :> Monoid;
                           grp_inv : grp_mon -> grp_mon;
-                          grp_linv : left_inverse mon_mult (mon_id grp_mon) grp_inv;
-                          grp_rinv : right_inverse mon_mult (mon_id grp_mon) grp_inv
+                          grp_linv : left_inverse mon_mult (mon_id) grp_inv;
+                          grp_rinv : right_inverse mon_mult (mon_id) grp_inv
                          }.
-  Coercion grp_mon : Group >-> Monoid.
-  Global Arguments grp_inv {g} a.
-  Global Arguments grp_linv {g} a.
-  Global Arguments grp_rinv {g} a.
+  
+  Global Arguments grp_inv {G} a :rename.
+  Global Arguments grp_linv {G} a:rename.
+  Global Arguments grp_rinv {G} a:rename.
 
   Record Abelian_Group : Type :=
-    {grp : Group;
+    {grp :> Group;
      grp_sym : symmetric (@mon_mult (grp_mon grp))}.
 
-  Coercion grp : Abelian_Group >-> Group.
   Global Arguments grp_sym {A} {a} {b} : rename.
 
   (*Must do some work to get a coercion Abelian_Group >-> Symmetric_Monoid*)
@@ -73,7 +92,8 @@ End Monoids_and_Groups.
 
                                      
 
-Section nat_monoid.  
+Section nat_monoid.
+  Require Import nat_lemmas.
   (*Strangely, I cannot find any proofs of nat being associative*)
   Open Scope nat_scope.
   (* Definition plus_assoc : associative Peano.plus. *)
@@ -98,26 +118,28 @@ Section nat_monoid.
   Definition nat_symm_monoid : Symmetric_Monoid := Build_Symmetric_Monoid nat_monoid nat_plus_comm.    
 End nat_monoid.
 
-
-Notation "a + b"  := (mon_mult a b) : monoid_scope.
+Infix "+" := mon_mult : monoid_scope.
+(* Notation "a + b"  := (mon_mult a b) : monoid_scope. *)
 Notation "- a" := (grp_inv a) : monoid_scope.
 Notation "a - b" := (mon_mult a (grp_inv b)) : monoid_scope.
 
-(*Just so that you don't have to remember what is monoid structure and what is group structure *)
-Notation "'grp_set' G" := (mon_set (grp_mon G)) (at level 0) : monoid_scope.
-(* Notation "'grp_isset' G" := (mon_isset (grp_mon G)) (at level 0) : monoid_scope. *)
-Notation "'grp_id' G" := (mon_id (grp_mon G)) (at level 0) : monoid_scope.
+(*Just so that you dont have to remember what is monoid structure and what is group structure *)
+(* Notation "grp_set G" := (mon_set (grp_mon G)) (at level 0) : monoid_scope. *)
+(* Notation "grp_isset G" := (mon_isset (grp_mon G)) (at level 0) : monoid_scope. *)
+Notation "'grp_id' G" := (@mon_id (grp_mon G)) (at level 0) : monoid_scope.
 Notation "'grp_mult'" := (@mon_mult (grp_mon _)) (at level 0, only parsing) : monoid_scope.
-Notation "'grp_assoc'" := (mon_assoc ( m := grp_mon _)) (at level 0) : monoid_scope.
+Notation "'grp_assoc'" := (mon_assoc ( M := grp_mon _)) (at level 0) : monoid_scope.
 Notation "'grp_lid'" := (@mon_lid (grp_mon _)) (at level 0) : monoid_scope.
 Notation "'grp_rid'" := (@mon_rid (grp_mon _)) (at level 0) : monoid_scope.
 Notation "'grp_rid'" := (@mon_rid (grp_mon _)) (at level 0) : monoid_scope.
 (*TODO: Use this notation*)
 
+
+
 Section Loop_is_group.
   Definition loopGroup (A : pType) {istrunc_A : IsTrunc 1 A} : Group.
     srapply Build_Group.
-    exact (Build_Monoid (BuildhSet (loops A)) concat idpath concat_p_pp concat_1p concat_p1).
+    exact (Build_Monoid (BuildhSet (loops A)) concat idpath concat_pp_p concat_1p concat_p1).
     - exact inverse.
     - exact concat_Vp.
     - exact concat_pV.
@@ -139,7 +161,7 @@ Section Group_lemmas.
     intro p.      
     refine ((grp_rid a)^ @ _ @ grp_rid b).
     refine ((grp_whiskerL (grp_rinv s))^ @ _ @ grp_whiskerL (grp_rinv s)).
-    refine (grp_assoc @ _ @ grp_assoc^).
+    refine ((grp_assoc)^ @ _ @ (grp_assoc )).
     exact (grp_whiskerR p).
   Defined.
   
@@ -149,7 +171,7 @@ Section Group_lemmas.
     intro p.
     refine ((grp_lid a)^ @ _ @ grp_lid b).
     refine ((grp_whiskerR (grp_linv s))^ @ _ @ grp_whiskerR (grp_linv s)).
-    refine (grp_assoc^ @ _ @ grp_assoc).
+    refine (grp_assoc @ _ @ grp_assoc^).
     exact (grp_whiskerL p).
   Defined.
 
@@ -158,7 +180,7 @@ Section Group_lemmas.
     Proof.
       intro p.
       refine (grp_whiskerL p @ _).
-      refine (grp_assoc @ _).
+      refine (grp_assoc^ @ _).
       refine (grp_whiskerR (grp_rinv a) @ _).
       exact (grp_lid c).
     Defined.
@@ -168,7 +190,7 @@ Section Group_lemmas.
     Proof.
       intro p.
       refine (grp_whiskerR p @ _).
-      refine (grp_assoc^ @ _).
+      refine (grp_assoc @ _).
       refine (grp_whiskerL (grp_linv b) @ _).
       exact (grp_rid c).
     Defined.      
@@ -178,7 +200,7 @@ Section Group_lemmas.
   Proof.
     intro p.
     refine (grp_whiskerL p @ _).
-    refine (grp_assoc @ _).
+    refine (grp_assoc^ @ _).
     refine (grp_whiskerR (grp_linv a) @ _).
     exact (grp_lid c).
   Defined.
@@ -188,7 +210,7 @@ Section Group_lemmas.
   Proof.
     intro p.
     refine (grp_whiskerR p @ _).
-    refine (grp_assoc^ @ _).
+    refine (grp_assoc @ _).
     refine (grp_whiskerL (grp_rinv b) @ _).
     exact (grp_rid c).
   Defined.
@@ -198,7 +220,7 @@ Section Group_lemmas.
   Proof.
     intro p.
     refine (_ @ grp_whiskerL p).
-    refine (_ @ grp_assoc^).
+    refine (_ @ grp_assoc).
     refine (_ @ grp_whiskerR (grp_rinv b)^).
     exact (grp_lid a)^.
   Defined.    
@@ -208,7 +230,7 @@ Section Group_lemmas.
   Proof.
     intro p.
     refine (_ @ grp_whiskerR p).
-    refine (_ @ grp_assoc).
+    refine (_ @ grp_assoc^).
     refine (_ @ grp_whiskerL (grp_linv c)^).
     exact (grp_rid a)^.
   Defined.
@@ -218,7 +240,7 @@ Section Group_lemmas.
   Proof.
     intro p.
     refine (_ @ grp_whiskerL p).
-    refine (_ @ grp_assoc^ ).
+    refine (_ @ grp_assoc ).
     refine (_ @ grp_whiskerR (grp_linv b)^).
     exact (grp_lid a)^.
   Defined.    
@@ -228,7 +250,7 @@ Section Group_lemmas.
   Proof.
     intro p.
     refine (_ @ grp_whiskerR p).
-    refine (_ @ grp_assoc ).
+    refine (_ @ grp_assoc^ ).
     refine (_ @ grp_whiskerL (grp_rinv c)^).
     exact (grp_rid a)^.
   Defined.
@@ -305,7 +327,7 @@ Section Group_lemmas.
   Proof.
     apply grp_moveL_Vg.
     apply grp_moveR_gV.
-    refine (_ @ grp_assoc^).
+    refine (_ @ grp_assoc).
     refine ( _ @ (grp_whiskerR (grp_linv a)^ ) ).
     exact (grp_lid b)^ .
   Defined.
@@ -333,7 +355,7 @@ Section Homomorphism.
   
   Record Homomorphism (M N : Monoid) :=
     {hom_map : M -> N ;
-     preserve_id : hom_map (mon_id M) = mon_id N ;
+     preserve_id : hom_map (mon_id) = mon_id ;
      preserve_mult : forall m1 m2 : M, hom_map (m1 + m2) = (hom_map m1) + (hom_map m2)}. 
 
   Global Arguments hom_map {M N} h _.
@@ -343,14 +365,14 @@ Section Homomorphism.
   Coercion hom_map : Homomorphism >-> Funclass.
 
   Definition ishom {M N : Monoid} (f : M -> N) :=
-    (f (mon_id M) = mon_id N) * (forall m1 m2 : M, f (m1 + m2) = f m1 + f m2).
+    (f (mon_id) = mon_id) * (forall m1 m2 : M, f (m1 + m2) = f m1 + f m2).
       
 
   Definition issig_hom (M N : Monoid) :
     {f : M -> N &  ishom f} <~> Homomorphism M N.
   Proof.
     equiv_via {f : M -> N &
-                          sig (fun _ : (f (mon_id M) = mon_id N) =>
+                          sig (fun _ : (f (mon_id) = mon_id) =>
                                  (forall m1 m2 : M, f (m1 + m2) = f m1 + f m2) )}.
     - refine (equiv_functor_sigma_id _).
       intro f.
@@ -363,7 +385,7 @@ Section Homomorphism.
     forall f : M->N, IsHProp (ishom f).
   Proof.
     intro f.
-    set (A := (f (mon_id M) = mon_id N)).
+    set (A := (f (mon_id) = mon_id)).
     set (B := (forall m1 m2 : mon_set M, f (m1 + m2) = f m1 + f m2)).
     refine (@trunc_prod -1 A _ B _).
     exact (istrunc_trunctype_type N _ _).
@@ -487,7 +509,79 @@ Infix "oH" := compose_hom (at level 40, left associativity).
   
 (* End Monoid_action. *)
 
+Section MonType_to_Mon.
+  (* Truncating a monoidal category to a monoid *)
+  Definition montype_to_monoid : Monoidal_1Type -> Monoid.
+  Proof.
+    intro S.
+    srapply @Build_Monoid.
+    - exact (BuildTruncType 0 (Trunc 0 S)).
+    - intro a.
+      apply Trunc_rec.
+      revert a.
+      simpl.
+      apply (Trunc_rec (A := S) (X := S -> Trunc 0 S)).
+      intros a b.
+      apply tr. exact (montype_mult a b).
+    - exact (tr montype_id).
+    - unfold associative. simpl.
+      intros a b c.
+      strip_truncations. simpl.
+      apply (ap tr). apply montype_assoc.
+    - unfold left_identity_mult.
+      intro a. strip_truncations. simpl.
+      apply (ap tr). apply montype_lid.
+    - unfold right_identity_mult. intro a.
+      strip_truncations. simpl.
+      apply (ap tr). apply montype_rid.
+  Defined.
 
-  
-                                                    
+  Definition functor_montype_to_monoid {M N : Monoidal_1Type} :
+    Monoidal_Map M N -> Homomorphism (montype_to_monoid M) (montype_to_monoid N).
+  Proof.
+    intro f.
+    srapply @Build_Homomorphism.
+    - simpl. apply Trunc_rec. intro a.
+      apply tr. exact (f a).
+    - apply (ap tr). apply montype_map_id.
+    - intros a b. strip_truncations. simpl.
+      apply (ap tr). apply montype_map_mult.
+  Defined.
+
+  Definition sym_montype_to_monoid : Symmetric_Monoidal_1Type -> Symmetric_Monoid.
+  Proof.
+    intro S.
+    apply (Build_Symmetric_Monoid (montype_to_monoid S)).
+    unfold symmetric. intros a b. strip_truncations. simpl.
+    apply (ap tr). apply smontype_sym.
+  Defined.
+
+
+  Definition group_group_completion_to_monoid (S : Symmetric_Monoidal_1Type)
+             {faithful_S : left_faithful (@montype_mult S)}
+    : Abelian_Group.
+  Proof.
+    srapply @Build_Abelian_Group.
+    srapply @Build_Group.
+    srapply @Build_Monoid.
+    - exact (BuildTruncType 0 (Trunc 0 (group_completion S faithful_S))).
+    - simpl. intro a.
+      apply Trunc_rec. revert a.
+      apply (Trunc_rec (A := S*S) (X := S*S -> Trunc 0 (S*S))).
+      intros a b. apply tr. revert a b.
+      apply (mult_group_completion S faithful_S).
+    - simpl.
+      exact (tr (smontype_id, smontype_id)).
+    - unfold associative. simpl.
+      intros a b c. strip_truncations. simpl. apply (ap tr).
+      
+      
+    
+    
+    
+
+  Definition equiv_group_completion_to_monoid (S : Symmetric_Monoidal_Type) :
+    group_
+
+
                                                    

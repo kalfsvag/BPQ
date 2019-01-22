@@ -2,7 +2,7 @@ Require Import HoTT.
 
 (*Strangely, I cannot find any proofs of nat being associative*)
 Local Open Scope nat_scope.
-Definition plus_assoc : forall j k l : nat, j + (k + l) = (j + k) + l. 
+Definition plus_assoc : forall j k l : nat, (j + k) + l = j + (k + l). 
   intros j k l.
   induction j.
   - exact idpath.

@@ -494,6 +494,13 @@ Section Symmetric_Monoidal_1Type.
 
 End Symmetric_Monoidal_1Type.
 
+
+
+  
+    
+
+
+
   
 
 

@@ -1,13 +1,14 @@
+Require Import HoTT.
 Require Import UnivalenceAxiom.
-Load group_complete_1type.
+(* Load group_complete_1type. *)
 (* Load monoidal_1type. *)
 
 
 Section Monoids_and_Groups.
-  (* Definition associative {A : Type}  (m : A->A->A) := forall a b c : A, m a (m b c) = m (m a b) c. *)
-  (* Definition left_identity {A : Type} (m : A->A->A) (e : A) := forall a : A, m e a = a. *)
-  (* Definition right_identity {A : Type} (m : A->A->A) (e : A) := forall a : A, m a e = a. *)
-  (* Definition symmetric {A : Type} (m : A->A->A) := forall a b : A, m a b = m b a. *)
+  Definition associative {A : Type}  (m : A->A->A) := forall a b c : A, m (m a b) c = m a (m b c).
+  Definition left_identity {A : Type} (m : A->A->A) (e : A) := forall a : A, m e a = a.
+  Definition right_identity {A : Type} (m : A->A->A) (e : A) := forall a : A, m a e = a.
+  Definition symmetric {A : Type} (m : A->A->A) := forall a b : A, m a b = m b a.
   Definition left_inverse {A : Type} (m : A -> A -> A) (e : A) (inv : A -> A) :=
     forall a : A, m (inv a) a = e.
   Definition right_inverse {A : Type} (m : A -> A -> A) (e : A) (inv : A -> A) :=
@@ -19,8 +20,8 @@ Section Monoids_and_Groups.
                             mon_mult  : mon_set->mon_set->mon_set;
                             mon_id : mon_set;
                             mon_assoc : associative mon_mult;
-                            mon_lid : left_identity_mult mon_mult mon_id ;
-                            mon_rid : right_identity_mult mon_mult mon_id
+                            mon_lid : left_identity mon_mult mon_id ;
+                            mon_rid : right_identity mon_mult mon_id
                           }.
 
   (* Definition type_to_monoid : Monoidal_1Type -> Monoid. *)
@@ -31,18 +32,18 @@ Section Monoids_and_Groups.
   (*   (@mon_mult M)). *)
     
 
-  Definition monoid_to_1type : Monoid -> Monoidal_1Type.
-  Proof.
-    intro M.
-    srapply
-      (Build_Monoidal_1Type (BuildTruncType 1 M)
-                            (mon_mult M) (mon_id M) (mon_assoc M) (mon_lid M) (mon_rid M)).
-    - intros a b. apply (istrunc_trunctype_type M).
-    - intros a b. apply (istrunc_trunctype_type M).
-    - intros a b c d. apply (istrunc_trunctype_type M).
-  Defined.
+  (* Definition monoid_to_1type : Monoid -> Monoidal_1Type. *)
+  (* Proof. *)
+  (*   intro M. *)
+  (*   srapply *)
+  (*     (Build_Monoidal_1Type (BuildTruncType 1 M) *)
+  (*                           (mon_mult M) (mon_id M) (mon_assoc M) (mon_lid M) (mon_rid M)). *)
+  (*   - intros a b. apply (istrunc_trunctype_type M). *)
+  (*   - intros a b. apply (istrunc_trunctype_type M). *)
+  (*   - intros a b c d. apply (istrunc_trunctype_type M). *)
+  (* Defined. *)
 
-  Coercion monoid_to_1type : Monoid >-> Monoidal_1Type.
+  (* Coercion monoid_to_1type : Monoid >-> Monoidal_1Type. *)
   
 
   Record Symmetric_Monoid : Type := {mon :> Monoid;
@@ -96,6 +97,7 @@ Section nat_monoid.
   Require Import nat_lemmas.
   (*Strangely, I cannot find any proofs of nat being associative*)
   Open Scope nat_scope.
+  Require Import nat_lemmas.
   (* Definition plus_assoc : associative Peano.plus. *)
   (*   intros j k l. *)
   (*   induction j, k, l. *)
@@ -440,6 +442,8 @@ Notation "'Hom'" := Homomorphism : monoid_scope.
 Infix "oH" := compose_hom (at level 40, left associativity).
 
 
+(* The rest here is important, don't forget it! *)
+
 
 (* (* Defining sets with a monoid action (see MacLane, p5) *) *)
 (* Section Monoid_action. *)
@@ -509,79 +513,79 @@ Infix "oH" := compose_hom (at level 40, left associativity).
   
 (* End Monoid_action. *)
 
-Section MonType_to_Mon.
-  (* Truncating a monoidal category to a monoid *)
-  Definition montype_to_monoid : Monoidal_1Type -> Monoid.
-  Proof.
-    intro S.
-    srapply @Build_Monoid.
-    - exact (BuildTruncType 0 (Trunc 0 S)).
-    - intro a.
-      apply Trunc_rec.
-      revert a.
-      simpl.
-      apply (Trunc_rec (A := S) (X := S -> Trunc 0 S)).
-      intros a b.
-      apply tr. exact (montype_mult a b).
-    - exact (tr montype_id).
-    - unfold associative. simpl.
-      intros a b c.
-      strip_truncations. simpl.
-      apply (ap tr). apply montype_assoc.
-    - unfold left_identity_mult.
-      intro a. strip_truncations. simpl.
-      apply (ap tr). apply montype_lid.
-    - unfold right_identity_mult. intro a.
-      strip_truncations. simpl.
-      apply (ap tr). apply montype_rid.
-  Defined.
+(* Section MonType_to_Mon. *)
+(*   (* Truncating a monoidal category to a monoid *) *)
+(*   Definition montype_to_monoid : Monoidal_1Type -> Monoid. *)
+(*   Proof. *)
+(*     intro S. *)
+(*     srapply @Build_Monoid. *)
+(*     - exact (BuildTruncType 0 (Trunc 0 S)). *)
+(*     - intro a. *)
+(*       apply Trunc_rec. *)
+(*       revert a. *)
+(*       simpl. *)
+(*       apply (Trunc_rec (A := S) (X := S -> Trunc 0 S)). *)
+(*       intros a b. *)
+(*       apply tr. exact (montype_mult a b). *)
+(*     - exact (tr montype_id). *)
+(*     - unfold associative. simpl. *)
+(*       intros a b c. *)
+(*       strip_truncations. simpl. *)
+(*       apply (ap tr). apply montype_assoc. *)
+(*     - unfold left_identity_mult. *)
+(*       intro a. strip_truncations. simpl. *)
+(*       apply (ap tr). apply montype_lid. *)
+(*     - unfold right_identity_mult. intro a. *)
+(*       strip_truncations. simpl. *)
+(*       apply (ap tr). apply montype_rid. *)
+(*   Defined. *)
 
-  Definition functor_montype_to_monoid {M N : Monoidal_1Type} :
-    Monoidal_Map M N -> Homomorphism (montype_to_monoid M) (montype_to_monoid N).
-  Proof.
-    intro f.
-    srapply @Build_Homomorphism.
-    - simpl. apply Trunc_rec. intro a.
-      apply tr. exact (f a).
-    - apply (ap tr). apply montype_map_id.
-    - intros a b. strip_truncations. simpl.
-      apply (ap tr). apply montype_map_mult.
-  Defined.
+(*   Definition functor_montype_to_monoid {M N : Monoidal_1Type} : *)
+(*     Monoidal_Map M N -> Homomorphism (montype_to_monoid M) (montype_to_monoid N). *)
+(*   Proof. *)
+(*     intro f. *)
+(*     srapply @Build_Homomorphism. *)
+(*     - simpl. apply Trunc_rec. intro a. *)
+(*       apply tr. exact (f a). *)
+(*     - apply (ap tr). apply montype_map_id. *)
+(*     - intros a b. strip_truncations. simpl. *)
+(*       apply (ap tr). apply montype_map_mult. *)
+(*   Defined. *)
 
-  Definition sym_montype_to_monoid : Symmetric_Monoidal_1Type -> Symmetric_Monoid.
-  Proof.
-    intro S.
-    apply (Build_Symmetric_Monoid (montype_to_monoid S)).
-    unfold symmetric. intros a b. strip_truncations. simpl.
-    apply (ap tr). apply smontype_sym.
-  Defined.
+(*   Definition sym_montype_to_monoid : Symmetric_Monoidal_1Type -> Symmetric_Monoid. *)
+(*   Proof. *)
+(*     intro S. *)
+(*     apply (Build_Symmetric_Monoid (montype_to_monoid S)). *)
+(*     unfold symmetric. intros a b. strip_truncations. simpl. *)
+(*     apply (ap tr). apply smontype_sym. *)
+(*   Defined. *)
 
 
-  Definition group_group_completion_to_monoid (S : Symmetric_Monoidal_1Type)
-             {faithful_S : left_faithful (@montype_mult S)}
-    : Abelian_Group.
-  Proof.
-    srapply @Build_Abelian_Group.
-    srapply @Build_Group.
-    srapply @Build_Monoid.
-    - exact (BuildTruncType 0 (Trunc 0 (group_completion S faithful_S))).
-    - simpl. intro a.
-      apply Trunc_rec. revert a.
-      apply (Trunc_rec (A := S*S) (X := S*S -> Trunc 0 (S*S))).
-      intros a b. apply tr. revert a b.
-      apply (mult_group_completion S faithful_S).
-    - simpl.
-      exact (tr (smontype_id, smontype_id)).
-    - unfold associative. simpl.
-      intros a b c. strip_truncations. simpl. apply (ap tr).
+(*   Definition group_group_completion_to_monoid (S : Symmetric_Monoidal_1Type) *)
+(*              {faithful_S : left_faithful (@montype_mult S)} *)
+(*     : Abelian_Group. *)
+(*   Proof. *)
+(*     srapply @Build_Abelian_Group. *)
+(*     srapply @Build_Group. *)
+(*     srapply @Build_Monoid. *)
+(*     - exact (BuildTruncType 0 (Trunc 0 (group_completion S faithful_S))). *)
+(*     - simpl. intro a. *)
+(*       apply Trunc_rec. revert a. *)
+(*       apply (Trunc_rec (A := S*S) (X := S*S -> Trunc 0 (S*S))). *)
+(*       intros a b. apply tr. revert a b. *)
+(*       apply (mult_group_completion S faithful_S). *)
+(*     - simpl. *)
+(*       exact (tr (smontype_id, smontype_id)). *)
+(*     - unfold associative. simpl. *)
+(*       intros a b c. strip_truncations. simpl. apply (ap tr). *)
       
       
     
     
     
 
-  Definition equiv_group_completion_to_monoid (S : Symmetric_Monoidal_Type) :
-    group_
+(*   Definition equiv_group_completion_to_monoid (S : Symmetric_Monoidal_Type) : *)
+(*     group_ *)
 
 
                                                    

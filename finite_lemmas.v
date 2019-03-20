@@ -5,6 +5,11 @@ Require Import equiv_lemmas.
 Require Import UnivalenceAxiom.
 
 
+
+
+
+
+
 Definition Embedding (A B : Type) := {f : A -> B & IsEmbedding f}.
 Definition fun_of_emb (A B : Type) : Embedding A B -> (A -> B) := pr1.
 Coercion fun_of_emb : Embedding >-> Funclass.
@@ -131,6 +136,98 @@ Section Finite_Types.
     exact (transport_exp X A.1 B.1 e x).
   Defined.
 
+    Lemma path_sigma_hprop_compose {A : Type} {P : A -> Type} {isprop : forall a : A, IsHProp (P a)}
+        (x y z: { a : A & P a}) (p : x.1 = y.1) (q : y.1 = z.1) :
+    path_sigma_hprop _ _ (p @ q) = (path_sigma_hprop _ _ p) @ (path_sigma_hprop _ _ q).
+  Proof.
+    destruct x as [x1 x2]. destruct y as [y1 y2]. destruct z as [z1 z2]. simpl in p,q.
+    destruct q. destruct p. cbn.
+    destruct (center _ (isprop x1 x2 z2)).
+    destruct (center _ (isprop x1 x2 y2)).    
+    refine (path_sigma_hprop_1 _ @ _).
+    apply inverse.
+    apply (concat2 (path_sigma_hprop_1 (x1; x2)) (path_sigma_hprop_1 (x1; x2))).
+  Defined.
+  
+  (* Should show this elsewhere but admit it here for now. . . *)
+  Lemma path_finite_types_compose (A B C : {n : nat & Finite_Types n})
+        (e1 : A.2 <~> B.2) (e2 : B.2 <~> C.2) :
+    path_finite_types _ _ (e2 oE e1) = (path_finite_types _ _ e1) @ (path_finite_types _ _ e2).
+  Proof.
+    destruct A as [l [A fA]].
+    destruct B as [m [B fB]].
+    destruct C as [n [C fC]].
+    simpl in e1, e2.
+    unfold path_finite_types.
+    unfold path_finite_types_sum.
+    unfold pr1.
+
+    change
+      (((equiv_ap sum_finite (?x; (?a; ?fa)) (?y; (?b; ?fb)))^-1
+       oE (equiv_path_sigma_hprop (?a; finite_finite_type (?a; ?fa)) (?b; finite_finite_type (?b; ?fb))
+       oE equiv_path_universe ?a ?b)) ?e)
+    with
+    ((equiv_ap sum_finite (x; (a; fa)) (y; (b; fb)))^-1
+      (path_sigma_hprop (a; finite_finite_type (a; fa)) (b; finite_finite_type (b; fb))
+      (path_universe e))).
+    refine (ap ( (equiv_ap sum_finite (l; (A; fA)) (n; (C; fC)))^-1               
+                 o (path_sigma_hprop (A; finite_finite_type (A; fA)) (C; finite_finite_type (C; fC))))
+               (path_universe_compose e1 e2) @ _).
+    refine (ap (equiv_ap sum_finite (l; (A; fA)) (n; (C; fC)))^-1
+               (path_sigma_hprop_compose
+                  (A; finite_finite_type (A; fA))
+                  (B; finite_finite_type (B; fB))
+                  (C; finite_finite_type (C; fC))
+                  (path_universe e1) (path_universe e2)) @ _).
+    cut (forall (a b c: {n : nat & Finite_Types n})
+                (p : sum_finite a = sum_finite b) (q : sum_finite b = sum_finite c),
+            (equiv_ap sum_finite a c)^-1 (p @ q) =
+            ((equiv_ap sum_finite a b)^-1 p) @ ((equiv_ap sum_finite b c)^-1 q)).
+    { intro H. apply H. }
+    clear l A fA m B fB n C fC e1 e2.
+    intros A B C p q.
+    (* unfold equiv_ap. *)
+    change ((equiv_ap sum_finite ?x ?y)^-1)
+           with
+           (fun q : sum_finite x = sum_finite y =>
+              ((eissect sum_finite x)^ @ ap sum_finite^-1 q) @ eissect sum_finite y).
+    hnf.
+    destruct (eissect sum_finite C).
+    destruct (eissect sum_finite A).
+    destruct (eissect sum_finite B). hott_simpl.
+    apply ap_pp.
+  Qed.
+
+  Definition path_finite_types_1 (A : {n : nat & Finite_Types n}) :
+      path_finite_types A A equiv_idmap = idpath.
+  Proof.
+    destruct A as [n [A fA]].
+    unfold path_finite_types.
+    unfold path_finite_types_sum.
+    unfold pr1.
+    change
+      (((equiv_ap sum_finite (n; (A; fA)) (n; (A; fA)))^-1
+        oE (equiv_path_sigma_hprop (A; finite_finite_type (A; fA)) (A; finite_finite_type (A; fA))
+        oE equiv_path_universe A A))
+         equiv_idmap)
+      with
+      ((equiv_ap sum_finite (n; (A; fA)) (n; (A; fA)))^-1
+          (path_sigma_hprop (A; finite_finite_type (A; fA)) (A; finite_finite_type (A; fA))
+             (@path_universe _ A A equiv_idmap _))).
+    refine (ap ((equiv_ap sum_finite (n; (A; fA)) (n; (A; fA)))^-1 o
+               (path_sigma_hprop (A; finite_finite_type (A; fA)) (A; finite_finite_type (A; fA))))
+               (path_universe_1) @ _).
+    refine (ap ((equiv_ap sum_finite (n; (A; fA)) (n; (A; fA)))^-1)
+               (path_sigma_hprop_1 _) @ _).
+    change ((equiv_ap sum_finite ?x ?y)^-1)
+           with
+           (fun q : sum_finite x = sum_finite y =>
+              ((eissect sum_finite x)^ @ ap sum_finite^-1 q) @ eissect sum_finite y).
+    hnf.
+    destruct (eissect sum_finite (n; (A; fA))). reflexivity.
+  Qed.     
+ 
+
   (* Definition transport_exp_finite {X : Type} {A B : {n : nat & Finite_Types n}} (e : A.2 <~> B.2) (x : A.2 -> X) : *)
   (*   transport (fun I : {n : nat & Finite_Types n} => I.2 -> X) (path_finite_types A B e) x = x o e^-1. *)
   (* Proof.     *)
@@ -178,6 +275,160 @@ Section Finite_Types.
   Defined.
 
 End Finite_Types.
+
+
+
+(* Perhaps not the right placement? *)
+Section Type_to_Cat.
+  Require Import HoTT.Categories Category.Morphisms.
+  
+  Local Notation "x --> y" := (morphism _ x y) (at level 99, right associativity, y at level 200) : type_scope.
+  Definition Type_to_Cat : 1-Type -> PreCategory.
+  Proof.
+    intro X.
+    srapply (Build_PreCategory (fun x y : X => x = y)).
+    - reflexivity.
+    - cbn. intros x y z p q.
+      exact (q @ p).
+    - intros x1 x2 x3 x4 p q r. simpl. apply concat_p_pp.
+    - cbn. intros x1 x2 p. apply concat_p1.
+    - intros x y p. simpl. apply concat_1p.
+  Defined.
+
+  Global Instance isgroupoid_type_to_cat (X : 1-Type) (x1 x2 : (Type_to_Cat X)) (f : x1 --> x2) :
+    IsIsomorphism f.
+  Proof.
+    srapply @Build_IsIsomorphism.
+    - exact f^.
+    - apply concat_pV.
+    - apply concat_Vp.
+  Defined.
+    
+
+  Definition arrow_to_functor {X Y : 1-Type} (F : X -> Y) :
+    Functor (Type_to_Cat X) (Type_to_Cat Y).
+  Proof.
+    srapply @Build_Functor. exact F.
+    - intros x1 x2. simpl.
+      exact (ap F).
+    - simpl. intros x1 x2 x3 p q.
+      apply ap_pp.
+    - simpl. reflexivity.
+  Defined.
+
+  Definition cat_of_arrow (X Y : 1-Type) :
+    Functor (Type_to_Cat (BuildTruncType 1 (X -> Y))) (functor_category (Type_to_Cat X) (Type_to_Cat Y)).
+  Proof.
+    srapply @Build_Functor; simpl.
+    apply arrow_to_functor.
+    - intros f g p.
+      srapply @Build_NaturalTransformation; simpl.
+      + apply (ap10 p).
+      + intros x1 x2 q.
+        destruct p, q. reflexivity.        
+    - intros f g h p q. simpl.
+      unfold NaturalTransformation.Composition.Core.compose. simpl. destruct p, q. simpl.
+      apply NaturalTransformation.path_natural_transformation. simpl. intro x. reflexivity.
+    - intro f. simpl.
+      apply NaturalTransformation.path_natural_transformation. simpl. intro x. reflexivity.
+  Defined.
+End Type_to_Cat.
+
+
+
+
+Section FinCat.
+  Require Import finite_lemmas.
+  Definition fin_1type : 1-Type.
+    srapply (@BuildTruncType 1 {n : nat & Finite_Types n}).
+    red.
+    intros A B.
+    apply (trunc_equiv' (A.2 <~> B.2) (path_finite_types A B)).
+  Defined.
+
+  Check (fundamental_pregroupoid_category fin_1type).
+  (* Definition fincat : PreCategory. *)
+  (* Proof. *)
+  (*   srapply (Build_PreCategory (fun m n : nat => Fin m = Fin n)); simpl. *)
+  (*   - intro m. reflexivity. *)
+  (*   - intros l m n. *)
+  (*     intros p q. exact (q @ p). *)
+  (*   - intros. simpl. *)
+  (*     apply concat_p_pp. *)
+  (*   - simpl. intros. *)
+  (*     apply concat_p1. *)
+  (*   - simpl. intros. *)
+  (*     apply concat_1p. *)
+  (* Defined. *)
+
+  Definition fincat : PreCategory.
+  Proof.
+    srapply (Build_PreCategory (fun m n : nat => Fin m <~> Fin n)); simpl.
+    - intro m. apply equiv_idmap.
+    - intros l m n.
+      apply equiv_compose'.
+    - intros. simpl.
+      apply path_equiv. reflexivity.
+    - simpl. intros.
+      apply path_equiv. reflexivity.
+    - simpl. intros. apply path_equiv. reflexivity.
+  Defined.
+
+    
+  
+  (* Trying to show that these are equivalent *)
+  Definition F : Functor fincat (Type_to_Cat (fin_1type)).
+  Proof.
+    srapply @Build_Functor; simpl.
+    - intro m. exact (m; canon m).
+    - intros m n e. simpl. 
+      apply path_finite_types.
+      apply e.
+    - intros a b c e1 e2.
+      hnf. 
+      apply (path_finite_types_compose (a; canon a) (b; canon b) (c; canon c)).
+    - hnf.
+      intro n.
+      apply path_finite_types_1.
+  Defined.
+
+  Definition G : Functor (Type_to_Cat (fin_1type)) fincat.
+  Proof.
+    srapply @Build_Functor; simpl.
+    - apply pr1.
+    - intros A B []. exact equiv_idmap.
+    - intros a b c [] []. simpl.
+      apply path_equiv. reflexivity.
+    - reflexivity.
+  Defined.
+    
+  (* F is a weak equivalence (def 9.4.6) *)
+  Arguments path_finite_types : simpl never.
+  
+  Definition fullyfaithful_F :
+    forall (a b : _), IsEquiv (@morphism_of _ _ F a b).  
+  Proof.
+    intros a b. simpl in a, b.
+    unfold F. cbn.
+    apply equiv_isequiv.
+  Defined.
+
+  Definition essentially_surj_F :
+    Attributes.IsEssentiallySurjective F.
+  Proof.
+    unfold Attributes.IsEssentiallySurjective. simpl.
+    intros [m [A fA]]. strip_truncations.
+    apply tr.
+    exists m.
+    srapply @Build_Isomorphic. simpl.
+    apply path_finite_types.
+    simpl. apply equiv_inverse.
+    apply fA.
+  Defined. 
+    
+
+    
+End FinCat.
 
 
 Section Factorize_Monomorphism.
@@ -638,175 +889,6 @@ End Restrict_Equivalence.
 
 
 
-(* Comparing not_leq to gt *)
-Section Inequalities.
-  Local Open Scope nat.
-  (* For two natural numbers, one is either less than or equal the other, or it is greater. *)
-  Definition leq_or_gt (i j : nat) : (i <= j) + (i > j).
-  Proof.
-    revert j. induction i; intro j.
-    (* 0 <= j *)
-    - exact (inl tt).
-    - destruct j.
-      (* 0 < i+1 *)
-      + exact (inr tt).
-      (* (i < j+1) + (j.+1 < i + 1) <-> (i <= j) + (j < i) *)
-      + apply IHi.
-  Defined.
- 
-
-  Definition leq_succ (n : nat) : n <= n.+1.
-  Proof.
-    induction n. reflexivity. apply IHn.
-  Defined.
-
-  (* Lemma leq_refl_code (i j : nat) : i =n j -> i <= j. *)
-  (* Proof. *)
-  (*   intro H. *)
-  (*   destruct (path_nat H). apply leq_refl. *)
-  (* Qed. *)
-  
-  Definition neq_succ (n : nat) : not (n =n n.+1).
-  Proof.
-    induction n.
-    - exact idmap.
-    - exact IHn.
-  Defined.
-
-  Definition leq0 {n : nat} : n <= 0 -> n =n 0.
-  Proof.
-    induction n; exact idmap.
-  Defined.
-
-  (* if both i<=j and j<=i, then they are equal *)
-  Definition leq_geq_to_eq (i j : nat) : (i <= j) -> (j <= i) -> i =n j.
-  Proof.
-    revert i.
-    induction j; intros i i_leq_j j_leq_i.
-    - exact (leq0 i_leq_j).
-    - destruct i.
-      + intros. destruct j_leq_i.
-      + simpl. intros.
-        apply (IHj _ i_leq_j j_leq_i).
-  Defined.
-
-  (* If i <= n, then i < n or i = n+1 *)
-  Definition lt_or_eq (i n : nat) : i <= n -> (i < n) + (i = n).
-  Proof.
-    intro i_leq_n.
-    destruct (leq_or_gt n i) as [n_leq_i | n_gt_i].
-    - apply inr. apply path_nat. exact (leq_geq_to_eq _  _ i_leq_n n_leq_i).
-    - exact (inl n_gt_i).
-  Defined.
-
-  (* Definition leq_to_lt_plus_eq (i j : nat) : i <= j -> (i < j) + (i = j). *)
-  (* Proof. *)
-  (*   intro i_leq_j. *)
-  (*   destruct (dec (i = j)). *)
-  (*   - exact (inr p). *)
-  (*   - apply inl. *)
-  (*     induction j. *)
-  (*     + simpl. rewrite (path_nat (leq0 i i_leq_j)) in n. apply n. reflexivity. *)
-  (*     + destruct i. exact tt. *)
-  (*       srapply (@leq_transd i.+2 j j.+1). *)
-  (*       * apply IHj. *)
-  (*         admit. *)
-           
-        
-  (*       simpl. *)
-
-        
-  (*       i. *)
-  (*     + simpl. *)
-    
-  (*   destruct j. *)
-  (*   apply inr. apply path_nat. apply (leq0  i (i_leq_j)). *)
-  (*   destruct i. *)
-  (*   - simpl. *)
-    
-  (*   apply inl. change (i < j.+1) with (i <= j). *)
-  (*   apply (leq_transd *)
-    
-    
-
-  (* Definition nlt_n0 (n : nat) : ~(n < 0) := idmap. *)
-  
-  Definition gt_to_notleq (i j : nat) : j > i -> ~(j <= i).
-  Proof.
-    intro i_lt_j.
-    intro j_leq_i.
-    apply (neq_succ i).
-    apply (leq_antisymd (leq_succ i)).
-    apply (leq_transd i_lt_j j_leq_i).
-    (* set (Si_leq_i := leq_transd i_lt_j j_leq_i). *)
-    (* set (Si_eq_i := leq_antisymd (leq_succ i) Si_leq_i). *)
-    (* apply (neq_succ i Si_eq_i). *)
-    (* induction i. *)
-    (* exact Si_eq_i. *)
-  Defined.
-
-  Definition not_i_lt_i (i : nat) : ~(i < i).
-  Proof.
-    unfold not.
-    induction i. exact idmap.
-    exact IHi.
-  Defined.
-  
-  (* Lemma notleq_to_gt (i j : nat) : ~(j <= i) -> j > i. *)
-  (* Proof. *)
-  (*   intro j_nleq_i. *)
-  (*   induction j. *)
-  (*   - apply j_nleq_i. *)
-  (*     apply leq0n. *)
-  (*   - change (i < j.+1) with (i <= j). *)
-  (*     destruct (dec (i =n j)). *)
-  (*     (* i = j *) *)
-  (*     + destruct (path_nat t). apply leq_refl. *)
-  (*     +  *)
-
-  (*     induction i. *)
-  (*     + exact tt. *)
-  (*     +  *)
-    
-  (*   induction i, j. *)
-  (*   - apply j_nleq_i. exact tt. *)
-  (*   - exact tt. *)
-  (*   - simpl. simpl in IHi. simpl in j_nleq_i. apply IHi. exact j_nleq_i. *)
-  (*   - change (i.+1 < j.+1) with (i < j). *)
-  (*     change (j < i.+1) with (j <= i) in j_nleq_i. *)
-  (*     change (i < j.+1) with (i <= j) in IHi. *)
-      
-    
-  (*   destruct (dec (~ (j <= i))). *)
-  (*   - set (f := j_nleq_i t). destruct f. *)
-  (*   -  *)
-  
-  (* If i <= j, then j is the sum of i and some natural number *)
-  Definition leq_to_sum {i j : nat} : i <= j -> {k : nat | j = i + k}%nat.
-  Proof.
-    revert j. induction i; intro j.
-    - intro. 
-      exists j. reflexivity.
-    - destruct j. intros [].
-      simpl. change (i < j.+1) with (i <= j).
-      intro i_leq_j.
-      apply (functor_sigma (A := nat) idmap (fun _ => ap S)).
-      apply (IHi j i_leq_j).
-      (* exists (IHi j i_leq_j).1. *)
-      (* apply (ap S). *)
-      (* apply (IHi j i_leq_j).2. *)
-  Defined.
-
-  (* If j > i, then j is a successor *)
-  Definition gt_is_succ {i j : nat} : i < j -> {k : nat | j = k.+1}.
-  Proof.
-    intro i_lt_j.
-    destruct (leq_to_sum i_lt_j) as [k H].
-    exact (i+k; H)%nat.
-  Defined.
-    
-End Inequalities.
-
 
 
   
@@ -838,6 +920,8 @@ Section Pointed_Finite.
       induction i. simpl in Hi. destruct Hi. reflexivity.
       reflexivity.
   Defined.
+
+  Require Import nat_lemmas.
 
   (* The map sending n+1 to [inr tt] *)
   Definition equiv_pFin_incl (n : nat) : pFin (n.+1) <~> pFin n + Unit.

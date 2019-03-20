@@ -1,59 +1,5 @@
 Load monoidal_1type.
 
-Section Type_to_Cat.
-  Require Import HoTT.Categories Category.Morphisms.
-  
-  Local Notation "x --> y" := (morphism _ x y) (at level 99, right associativity, y at level 200) : type_scope.
-  Definition Type_to_Cat : 1-Type -> PreCategory.
-  Proof.
-    intro X.
-    srapply (Build_PreCategory (fun x y : X => x = y)).
-    - reflexivity.
-    - cbn. intros x y z p q.
-      exact (q @ p).
-    - intros x1 x2 x3 x4 p q r. simpl. apply concat_p_pp.
-    - cbn. intros x1 x2 p. apply concat_p1.
-    - intros x y p. simpl. apply concat_1p.
-  Defined.
-
-  Global Instance isgroupoid_type_to_cat (X : 1-Type) (x1 x2 : (Type_to_Cat X)) (f : x1 --> x2) :
-    IsIsomorphism f.
-  Proof.
-    srapply @Build_IsIsomorphism.
-    - exact f^.
-    - apply concat_pV.
-    - apply concat_Vp.
-  Defined.
-    
-
-  Definition arrow_to_functor {X Y : 1-Type} (F : X -> Y) :
-    Functor (Type_to_Cat X) (Type_to_Cat Y).
-  Proof.
-    srapply @Build_Functor. exact F.
-    - intros x1 x2. simpl.
-      exact (ap F).
-    - simpl. intros x1 x2 x3 p q.
-      apply ap_pp.
-    - simpl. reflexivity.
-  Defined.
-
-  Definition cat_of_arrow (X Y : 1-Type) :
-    Functor (Type_to_Cat (BuildTruncType 1 (X -> Y))) (functor_category (Type_to_Cat X) (Type_to_Cat Y)).
-  Proof.
-    srapply @Build_Functor; simpl.
-    apply arrow_to_functor.
-    - intros f g p.
-      srapply @Build_NaturalTransformation; simpl.
-      + apply (ap10 p).
-      + intros x1 x2 q.
-        destruct p, q. reflexivity.        
-    - intros f g h p q. simpl.
-      unfold NaturalTransformation.Composition.Core.compose. simpl. destruct p, q. simpl.
-      apply NaturalTransformation.path_natural_transformation. simpl. intro x. reflexivity.
-    - intro f. simpl.
-      apply NaturalTransformation.path_natural_transformation. simpl. intro x. reflexivity.
-  Defined.
-End Type_to_Cat.
 
     
 Section Localize.
@@ -125,33 +71,33 @@ Section Localize.
       apply montype_act_triangle2.
   Defined.
 
-  (* Some initial checking whether this category is univalent *)
-  Definition iso_to_id {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X)
-             {lc : left_faithful a} (x y : monoidal_action_cat M X a lc) :
-    Isomorphic x y -> x = y.
-  Proof.
-    intros [[s1 p1] [[s2 p2] H1' H2']]. simpl in *.
-    destruct ((path_sigma_uncurried (fun s0 : M => a s0 x = x)
-                                   (s2 ⊗ s1; (montype_act_mult a s2 s1 x @ ap (a s2) p1) @ p2)
-                                   (montype_id; montype_act_id a x))^-1 H1') as [q1 H1]. simpl in *.
-    clear H1'.
-    destruct ((path_sigma_uncurried (fun s0 : M => a s0 y = y)
-                                   (s1 ⊗ s2; (montype_act_mult a s1 s2 y @ ap (a s1) p2) @ p1)
-                                   (montype_id; montype_act_id a y))^-1 H2') as [q2 H2]. simpl in *.
-    clear H2'.
-    refine (_ @ p1).
-    refine ((montype_act_id a x)^  @ _).
-    apply (ap (fun s => a s x)).
-    unfold left_faithful in lc.
-    refine (_ @ ap (a s1) p2).
+  (* (* Some initial checking whether this category is univalent *) *)
+  (* Definition iso_to_id {M : Monoidal_1Type} {X : 1-Type} (a : monoidal_action M X) *)
+  (*            {lc : left_faithful a} (x y : monoidal_action_cat M X a lc) : *)
+  (*   Isomorphic x y -> x = y. *)
+  (* Proof. *)
+  (*   intros [[s1 p1] [[s2 p2] H1' H2']]. simpl in *. *)
+  (*   destruct ((path_sigma_uncurried (fun s0 : M => a s0 x = x) *)
+  (*                                  (s2 ⊗ s1; (montype_act_mult a s2 s1 x @ ap (a s2) p1) @ p2) *)
+  (*                                  (montype_id; montype_act_id a x))^-1 H1') as [q1 H1]. simpl in *. *)
+  (*   clear H1'. *)
+  (*   destruct ((path_sigma_uncurried (fun s0 : M => a s0 y = y) *)
+  (*                                  (s1 ⊗ s2; (montype_act_mult a s1 s2 y @ ap (a s1) p2) @ p1) *)
+  (*                                  (montype_id; montype_act_id a y))^-1 H2') as [q2 H2]. simpl in *. *)
+  (*   clear H2'. *)
+  (*   refine (_ @ p1). *)
+  (*   refine ((montype_act_id a x)^  @ _). *)
+  (*   apply (ap (fun s => a s x)). *)
+  (*   unfold left_faithful in lc. *)
+  (*   refine (_ @ ap (a s1) p2). *)
 
 
-    refine (p2^ @ _ @ p1).
-    refine (ap (a s2) p1^ @ _ @ ap (a s1) p2).
+  (*   refine (p2^ @ _ @ p1). *)
+  (*   refine (ap (a s2) p1^ @ _ @ ap (a s1) p2). *)
 
                                    
     
-    destruct q. destruct p.
+  (*   destruct q. destruct p. *)
     
 
   Definition localize_action (M : Monoidal_1Type) (X : 1-Type) (act : monoidal_action M X)
@@ -193,6 +139,74 @@ Section Localize.
       apply equiv_concat_l. apply montype_rid.
     - apply contr_basedpaths'.
   Defined.
+
+  (* Definition univalent_localize (M : Monoidal_1Type) (X : 1-Type) (act : monoidal_action M X) *)
+  (*            (left_cancel : left_faithful act) *)
+  (*            (unital_is_unit : forall (a b : M) (p : montype_mult a b = montype_id), *)
+  (*                a = montype_id) : *)
+  (*   IsCategory (monoidal_action_cat M X act left_cancel). *)
+  (* Proof. *)
+  (*   simpl. intros x y. *)
+  (*   apply isequiv_fcontr. *)
+  (*   intros [[s p] [[t q] h1 h2]]. simpl in *. *)
+  (*   assert (isid_s : montype_id = s). *)
+  (*     { apply inverse. apply (unital_is_unit s t (ap pr1 h2)). } *)
+
+  (*   assert (isid_t : montype_id = t). *)
+  (*     { apply inverse. apply (unital_is_unit t s (ap pr1 h1)). } *)
+  (*     destruct isid_s. destruct isid_t. *)
+  (*     destruct q. *)
+      
+    
+  (*   srapply @BuildContr. *)
+  (*   - exists (montype_act_id _ y). *)
+  (*     apply Category.path_isomorphic. *)
+  (*     unfold Category.morphism_isomorphic. *)
+  (*     clear h2 h1.  *)
+  (*     srapply @path_sigma.       *)
+  (*     + simpl. *)
+  (*       destruct (montype_act_id act y). *)
+  (*        simpl. reflexivity. *)
+  (*     + simpl. *)
+  (*       refine (transport_paths_Fl (match *)
+  (*     montype_act_id act y as p0 in (_ = y0) *)
+  (*     return *)
+  (*       ((let (morphism_isomorphic, _) := *)
+  (*           Category.Morphisms.idtoiso (monoidal_action_cat M X act left_cancel) p0 in *)
+  (*         morphism_isomorphic).1 = montype_id) *)
+  (*   with *)
+  (*   | 1 => 1 *)
+  (*   end) _ @ _). *)
+  (*       simpl. *)
+  (*       apply moveR_Vp. *)
+        
+
+        
+  (*       clear h2 h1. clear q. *)
+
+  (*     simpl. *)
+
+    
+  (*   srapply @isequiv_adjointify. *)
+  (*   - intros [[s p] [[t q] h1 h2]]. simpl in *. *)
+  (*     refine (_ @ p). apply inverse. *)
+  (*     refine (_ @ montype_act_id act x). *)
+  (*     apply (ap (fun var => act var x)). *)
+  (*     apply (unital_is_unit s t). *)
+  (*     apply (ap pr1 h2). *)
+  (*   - unfold Sect. *)
+  (*     intros [[s p] [[t q] h1 h2]]. simpl in *. *)
+  (*     destruct p. apply Category.path_isomorphic. simpl. *)
+  (*     unfold Category.morphism_isomorphic. *)
+  (*     srapply @path_sigma. simpl.        *)
+      
+
+      
+      
+  (*     destruct q. simpl. *)
+  (*     intro  *)
+
+    
 
   Definition ap_homotopy_idmap {A : Type} (f : A -> A) (h : f == idmap) (a : A):
     ap f (h a) = h (f a).

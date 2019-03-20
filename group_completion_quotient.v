@@ -1,6 +1,9 @@
 Require Import HoTT.
 Require Import UnivalenceAxiom.
-Load monoids_and_groups. (*stuff.v should also be loaded now?*)
+
+Require Import trunc_lemmas.
+Load monoids_and_groups.
+Require Import set_quotient.
 
 
 
@@ -10,9 +13,9 @@ Section Monoid_action.
 
   Record Monoid_Action (M : Monoid) (X : hSet) := {function_of : M -> (X -> X);
                                                    assoc_function_of : forall (m1 m2 : M) (x : X),
-                                                       function_of m1 (function_of m2 x) = function_of (m1 + m2) x;
+                                                       function_of (m1 + m2) x = function_of m1 (function_of m2 x);
                                                    preserve_id_function_of : forall x : X,
-                                                       function_of (mon_id M) x = x
+                                                       function_of (mon_id) x = x
                                                   }.
   Global Arguments function_of {M} {X} _ _ _.
 
@@ -38,7 +41,7 @@ End Monoid_action.
 
 Section Group_Completion_Quotient.
   Open Scope monoid_scope.
-  Variable M : Monoid.
+  Variable M : Symmetric_Monoid.
   Variable right_cancellation_M : forall l m n : M, m + l = n + l -> m = n.
   
   Definition product_action : Monoid_Action M (BuildhSet (M*M)).
@@ -53,7 +56,7 @@ Section Group_Completion_Quotient.
     - intros [x1 x2]. apply path_prod; apply mon_lid.
   Defined.
   
-  Definition isfree_product_action : forall (m1 m2 : M) (x : M*M),
+  Definition right_cancel_action : forall (m1 m2 : M) (x : M*M),
       function_of product_action m1 x = function_of product_action m2 x -> m1 = m2.
   Proof.
     intros m1 m2 [x1 x2]. simpl.
@@ -63,40 +66,90 @@ Section Group_Completion_Quotient.
   Defined.
 
   Instance product_action_is_mere : is_mere_relation (M*M) (grp_compl_relation (BuildhSet (M*M)) product_action) :=
-    relation_is_mere (BuildhSet (M*M)) (product_action) isfree_product_action.
+    relation_is_mere (BuildhSet (M*M)) (product_action) right_cancel_action.
 
   Definition group_completion  :=
-    quotient (grp_compl_relation (BuildhSet (M*M)) product_action).
+    set_quotient (grp_compl_relation (BuildhSet (M*M)) product_action).
 
-  Definition grp_complQ_mult : group_completion -> group_completion -> group_completion.
+  Definition grp_compl_mult : group_completion -> group_completion -> group_completion.
   Proof.
-    intro x.
-    srapply @quotient_rec.
-    revert x.
-    srapply @quotient_rec.
-    - intros [m1 m2] [n1 n2].
-      apply class_of. exact (m1 + n1, m2 + n2).
-    - intros [m1 m2] [n1 n2]. simpl.
-      intros [s p].
-      apply path_arrow.
-      intros [l1 l2]. simpl.
-      simpl in p.
-      apply related_classes_eq.
-      exists s.
-      simpl.
+    srapply @set_quotient_rec2; simpl.
+    intros [a1 a2] [b1 b2].
+    apply class_of.
+    exact (a1 + b1, a2 + b2).
+    - intros [a1 a2] [b1 b2] [c1 c2].
+      intros [s p]. simpl in p.
+      apply related_classes_eq. red.
+      exists s. simpl.
+      apply path_prod; simpl; refine (mon_assoc^ @ _).
+      + apply (ap (fun x => x + c1)). apply (ap fst p).
+      + apply (ap (fun x => x + c2)). apply (ap snd p).
+    - intros [a1 a2] [b1 b2] [c1 c2].
+      intros [s p]. simpl in p.
+      apply related_classes_eq. red.
+      exists s. simpl.
       apply path_prod; simpl;
-      refine (mon_assoc @ _).
-      + apply (ap (fun m => m + l1)). exact (ap fst p).
-      + apply (ap (fun m => m + l2)). exact (ap snd p).
-    - intros [m1 m2] [n1 n2]. simpl.
-      intros [s p]. simpl. simpl in p.
-      revert x.
-      srapply @quotient_ind.
-      + intros [l1 l2]. simpl.
+      refine (mon_assoc^ @ _).
+      + refine (ap (fun x => x + b1) mon_sym @ _).
+        refine (mon_assoc @ _).
+        apply (ap (mon_mult a1)). apply (ap fst p).
+      + refine (ap (fun x => x + b2) mon_sym @ _).
+        refine (mon_assoc @ _).
+        apply (ap (mon_mult a2)). apply (ap snd p).
+  Defined.
+
+  Definition grp_compl_inv : group_completion -> group_completion.
+  Proof.
+    srapply @set_quotient_functor.
+    - intros [a1 a2]. exact (a2,a1).
+    - intros [a1 a2] [b1 b2].
+      intros [s p]. 
+      exists s. simpl in p. simpl.
+      apply path_prod.
+      + apply (ap snd p). + apply (ap fst p).
+  Defined.
+
+  Definition grp_compl_linv :
+    forall x : group_completion,
+      grp_compl_mult (grp_compl_inv x) x = class_of _ (mon_id,  mon_id).
+  Proof.
+    apply set_quotient_ind_prop.
+    - intro x.
+      apply (set_quotient_set _ _).
+    - intros [a1 a2]. simpl.
+      apply inverse.
+      apply related_classes_eq. red.
+      exists (a1 + a2). simpl.
+      apply path_prod; simpl.
+      + refine (mon_rid _ @ _). apply mon_sym.
+      + apply mon_rid.
+  Defined.
+
+  Definition grp_compl_rinv :
+    forall x : group_completion,
+      grp_compl_mult x (grp_compl_inv x) = class_of _ (mon_id,  mon_id).
+  Proof.
+    apply set_quotient_ind_prop.
+    - intro x.
+      apply (set_quotient_set _ _).
+    - intros [a1 a2]. simpl.
+      apply inverse.
+      apply related_classes_eq. red.
+      exists (a1 + a2). simpl.
+      apply path_prod; simpl.
+      + apply mon_rid.
+      + refine (mon_rid _ @ _). apply mon_sym.
+  Defined.
+
+  (* Is group *)
+      
         
+
       
-      Admitted.
-      
+    
+    
+
+  
       
       
       

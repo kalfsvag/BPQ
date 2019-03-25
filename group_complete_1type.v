@@ -140,11 +140,13 @@ Section Localize.
     - apply contr_basedpaths'.
   Defined.
 
-  (* Definition univalent_localize (M : Monoidal_1Type) (X : 1-Type) (act : monoidal_action M X) *)
-  (*            (left_cancel : left_faithful act) *)
-  (*            (unital_is_unit : forall (a b : M) (p : montype_mult a b = montype_id), *)
-  (*                a = montype_id) : *)
-  (*   IsCategory (monoidal_action_cat M X act left_cancel). *)
+    
+    
+
+  
+    
+
+    
   (* Proof. *)
   (*   simpl. intros x y. *)
   (*   apply isequiv_fcontr. *)
@@ -224,7 +226,7 @@ Section Localize.
   (* Proof. *)
   (*   destruct p. destruct (h a). reflexivity. *)
   (* Defined. *)
-
+  Require Import category_lemmas.
   Definition prod_to_groupcompletion (S : Monoidal_1Type)
              (left_cancel : left_faithful (@montype_mult S))
              (* (left_cancel : forall (s t : S) (p q : s = t) (a : S), *)
@@ -268,6 +270,117 @@ Section Localize.
     Functor.compose (prod_to_groupcompletion S left_cancel) (to_prod _).
 
 End Localize.
+  
+Section Univalent_GroupGompletion.
+  Context (M : Monoidal_1Type) (X : 1-Type) (act : monoidal_action M X)
+             (unit_is_id : forall s t: M, montype_mult s t = montype_id -> s = montype_id)
+             (left_cancel_act : left_faithful act)
+             (contr_component_id : forall (a : M), IsHProp (montype_id = a)).
+  
+  Definition isiso_monactcat :
+    forall (x y : monoidal_action_cat M X act left_cancel_act) (f : morphism _ x y),
+      Category.IsIsomorphism f <~> (montype_id = pr1 f).
+  Proof.
+    intros. destruct f as [s p]. 
+    apply equiv_iff_hprop.
+    - intros [[t q] h1 h2]. simpl. apply inverse.
+      apply (unit_is_id s t). apply (ap pr1 h2).
+    - simpl. destruct p. intro q. destruct q. 
+      srapply @Category.Build_IsIsomorphism.
+      + simpl. unfold monoidal_action_morphism.
+        exists montype_id.      (* from here *)
+        refine ((montype_act_mult act _ _ _)^ @ _).
+        refine (_ @ montype_act_id act x).
+        apply (ap (fun m => act m x) (montype_lid montype_id)).
+      + simpl. rewrite concat_p1.
+        srapply @path_sigma.
+        * apply montype_lid.
+        * simpl.
+          refine (transport_paths_Fl (montype_lid montype_id) _ @ _).
+          hott_simpl.
+      + simpl. rewrite concat_p1.
+        srapply @path_sigma.
+        * apply montype_lid.
+        * simpl.
+          refine (transport_paths_Fl (montype_lid montype_id) _ @ _).
+          rewrite (montype_act_triangle1 M X act).
+          rewrite (montype_act_triangle1 M X act).
+          hott_simpl.
+          rewrite (ap_to_conjp (fun x : X =>  (montype_act_id act x)^)).
+          unfold conjp. rewrite inv_pp. hott_simpl.
+  Qed.
+
+  Definition isomorphic_monactcat_1 (x y : monoidal_action_cat M X act left_cancel_act) :
+    Category.Isomorphic x y <~> {f : morphism _ x y &  montype_id = f.1} :=
+   (equiv_functor_sigma_id (isiso_monactcat x y)) oE (Category.issig_isomorphic _ x y)^-1.
+
+  Definition isomorphic_monactcat_2 (x y : monoidal_action_cat M X act left_cancel_act) :
+    {f : morphism _ x y &  montype_id = f.1} <~> (act montype_id x = y).                          
+  Proof.
+    srapply @equiv_adjointify.
+    - intros [[s p] q]. simpl in q. destruct q. exact p.
+    - intros [].
+      srapply @exist.
+      + exists montype_id. reflexivity.
+      + reflexivity.
+    - intros []. reflexivity.
+    - intros [[s p] q]. simpl in q. destruct q. destruct p. reflexivity.
+  Defined.
+
+  Lemma factorize_idtoiso_1 (x y : monoidal_action_cat M X act left_cancel_act) :
+    (isomorphic_monactcat_1 x y) o (Category.idtoiso _ (x := x) (y := y)) ==
+    (fun p : x = y =>
+       match p with
+         idpath => ((montype_id; montype_act_id _ x); idpath)
+       end).    
+  Proof.
+    intro p. apply path_sigma_hprop. destruct p. reflexivity.
+  Qed.
+
+  Lemma factorize_idtoiso_2 (x y : monoidal_action_cat M X act left_cancel_act) :
+    (isomorphic_monactcat_2 x y) o (fun p : x = y =>
+                                      match p with
+                                        idpath => ((montype_id; montype_act_id _ x); idpath)
+                                      end)
+    ==
+    (concat (montype_act_id _ x)).
+  Proof.
+    intros []. simpl. apply inverse. apply concat_p1.
+  Defined.
+
+  Lemma factorize_idtoiso (x y : monoidal_action_cat M X act left_cancel_act) :
+    (isomorphic_monactcat_2 x y) o (isomorphic_monactcat_1 x y) o (@Category.idtoiso _ x y) ==
+    concat (montype_act_id _ x).
+  Proof.
+    intro p.
+    refine (_ @ factorize_idtoiso_2 x y p).
+    apply (ap (isomorphic_monactcat_2 x y)).
+    apply factorize_idtoiso_1.
+  Qed.
+
+  Definition univalent_monactcat (x y : monoidal_action_cat M X act left_cancel_act) :
+    IsEquiv (@Category.idtoiso _ x y).
+  Proof.
+    assert
+      (H : 
+         @Category.idtoiso _ x y ==
+       (isomorphic_monactcat_1 x y)^-1 o
+                                   (isomorphic_monactcat_2 x y)^-1 o (concat (montype_act_id _ x))).
+    { intro p.
+      refine (_ @ ap ((isomorphic_monactcat_1 x y)^-1 o (isomorphic_monactcat_2 x y)^-1)
+                (factorize_idtoiso x y p)).
+      rewrite eissect.
+      apply inverse. apply eissect. }
+    rewrite (path_arrow _ _ H).
+    apply isequiv_compose.
+  Defined.
+  
+    
+
+    
+
+
+End Univalent_GroupGompletion.
      
 
 Section Monoidal_Category.

@@ -403,15 +403,21 @@ Section Homomorphism.
     exact (istrunc_trunctype_type N _ _).
   Defined.
 
+  (* move this closer to definition *)
+  Global Instance isset_hom {M N : Monoid} : IsHSet (Homomorphism M N).
+  Proof.
+    apply (trunc_equiv' _ (issig_hom M N)).
+  Defined.  
+
   (*Two homomorphisms are equal if their underlying maps are equal.*)
   Definition path_hom {M N : Monoid} (f g : Homomorphism M N) :    
-    (hom_map f = hom_map g) -> f = g :> Homomorphism M N.
+    (hom_map f = hom_map g) <~> f = g :> Homomorphism M N.
   Proof.
-    intro h.
-    apply (equiv_ap (issig_hom M N)^-1 _ _)^-1.
-    refine (@path_sigma_hprop _ _ prop_ishom _ _ _).
-    exact h.
+    refine ((equiv_ap (issig_hom M N)^-1 f g )^-1 oE _).
+    refine (equiv_path_sigma_hprop ((issig_hom M N)^-1 f) ((issig_hom M N)^-1 g)).
   Defined.
+
+  
 
   Definition idhom {M : Monoid} : Homomorphism M M
     := Build_Homomorphism M M idmap idpath (fun _ _ => idpath).

@@ -307,17 +307,13 @@ Section Group_Completion_Quotient.
       intros [x1 x2].
       set (cl := class_of (grp_compl_relation (BuildhSet (M * M)) product_action)).
       cut (f (cl (x1, mon_id)) - f (cl (x2, mon_id)) = g (cl (x1, mon_id)) - g (cl (x2, mon_id))).
-      { intro p. refine (_ @ p @ _).
-        - rewrite <- preserve_inv.
-          rewrite <- preserve_mult.
-          apply (ap (f o cl)).
-          apply path_prod; apply inverse.
-           apply mon_rid. apply mon_lid.
-        - rewrite <- preserve_inv.
-          rewrite <- preserve_mult.
-          apply (ap (g o cl)).
-          apply path_prod.
-            apply mon_rid. apply mon_lid. }
+      { intro p. refine (_ @ p @ _);
+                   rewrite <- preserve_inv;
+                   rewrite <- preserve_mult;
+                   apply (ap (_ o cl));
+                   apply path_prod. 
+           apply inverse. apply mon_rid. apply inverse. apply mon_lid.
+           apply mon_rid. apply mon_lid. }
       apply (ap011 (@mon_mult G)).
       apply (ap10 (equiv_inverse (path_hom (f oH to_groupcompletion) (g oH to_groupcompletion)) H) x1).
       apply (ap grp_inv).

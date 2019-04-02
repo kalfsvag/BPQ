@@ -273,113 +273,188 @@ End Localize.
   
 Section Univalent_GroupGompletion.
   Context (M : Monoidal_1Type) (X : 1-Type) (act : monoidal_action M X)
-             (unit_is_id : forall s t: M, montype_mult s t = montype_id -> s = montype_id)
-             (left_cancel_act : left_faithful act)
-             (contr_component_id : forall (a : M), IsHProp (montype_id = a)).
-  
-  Definition isiso_monactcat :
-    forall (x y : monoidal_action_cat M X act left_cancel_act) (f : morphism _ x y),
-      Category.IsIsomorphism f <~> (montype_id = pr1 f).
-  Proof.
-    intros. destruct f as [s p]. 
-    apply equiv_iff_hprop.
-    - intros [[t q] h1 h2]. simpl. apply inverse.
-      apply (unit_is_id s t). apply (ap pr1 h2).
-    - simpl. destruct p. intro q. destruct q. 
-      srapply @Category.Build_IsIsomorphism.
-      + simpl. unfold monoidal_action_morphism.
-        exists montype_id.      (* from here *)
-        refine ((montype_act_mult act _ _ _)^ @ _).
-        refine (_ @ montype_act_id act x).
-        apply (ap (fun m => act m x) (montype_lid montype_id)).
-      + simpl. rewrite concat_p1.
-        srapply @path_sigma.
-        * apply montype_lid.
-        * simpl.
-          refine (transport_paths_Fl (montype_lid montype_id) _ @ _).
-          hott_simpl.
-      + simpl. rewrite concat_p1.
-        srapply @path_sigma.
-        * apply montype_lid.
-        * simpl.
-          refine (transport_paths_Fl (montype_lid montype_id) _ @ _).
-          rewrite (montype_act_triangle1 M X act).
-          rewrite (montype_act_triangle1 M X act).
-          hott_simpl.
-          rewrite (ap_to_conjp (fun x : X =>  (montype_act_id act x)^)).
-          unfold conjp. rewrite inv_pp. hott_simpl.
-  Qed.
+          (left_cancel_act : left_faithful act).
 
-  Definition isomorphic_monactcat_1 (x y : monoidal_action_cat M X act left_cancel_act) :
-    Category.Isomorphic x y <~> {f : morphism _ x y &  montype_id = f.1} :=
-   (equiv_functor_sigma_id (isiso_monactcat x y)) oE (Category.issig_isomorphic _ x y)^-1.
+    Require Import Category.
 
-  Definition isomorphic_monactcat_2 (x y : monoidal_action_cat M X act left_cancel_act) :
-    {f : morphism _ x y &  montype_id = f.1} <~> (act montype_id x = y).                          
+  Lemma idtoiso_is_concat (x y : monoidal_action_cat M X act left_cancel_act) :
+    forall (p : x = y),
+      (@idtoiso _ x y p) =
+      (montype_id; montype_act_id _ x @ p) :> morphism _ x y.
   Proof.
-    srapply @equiv_adjointify.
-    - intros [[s p] q]. simpl in q. destruct q. exact p.
-    - intros [].
-      srapply @exist.
-      + exists montype_id. reflexivity.
-      + reflexivity.
-    - intros []. reflexivity.
-    - intros [[s p] q]. simpl in q. destruct q. destruct p. reflexivity.
+    intros []. simpl.
+    srapply @path_sigma. reflexivity.
+    simpl. apply (concat_p1 _)^.
   Defined.
 
-  Lemma factorize_idtoiso_1 (x y : monoidal_action_cat M X act left_cancel_act) :
-    (isomorphic_monactcat_1 x y) o (Category.idtoiso _ (x := x) (y := y)) ==
-    (fun p : x = y =>
-       match p with
-         idpath => ((montype_id; montype_act_id _ x); idpath)
-       end).    
+  Definition equiv_path_isomorphic {C : PreCategory} (x y : C) (f g : (x <~=~> y)%category) :
+    (f = g :> morphism C x y) <~> f = g.
   Proof.
-    intro p. apply path_sigma_hprop. destruct p. reflexivity.
-  Qed.
+    srapply @BuildEquiv.
+    - apply path_isomorphic.
+    - exact _.
+  Defined.    
 
-  Lemma factorize_idtoiso_2 (x y : monoidal_action_cat M X act left_cancel_act) :
-    (isomorphic_monactcat_2 x y) o (fun p : x = y =>
-                                      match p with
-                                        idpath => ((montype_id; montype_act_id _ x); idpath)
-                                      end)
-    ==
-    (concat (montype_act_id _ x)).
+  Lemma fiber_idtoiso (x y : monoidal_action_cat M X act left_cancel_act) (f : (x <~=~> y) %category) :
+    hfiber (@idtoiso _ x y) f <~>
+           ((morphism_isomorphic (Isomorphic := f)).1 = montype_id).
   Proof.
-    intros []. simpl. apply inverse. apply concat_p1.
+    (* destruct f as [f isiso]. simpl. *)
+    (* destruct f as [s q]. simpl. *)
+    unfold hfiber.
+    transitivity {p : x = y & (montype_id; montype_act_id _ x @ p) = f :> morphism _ x y}.
+    - apply equiv_functor_sigma_id.
+      intro p.
+      refine (_ oE (equiv_path_isomorphic
+                      x y
+                      _
+                      f)^-1).      
+      apply equiv_concat_l.
+      apply inverse. apply idtoiso_is_concat.
+    - destruct f as [[s q] isiso]. simpl.
+      transitivity {p : x = y &
+                        {r : montype_id = s &
+                             (montype_act_id act x)^ @ ap (fun a : M => act a x) r @ q = p}}.
+      { apply equiv_functor_sigma_id. intro p.
+        refine (_ oE (equiv_path_sigma _ _ _ )^-1). simpl.
+        apply equiv_functor_sigma_id. intro r.
+        destruct r. simpl. destruct p. 
+        refine (_ oE equiv_moveL_Vp _ _ _).
+        refine (equiv_path_inverse _ _ oE _).
+        apply equiv_concat_r. apply whiskerR. apply inverse. apply concat_p1. }
+      transitivity {r : montype_id = s &
+                        {p : x = y &
+                             ((montype_act_id act x)^ @ ap (fun a : M => act a x) r) @ q = p}}.
+      { srapply @equiv_adjointify.
+        - intros [p [r h]]. exact (r; (p; h)).
+        - intros [r [p h]]. exact (p; (r; h)).
+        - intros [r [p h]]. reflexivity.
+        - intros [p [r h]]. reflexivity. }
+      refine (equiv_path_inverse _ _ oE _).
+      apply equiv_sigma_contr. intro r.
+      apply contr_basedpaths.
   Defined.
+    
 
-  Lemma factorize_idtoiso (x y : monoidal_action_cat M X act left_cancel_act) :
-    (isomorphic_monactcat_2 x y) o (isomorphic_monactcat_1 x y) o (@Category.idtoiso _ x y) ==
-    concat (montype_act_id _ x).
-  Proof.
-    intro p.
-    refine (_ @ factorize_idtoiso_2 x y p).
-    apply (ap (isomorphic_monactcat_2 x y)).
-    apply factorize_idtoiso_1.
-  Qed.
+  Context (unit_is_id : forall s t: M, montype_mult s t = montype_id -> s = montype_id)
+          (contr_component_id : forall (a : M), IsHProp (montype_id = a)).
 
   Definition univalent_monactcat (x y : monoidal_action_cat M X act left_cancel_act) :
     IsEquiv (@Category.idtoiso _ x y).
   Proof.
-    assert
-      (H : 
-         @Category.idtoiso _ x y ==
-       (isomorphic_monactcat_1 x y)^-1 o
-                                   (isomorphic_monactcat_2 x y)^-1 o (concat (montype_act_id _ x))).
-    { intro p.
-      refine (_ @ ap ((isomorphic_monactcat_1 x y)^-1 o (isomorphic_monactcat_2 x y)^-1)
-                (factorize_idtoiso x y p)).
-      rewrite eissect.
-      apply inverse. apply eissect. }
-    rewrite (path_arrow _ _ H).
-    apply isequiv_compose.
+    apply isequiv_fcontr. intro f.
+    srefine (contr_equiv' _ (equiv_inverse (fiber_idtoiso x y f))).
+    destruct f as [[s p] isiso]. simpl.
+    apply (contr_equiv' (montype_id = s)). apply equiv_path_inverse.
+    apply contr_inhabited_hprop.
+    apply contr_component_id.
+    apply inverse.
+    destruct isiso as [[t q] ]. simpl in *.
+    apply (unit_is_id s t).
+    apply ((equiv_path_sigma _ _ _)^-1 right_inverse).
   Defined.
+          
   
+  (* Definition isiso_monactcat : *)
+  (*   forall (x y : monoidal_action_cat M X act left_cancel_act) (f : morphism _ x y), *)
+  (*     Category.IsIsomorphism f <~> (montype_id = pr1 f). *)
+  (* Proof. *)
+  (*   intros. destruct f as [s p].  *)
+  (*   apply equiv_iff_hprop. *)
+  (*   - intros [[t q] h1 h2]. simpl. apply inverse. *)
+  (*     apply (unit_is_id s t). apply (ap pr1 h2). *)
+  (*   - simpl. destruct p. intro q. destruct q.  *)
+  (*     srapply @Category.Build_IsIsomorphism. *)
+  (*     + simpl. unfold monoidal_action_morphism. *)
+  (*       exists montype_id.      (* from here *) *)
+  (*       refine ((montype_act_mult act _ _ _)^ @ _). *)
+  (*       refine (_ @ montype_act_id act x). *)
+  (*       apply (ap (fun m => act m x) (montype_lid montype_id)). *)
+  (*     + simpl. rewrite concat_p1. *)
+  (*       srapply @path_sigma. *)
+  (*       * apply montype_lid. *)
+  (*       * simpl. *)
+  (*         refine (transport_paths_Fl (montype_lid montype_id) _ @ _). *)
+  (*         hott_simpl. *)
+  (*     + simpl. rewrite concat_p1. *)
+  (*       srapply @path_sigma. *)
+  (*       * apply montype_lid. *)
+  (*       * simpl. *)
+  (*         refine (transport_paths_Fl (montype_lid montype_id) _ @ _). *)
+  (*         rewrite (montype_act_triangle1 M X act). *)
+  (*         rewrite (montype_act_triangle1 M X act). *)
+  (*         hott_simpl. *)
+  (*         rewrite (ap_to_conjp (fun x : X =>  (montype_act_id act x)^)). *)
+  (*         unfold conjp. rewrite inv_pp. hott_simpl. *)
+  (* Qed. *)
+
+  (* Definition isomorphic_monactcat_1 (x y : monoidal_action_cat M X act left_cancel_act) : *)
+  (*   Category.Isomorphic x y <~> {f : morphism _ x y &  montype_id = f.1} := *)
+  (*  (equiv_functor_sigma_id (isiso_monactcat x y)) oE (Category.issig_isomorphic _ x y)^-1. *)
+
+  (* Definition isomorphic_monactcat_2 (x y : monoidal_action_cat M X act left_cancel_act) : *)
+  (*   {f : morphism _ x y &  montype_id = f.1} <~> (act montype_id x = y).                           *)
+  (* Proof. *)
+  (*   srapply @equiv_adjointify. *)
+  (*   - intros [[s p] q]. simpl in q. destruct q. exact p. *)
+  (*   - intros []. *)
+  (*     srapply @exist. *)
+  (*     + exists montype_id. reflexivity. *)
+  (*     + reflexivity. *)
+  (*   - intros []. reflexivity. *)
+  (*   - intros [[s p] q]. simpl in q. destruct q. destruct p. reflexivity. *)
+  (* Defined. *)
+
+  (* Lemma factorize_idtoiso_1 (x y : monoidal_action_cat M X act left_cancel_act) : *)
+  (*   (isomorphic_monactcat_1 x y) o (Category.idtoiso _ (x := x) (y := y)) == *)
+  (*   (fun p : x = y => *)
+  (*      match p with *)
+  (*        idpath => ((montype_id; montype_act_id _ x); idpath) *)
+  (*      end).     *)
+  (* Proof. *)
+  (*   intro p. apply path_sigma_hprop. destruct p. reflexivity. *)
+  (* Qed. *)
+
+  (* Lemma factorize_idtoiso_2 (x y : monoidal_action_cat M X act left_cancel_act) : *)
+  (*   (isomorphic_monactcat_2 x y) o (fun p : x = y => *)
+  (*                                     match p with *)
+  (*                                       idpath => ((montype_id; montype_act_id _ x); idpath) *)
+  (*                                     end) *)
+  (*   == *)
+  (*   (concat (montype_act_id _ x)). *)
+  (* Proof. *)
+  (*   intros []. simpl. apply inverse. apply concat_p1. *)
+  (* Defined. *)
+
+  (* Lemma factorize_idtoiso (x y : monoidal_action_cat M X act left_cancel_act) : *)
+  (*   (isomorphic_monactcat_2 x y) o (isomorphic_monactcat_1 x y) o (@Category.idtoiso _ x y) == *)
+  (*   concat (montype_act_id _ x). *)
+  (* Proof. *)
+  (*   intro p. *)
+  (*   refine (_ @ factorize_idtoiso_2 x y p). *)
+  (*   apply (ap (isomorphic_monactcat_2 x y)). *)
+  (*   apply factorize_idtoiso_1. *)
+  (* Qed. *)
+  (* Require Import Morphisms. *)
+  (* Require Import Categories. *)
+  (* Definition isiso_frompath (x y : monoidal_action_cat M X act left_cancel_act) (p : x = y): *)
+  (*   Category.IsIsomorphism *)
+  (*     (C := monoidal_action_cat M X act left_cancel_act) *)
+  (*     (s := x) (d := y) *)
+  (*     (montype_id; montype_act_id _ x @ p). *)
+  (* Proof. *)
+  (*   srapply @Category.Build_IsIsomorphism. *)
+  (*   - hnf. exists montype_id. *)
+  (*     exact (montype_act_id _ y @ p^). *)
+  (*   - simpl. *)
+    
+  (*   intro p. *)
+  (*   srapply (@Category.Build_Isomorphic _ x y). *)
+  (*   srefine ( *)
+  (*            (morphism_isomorphic := _) _). *)
     
 
-    
-
-
+  (* Check Morphisms.Isomorphic. *)
 End Univalent_GroupGompletion.
      
 

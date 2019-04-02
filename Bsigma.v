@@ -6,7 +6,7 @@ Section BΣ.
     
   (*This type corresponds to the category of finite sets and isomorphisms*)
   Definition BΣ := { S : Type & Finite S}.
-  Definition type_of_fin : BΣ -> Type := pr1.
+  Definition type_of_fin : BΣ -> Type := (fun A => A.1).
   Coercion type_of_fin : BΣ  >-> Sortclass.
 
   Global Instance istrunc_BΣ : IsTrunc 1 BΣ.
@@ -60,9 +60,12 @@ Section BΣ.
     apply path_equiv. simpl.
     unfold pr1_path. 
     transitivity
-      (transport idmap (ap (fun X : Type => X + S3) (ap pr1 (path_sigma_hprop S1 S2 (path_universe_uncurried e))))).
+      (transport idmap (ap (fun X : Type => X + S3) (ap Overture.pr1
+                             (path_sigma_hprop S1 S2 (path_universe_uncurried e))))).
     { apply (ap (transport idmap)).
-      refine ((ap_compose (fun x : BΣ => x ⊕ S3) pr1 _)^ @ ap_compose pr1 (fun X : Type => X + S3) _). }
+      refine
+        ((ap_compose (fun x : BΣ => x ⊕ S3) Overture.pr1 _)^ @
+                    ap_compose Overture.pr1 (fun X : Type => X + S3) _). }
     apply path_arrow. intro s.
     refine ((transport_idmap_ap _ _ _ _ _ _)^ @ _).
     refine ((ap (fun p => transport (fun X : Type => X + S3) p s) (ap_pr1_path_sigma_hprop _ _ _)) @ _).
@@ -84,9 +87,9 @@ Section BΣ.
     apply path_equiv. simpl.
     unfold pr1_path. 
     transitivity
-      (transport idmap (ap (fun X : Type => S1 + X) (ap pr1 (path_sigma_hprop S2 S3 (path_universe_uncurried e))))).
+      (transport idmap (ap (fun X : Type => S1 + X) (ap Overture.pr1 (path_sigma_hprop S2 S3 (path_universe_uncurried e))))).
     { apply (ap (transport idmap)).
-      refine ((ap_compose (fun x : BΣ => S1 ⊕ x) pr1 _)^ @ ap_compose pr1 (fun X : Type => S1 + X ) _). }
+      refine ((ap_compose (fun x : BΣ => S1 ⊕ x) Overture.pr1 _)^ @ ap_compose Overture.pr1 (fun X : Type => S1 + X ) _). }
     apply path_arrow. intro s.
     refine ((transport_idmap_ap _ _ _ _ _ _)^ @ _).
     refine ((ap (fun p => transport (fun X : Type => S1 + X) p s) (ap_pr1_path_sigma_hprop _ _ _)) @ _).
@@ -168,6 +171,7 @@ Section BΣ.
     intros [[[s1 | s2]| s3] | s4]; reflexivity.
   Defined.
 
+  (* The next two lemmas should be moved *)
   Definition isinj_functor_sum {A1 A2 B1 B2 : Type} (f1 f1' : A1 -> B1) (f2 f2': A2 -> B2) :
     functor_sum f1 f2 = functor_sum f1' f2' -> (f1 = f1') * (f2 = f2').
   Proof.
@@ -208,6 +212,45 @@ Section BΣ.
     Build_Monoidal_1Type (BuildTruncType 1 BΣ) plus_BΣ (canon_BΣ 0) BΣ_assoc BΣ_lid BΣ_rid BΣ_triangle1 BΣ_triangle2 BΣ_pentagon.
 
   Definition group_completion_BΣ := group_completion BΣ_moncat BΣ_lcancel .
+
+
+  (* Lemma equiv_toempty (A : Type) : *)
+  (*   (A -> Empty) <~> (A <~> Empty). *)
+  (* Proof.     *)
+  (*   apply equiv_iff_hprop. *)
+  (*   - intro f. apply (BuildEquiv A Empty f). apply all_to_empty_isequiv. *)
+  (*   - apply equiv_fun. *)
+  (* Qed. *)
+    
+  Lemma sum_empty_is_empty (A B : Type) :
+    A + B <~> Empty -> A <~> Empty.
+  Proof.
+    intro e.
+    apply (BuildEquiv A Empty (fun a => e (inl a)) ). apply all_to_empty_isequiv.
+  Defined.    
+
+  Definition univalent_group_completion_BΣ :
+    IsCategory group_completion_BΣ.
+  Proof.
+    apply univalent_monactcat; simpl.
+    - intros A B.
+      intro p.
+      apply path_BΣ. simpl.
+      apply (sum_empty_is_empty A B).
+      apply ((path_BΣ)^-1 p).
+    - intro A.
+      apply (trunc_equiv' (Empty <~> A)).
+      apply (path_BΣ (S := (canon_BΣ 0))).
+      apply (trunc_equiv' (A <~> Empty)).
+      apply equiv_equiv_inverse.
+      exact _.
+  Qed.
+
+  
+      
+      
+
+  
     
   
 End BΣ.

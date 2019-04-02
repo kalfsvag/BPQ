@@ -274,6 +274,32 @@ Section Finite_Types.
     exact (pt n; wd n).
   Defined.
 
+
+  Definition BSigma_rec_1Type (n : nat) (X : Type) (istrunc_P : IsTrunc 1 X)
+             (x0 : X)
+             (wd : (Fin n <~> Fin n) -> x0 = x0)
+             (wd_comp : forall (e1 e2 : Fin n <~> Fin n),
+                 wd e1 @ wd e2 = wd (e2 oE e1)) :
+    Finite_Types n -> X.
+  Proof.
+    intro s.
+    
+    apply (@pr1 X (fun x : X => {wd' : (forall e :Fin n <~> s, x = x0) &
+                             forall (e1 e2 : Fin n <~> Fin n), wd' e1 @ wd' e2 = wd' (e2 oE e1)})).
+    assert (isprop_goal : IsHProp
+                            {x : X &
+                                 {wd' : Fin n <~> Fin n -> x = x &
+                                       forall e1 e2 : Fin n <~> Fin n,
+                                         wd' e1 @ wd' e2 = wd' (e2 oE e1)}}).
+    { unfold IsHProp. simpl.
+      intros x y.
+      refine (contr_equiv' _ (equiv_path_sigma _ x y)^-1).
+      destruct x as [x1 x2]. destruct y as [y1 y2]. simpl.
+      
+    
+
+    
+
 End Finite_Types.
 
 

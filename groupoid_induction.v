@@ -118,6 +118,7 @@ Section groupoid_induction.
     reflexivity.
   Qed.
     
+
 End groupoid_induction.
 
 Section groupoid_rec.
@@ -184,3 +185,6 @@ End groupoid_rec.
   
 
 
+=======
+End groupoid_induction.
+>>>>>>> 3bc3c91ad187ef1eb03f2150b026dd52d0f30fd7

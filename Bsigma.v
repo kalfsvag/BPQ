@@ -247,7 +247,7 @@ Section BΣ.
   Qed.
 
   
-      
+       
       
 
   

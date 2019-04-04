@@ -59,15 +59,83 @@ Section Determinant.
     - exact equiv_idmap.
     - (** the determinant of e is the determinant of the restriction times the determinant of the twist.
           the determinant of the twist is tw : 2 <~> 2 to the power of the number of transpositions *)
-      (* destruct ((equiv_fin_equiv n n)^-1 e) as [twist_to e_restr]. *)
-      
+      (* destruct  as [twist_to e_restr]. *)
       refine (_ oE determinant n (snd ((equiv_fin_equiv n n)^-1 e))).
       exact (iterated_composition (endpoint_minus (fst ((equiv_fin_equiv n n)^-1 e))) equiv_twist2).
   Defined.
 
-  Definition det_plus_1 {n : nat} (e : Fin n <~> Fin n) :
-    determinant n.+1 (equiv_functor_sum' e (equiv_idmap Unit)) = determinant n e.
+  Definition fin_equiv_inv_plus1 {m n : nat} (e : Fin m <~> Fin n) :
+    (equiv_fin_equiv m n)^-1 (e +E 1) = (inr tt, e).
   Proof.
+    apply (equiv_inj (fin_equiv' m n)).
+    refine (eisretr (fin_equiv' m n) (e +E 1) @ _).
+    unfold fin_equiv'. unfold fin_equiv. simpl.
+    destruct n; apply inverse;
+      apply ecompose_1e.
+  Defined.
+
+  
+  Definition det_plus_1 {n : nat} (e : Fin n <~> Fin n) :
+    determinant n.+1 (e +E 1) = determinant n e.
+  Proof.
+    simpl.
+    rewrite (ap fst (fin_equiv_inv_plus1 e)). simpl.
+    rewrite (ap snd (fin_equiv_inv_plus1 e)). simpl.
+    destruct n. reflexivity. 
+    apply ecompose_1e.
+  Defined.
+
+  Lemma fin_sum (m n : nat) : Fin (m + n)%nat <~>  (Fin n) + (Fin m).
+  Proof.
+    induction m; simpl.
+    - apply equiv_inverse. apply sum_empty_r.
+    - refine (equiv_sum_assoc _ _ _ oE (IHm +E 1)).
+  Defined.
+    
+
+  Definition det_plus_id {m n : nat} (e : Fin n <~> Fin n) :
+    determinant (m+n) ((fin_sum m n)^-1 oE (e +E 1) oE (fin_sum m n)) = determinant n e.
+  Proof.
+    revert n e.
+    induction m. simpl.
+    - intros n e. apply (ap (determinant n)). apply path_equiv. simpl. reflexivity.
+    - intros n e.
+      refine (_ @ det_plus_1 _).
+      refine (_ @ IHm _ _).
+      apply (ap (determinant (m + n).+1)).
+      clear IHm.
+      induction m.
+      + apply path_equiv. simpl. apply path_arrow. intro x.
+        destruct x as [k | []]; reflexivity.
+      + simpl.
+
+      
+      apply (ap011 (fun e1 e2 => e1 oE (e +E 1) oE e2)).
+
+      apply path_equiv.
+      apply path_arrow. 
+      intros [k | []]. simpl.
+      
+
+      admit.
+      reflexivity.
+
+
+
+  
+
+  
+
+  
+    
+    
+    
+
+
+    simpl.
+         unfold endpoint_minus.
+         unfold fin_equiv'.
+         
     induction n.
     - apply path_equiv. apply path_arrow.
       intro t. simpl. unfold equiv_inv.

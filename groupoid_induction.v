@@ -119,3 +119,68 @@ Section groupoid_induction.
   Qed.
     
 End groupoid_induction.
+
+Section groupoid_rec.
+  Context (X : Type) (x0 : X) (istrunc_X : IsTrunc 1 X)
+          (isconn_X : forall (x : X), merely (x0 = x)).
+
+  Context (Y : 1-Type)
+          (y0 : Y)
+          (f : (x0 = x0) -> (y0 = y0))
+          (ishom_f : forall (α ω : x0 = x0),
+              f (α @ ω) = f α @ f ω).
+
+  Lemma rec_help (α ω : x0 = x0) :
+    transport_const (α @ ω) y0 @ f (α @ ω) =
+    (transport_pp (fun _ : X => Y) α ω y0
+                  @ ap (transport (fun _ : X => Y) ω) (transport_const α y0 @ f α))
+      @ (transport_const ω y0 @ f ω).
+  Proof.
+    rewrite ishom_f.
+    destruct (f ω). destruct (f α).
+    destruct ω. destruct α. reflexivity.
+  Qed.
+
+  Definition groupoid_rec : X -> Y :=
+    groupoid_ind X x0 isconn_X (fun _ => Y) y0 (fun ω => transport_const ω y0 @ f ω) rec_help.
+
+  Definition groupoid_rec_beta_x0 : groupoid_rec x0 = y0.
+  Proof.
+    apply (groupoid_ind_beta_x0 X x0 _ _ y0).
+  Defined.
+
+  Definition groupoid_rec_beta_f (ω : x0 = x0) :
+    groupoid_rec_beta_x0^ @ ap groupoid_rec ω @ groupoid_rec_beta_x0 = f ω.
+  Proof.
+    apply (equiv_inj (concat (transport_const ω y0))).
+        
+    refine (_ @ groupoid_ind_beta_f X x0 isconn_X (fun _ => Y) y0
+              (fun ω => transport_const _ _ @ f ω) rec_help ω).
+    change (groupoid_ind X x0 isconn_X (fun _ => Y) y0 (fun ω => transport_const ω y0 @ f ω) rec_help)
+    with groupoid_rec.
+    change (groupoid_ind_beta_x0 X x0 isconn_X (fun _ : X => Y) y0
+                                 (fun ω0 : x0 = x0 => transport_const ω0 y0 @ f ω0) rec_help)
+    with groupoid_rec_beta_x0.
+    refine (concat_p_pp _ _ _ @ _).
+    apply whiskerR.
+    apply moveL_Vp.
+    refine (_ @ (apD_const groupoid_rec ω)^).
+    refine (concat_p_pp _ _ _ @ _). refine (concat_p_pp _ _ _ @ _).
+    apply whiskerR.
+    generalize (groupoid_rec_beta_x0). intros []. simpl.
+    rewrite concat_1p. rewrite concat_p1. reflexivity.
+  Qed.
+End groupoid_rec.
+    
+    
+    
+      
+    
+    
+
+  
+    
+      
+  
+
+

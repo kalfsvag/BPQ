@@ -1,20 +1,28 @@
-Load group_complete_1type.
+Require Import HoTT.
+Require Import monoidal_1type.
+Require Import group_complete_1type.
 Require Import finite_lemmas.
+Require Import trunc_lemmas.
 
 (*Defining the monoidal 1-type of finite sets and isomorphisms*)
 Section BΣ.
     
   (*This type corresponds to the category of finite sets and isomorphisms*)
-  Definition BΣ := { S : Type & Finite S}.
-  Definition type_of_fin : BΣ -> Type := (fun A => A.1).
+  Definition BΣ :=
+    {m : nat & Finite_Types m}.
+    (* { S : Type & Finite S}. *)
+  Definition type_of_fin : BΣ -> Type := (fun A => A.2.1).
   Coercion type_of_fin : BΣ  >-> Sortclass.
 
   Global Instance istrunc_BΣ : IsTrunc 1 BΣ.
   Proof.
-    apply trunc_sigma'. intro A. exact _.
-    intros A B.
-    srapply @istrunc_paths_Type. 
-    apply isset_Finite. exact B.2.
+    apply (trunc_equiv' {S : Type & Finite S}).
+    - apply equiv_inverse. apply sum_finite.
+    - apply trunc_sigma'.
+      +  intro A. exact _.
+      +  intros A B.
+         srapply @istrunc_paths_Type. 
+         apply isset_Finite. exact B.2.
   Defined.
 
   (*Canonical objects in BΣ*)

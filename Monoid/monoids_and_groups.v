@@ -92,12 +92,12 @@ Section Monoids_and_Groups.
 End Monoids_and_Groups.
 
                                      
-
+Require Import nat_lemmas.
 Section nat_monoid.
-  Require Import nat_lemmas.
+  
   (*Strangely, I cannot find any proofs of nat being associative*)
   Open Scope nat_scope.
-  Require Import nat_lemmas.
+  
   (* Definition plus_assoc : associative Peano.plus. *)
   (*   intros j k l. *)
   (*   induction j, k, l. *)
@@ -141,7 +141,7 @@ Notation "'grp_rid'" := (@mon_rid (grp_mon _)) (at level 0) : monoid_scope.
 Section Loop_is_group.
   Definition loopGroup (A : pType) {istrunc_A : IsTrunc 1 A} : Group.
     srapply Build_Group.
-    exact (Build_Monoid (BuildhSet (loops A)) concat idpath concat_pp_p concat_1p concat_p1).
+    - exact (Build_Monoid (BuildhSet (loops A)) concat idpath concat_pp_p concat_1p concat_p1). 
     - exact inverse.
     - exact concat_Vp.
     - exact concat_pV.
@@ -390,7 +390,7 @@ Section Homomorphism.
     set (A := (f (mon_id) = mon_id)).
     set (B := (forall m1 m2 : mon_set M, f (m1 + m2) = f m1 + f m2)).
     refine (@trunc_prod -1 A _ B _).
-    exact (istrunc_trunctype_type N _ _).
+    { exact (istrunc_trunctype_type N _ _). }
     unfold B; clear A; clear B.
     set (P := fun m1 : mon_set M => forall m2, f (m1 + m2) = f m1 + f m2).
     refine (@trunc_forall _ (mon_set M) P -1 _).
@@ -403,7 +403,6 @@ Section Homomorphism.
     exact (istrunc_trunctype_type N _ _).
   Defined.
 
-  (* move this closer to definition *)
   Global Instance isset_hom {M N : Monoid} : IsHSet (Homomorphism M N).
   Proof.
     apply (trunc_equiv' _ (issig_hom M N)).
@@ -415,9 +414,7 @@ Section Homomorphism.
   Proof.
     refine ((equiv_ap (issig_hom M N)^-1 f g )^-1 oE _).
     refine (equiv_path_sigma_hprop ((issig_hom M N)^-1 f) ((issig_hom M N)^-1 g)).
-  Defined.
-
-  
+  Defined.  
 
   Definition idhom {M : Monoid} : Homomorphism M M
     := Build_Homomorphism M M idmap idpath (fun _ _ => idpath).

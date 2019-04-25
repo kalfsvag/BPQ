@@ -2,10 +2,8 @@ Require Import HoTT.
 Require Import UnivalenceAxiom.
 
 Require Import trunc_lemmas.
-Load monoids_and_groups.
+Require Import monoids_and_groups.
 Require Import set_quotient.
-
-
 
 (* Defining sets with a monoid action (see MacLane, p5) *)
 Section Monoid_action.
@@ -81,9 +79,9 @@ Section Group_Completion_Quotient.
   Definition grp_compl_mult : group_completion -> group_completion -> group_completion.
   Proof.
     srapply @set_quotient_rec2; simpl.
-    intros [a1 a2] [b1 b2].
-    apply class_of.
-    exact (a1 + b1, a2 + b2).
+    - intros [a1 a2] [b1 b2].
+      apply class_of.
+      exact (a1 + b1, a2 + b2). 
     - intros [a1 a2] [b1 b2] [c1 c2].
       intros [s p]. simpl in p.
       apply related_classes_eq. red.
@@ -122,7 +120,7 @@ Section Group_Completion_Quotient.
   Proof.
     apply set_quotient_ind_prop.
     - intro x.
-      apply (set_quotient_set _ _).
+      srefine (set_quotient_set (grp_compl_relation (BuildhSet (M * M)) product_action) _ _).
     - intros [a1 a2]. simpl.
       apply inverse.
       apply related_classes_eq. red.
@@ -138,7 +136,7 @@ Section Group_Completion_Quotient.
   Proof.
     apply set_quotient_ind_prop.
     - intro x.
-      apply (set_quotient_set _ _).
+      srefine (set_quotient_set _ _ _).
     - intros [a1 a2]. simpl.
       apply inverse.
       apply related_classes_eq. red.
@@ -152,42 +150,42 @@ Section Group_Completion_Quotient.
   Definition group_completion_group : Group.
   Proof.
     srapply @Build_Group.
-    srapply @Build_Monoid.
-    - exact (BuildTruncType 0 group_completion).
-    - simpl.
-      apply grp_compl_mult.
-    - simpl.
-      apply class_of.
-      exact (mon_id, mon_id).
-    - unfold associative. simpl.
-      apply (set_quotient_ind_prop _
-                (fun a : group_completion  => forall b c : group_completion,
-                     grp_compl_mult (grp_compl_mult a b) c = grp_compl_mult a (grp_compl_mult b c))).
-      intro a.
-      apply (set_quotient_ind_prop _
-             (fun b : group_completion => forall c : group_completion,
-                  grp_compl_mult (grp_compl_mult (class_of (grp_compl_relation (BuildhSet (M * M))
-                                                                               product_action) a) b) c
-                  =
-                  grp_compl_mult (class_of (grp_compl_relation (BuildhSet (M * M)) product_action) a)
-                                                       (grp_compl_mult b c))).
-      intro b.
-      apply (set_quotient_ind_prop _ _).
-      intro c.
-      revert a b c.
-      intros [a1 a2] [b1 b2] [c1 c2]. simpl.
-      apply (ap (class_of (grp_compl_relation (BuildhSet (M * M)) product_action))).
-      apply path_prod; apply mon_assoc.
-    - unfold left_identity.
-      apply (set_quotient_ind_prop _ _).
-      intros [a1 a2]. simpl.
-      apply (ap (class_of (grp_compl_relation (BuildhSet (M * M)) product_action))).
-      apply path_prod; apply mon_lid.
-    - unfold right_identity.
-      apply (set_quotient_ind_prop _ _).
-      intros [a1 a2]. simpl.
-      apply (ap (class_of (grp_compl_relation (BuildhSet (M * M)) product_action))).
-      apply path_prod; apply mon_rid.
+    { srapply @Build_Monoid.
+      - exact (BuildTruncType 0 group_completion).
+      - simpl.
+        apply grp_compl_mult.
+      - simpl.
+        apply class_of.
+        exact (mon_id, mon_id).
+      - unfold associative. simpl.
+        apply (set_quotient_ind_prop _
+                                     (fun a : group_completion  => forall b c : group_completion,
+                                          grp_compl_mult (grp_compl_mult a b) c = grp_compl_mult a (grp_compl_mult b c))).
+        intro a.
+        apply (set_quotient_ind_prop _
+                                     (fun b : group_completion => forall c : group_completion,
+                                          grp_compl_mult (grp_compl_mult (class_of (grp_compl_relation (BuildhSet (M * M))
+                                                                                                       product_action) a) b) c
+                                          =
+                                          grp_compl_mult (class_of (grp_compl_relation (BuildhSet (M * M)) product_action) a)
+                                                         (grp_compl_mult b c))).
+        intro b.
+        apply (set_quotient_ind_prop _ _).
+        intro c.
+        revert a b c.
+        intros [a1 a2] [b1 b2] [c1 c2]. simpl.
+        apply (ap (class_of (grp_compl_relation (BuildhSet (M * M)) product_action))).
+        apply path_prod; apply mon_assoc.
+      - unfold left_identity.
+        apply (set_quotient_ind_prop _ _).
+        intros [a1 a2]. simpl.
+        apply (ap (class_of (grp_compl_relation (BuildhSet (M * M)) product_action))).
+        apply path_prod; apply mon_lid.
+      - unfold right_identity.
+        apply (set_quotient_ind_prop _ _).
+        intros [a1 a2]. simpl.
+        apply (ap (class_of (grp_compl_relation (BuildhSet (M * M)) product_action))).
+        apply path_prod; apply mon_rid. }
     - simpl.
       apply grp_compl_inv.
     - unfold left_inverse. simpl.
@@ -205,7 +203,9 @@ Section Group_Completion_Quotient.
     - simpl. reflexivity.
     - simpl. intros.
       apply (ap (class_of (grp_compl_relation (BuildhSet (M * M)) product_action))).
-      apply path_prod. reflexivity. simpl.
+      apply path_prod.
+      { reflexivity.  }
+      simpl.
       apply inverse. apply mon_lid.
   Defined.
 
@@ -227,21 +227,21 @@ Section Group_Completion_Quotient.
   Proof.
     intro g.
     srapply @Build_Homomorphism.
-    srapply @set_quotient_rec.
-    + intros [m1 m2].
-      exact (g m1 - g m2).
-    + intros [m1 m2] [n1 n2].
-      intros [s p]. simpl in p.
-      set (p1 := ap fst p). simpl in p1. destruct p1.
-      set (p2 := ap snd p). simpl in p2. destruct p2.
-      rewrite preserve_mult. rewrite preserve_mult.
-      rewrite grp_inv_distr.
-      rewrite (grp_sym (a := g s) (b := g m1)).
-      rewrite (grp_sym (a := - g m2) (b := - g s)).
-      refine (_ @ mon_assoc^).
-      refine (_ @ (ap (fun x => g m1 + x) mon_assoc)).
-      rewrite grp_rinv. rewrite mon_lid.
-      reflexivity.
+    { srapply @set_quotient_rec.
+      + intros [m1 m2].
+        exact (g m1 - g m2).
+      + intros [m1 m2] [n1 n2].
+        intros [s p]. simpl in p.
+        set (p1 := ap fst p). simpl in p1. destruct p1.
+        set (p2 := ap snd p). simpl in p2. destruct p2.
+        rewrite preserve_mult. rewrite preserve_mult.
+        rewrite grp_inv_distr.
+        rewrite (grp_sym (a := g s) (b := g m1)).
+        rewrite (grp_sym (a := - g m2) (b := - g s)).
+        refine (_ @ mon_assoc^).
+        refine (_ @ (ap (fun x => g m1 + x) mon_assoc)).
+        rewrite grp_rinv. rewrite mon_lid.
+        reflexivity. }
     + simpl.
       apply grp_rinv.
     + intro m.
@@ -279,7 +279,8 @@ Section Group_Completion_Quotient.
       set (cl := class_of (grp_compl_relation (BuildhSet (M * M)) product_action)).
       apply (ap (g o cl)). clear cl.
       apply path_prod.
-      apply mon_rid. apply mon_lid.
+      + apply mon_rid.
+      + apply mon_lid.
   Defined.
       
     
@@ -312,12 +313,16 @@ Section Group_Completion_Quotient.
                    rewrite <- preserve_mult;
                    apply (ap (_ o cl));
                    apply path_prod. 
-           apply inverse. apply mon_rid. apply inverse. apply mon_lid.
-           apply mon_rid. apply mon_lid. }
+           - apply inverse. apply mon_rid.
+           - apply inverse. apply mon_lid.
+           - apply mon_rid.
+           - apply mon_lid. }
       apply (ap011 (@mon_mult G)).
-      apply (ap10 (equiv_inverse (path_hom (f oH to_groupcompletion) (g oH to_groupcompletion)) H) x1).
-      apply (ap grp_inv).
-      apply (ap10 (equiv_inverse (path_hom (f oH to_groupcompletion) (g oH to_groupcompletion)) H) x2).
+      + apply
+          (ap10 (equiv_inverse (path_hom (f oH to_groupcompletion) (g oH to_groupcompletion)) H) x1).
+      + apply (ap grp_inv).
+        apply
+          (ap10 (equiv_inverse (path_hom (f oH to_groupcompletion) (g oH to_groupcompletion)) H) x2).
   Defined. 
        
 End Group_Completion_Quotient.

@@ -1,0 +1,13 @@
+
+-R . "myhott" COQC = hoqc COQDEP = hoqdep
+basics/equiv_lemmas.v
+basics/trunc_lemmas.v
+basics/sigma_lemmas.v
+basics/path_lemmas.v
+basics/pointed_lemmas.v
+basics/set_quotient.v
+basics/nat_lemmas.v
+basics/delooping.v
+basics/finite_lemmas.v
+Monoid/monoids_and_groups.v
+Monoid/group_completion_quotient.v

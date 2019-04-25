@@ -14,7 +14,10 @@ Definition pushout_ind' {A B C : Type} (f : A -> B) (g : A -> C)
            (pp' : forall a : A, transport P (pp a) (push_fl' (f a)) = push_fr' (g a))
   : forall x : pushout f g, P x.
 Proof.
-  srapply @pushout_ind. intros [b|c]. apply push_fl'. apply push_fr'. apply pp'.
+  srapply @pushout_ind.
+  - apply push_fl'.
+  - apply push_fr'.
+  - apply pp'.
 Defined.
 
 Definition pushout_rec' {A B C : Type} (f : A -> B) (g : A -> C)
@@ -24,7 +27,10 @@ Definition pushout_rec' {A B C : Type} (f : A -> B) (g : A -> C)
            (pp' : forall a : A, push_fl' (f a) = push_fr' (g a))
   : pushout f g -> P.
 Proof.
-  srapply @pushout_rec. intros [b|c]. exact (push_fl' b). exact (push_fr' c). apply pp'.
+  srapply @pushout_rec.
+  - intro b. exact (push_fl' b).
+  - intro c. exact (push_fr' c).
+  - apply pp'.
 Defined.
   
 
@@ -50,10 +56,11 @@ Proof.
             (g := pushout_ind' f g P (fun x0 : B => h (push_fl  f g x0)) (fun x0 : C => h (push_fr  f g x0))
                                (fun a0 : A => apD h (pp a0)))
             (pp a) ((fun b : B => 1) (f a)) @ _). simpl.
-  apply moveR_Mp. refine (pushout_ind_beta_pp P _ _ _ @ _).
-  cut (forall q : transport P (pp a) (h (pushl a)) = h (pushr a), q = ((q^@1)^@1)).
-  - intro H. apply H.
-  - intros []. reflexivity.
+  apply moveR_Mp.
+  - refine (pushout_ind_beta_pp P _ _ _ _ @ _).
+    cut (forall q : transport P (pp a) (h (pushl (f a))) = h (pushr (g a)), q = ((q^@1)^@1)).
+    { intro H. apply H. }
+    intros []. reflexivity.
 Defined.
 
 Definition pushout_rec_eta_homot {A B C : Type} {f : A -> B} {g : A -> C}
@@ -68,9 +75,11 @@ Proof.
             (g := pushout_rec' f g P (fun x0 : B => h (push_fl  f g x0)) (fun x0 : C => h (push_fr f g x0))
                                (fun a0 : A => ap h (pp a0)))
             (pp a) ((fun b : B => 1) (f a)) @ _).
-  apply moveR_Mp. refine (pushout_rec_beta_pp P _ _ _ @ _).
-  cut (forall q : h (pushl a) = h (pushr a), q = ((q^ @ 1)^ @ 1)).
-  intro H. apply H. intros []. reflexivity.
+  apply moveR_Mp. unfold pushout_rec'.
+  refine (pushout_rec_beta_pp P (fun b : B => h (push_fl f g b)) (fun c : C => h (push_fr f g c))
+                              (fun a0 : A => ap h (pp a0)) a @ _).
+  cut (forall q : h (pushl (f a)) = h (pushr (g a)), q = ((q^ @ 1)^ @ 1)).
+  { intro H. apply H. } intros []. reflexivity.
 Defined.
 
 Definition path_pushout_rec' {A B C : Type} {f : A -> B} {g : A -> C}
@@ -102,7 +111,7 @@ Definition functor_pushout_beta_pp {A1 B1 C1 A2 B2 C2}
   : ap (functor_pushout hA hB hC nat_f nat_g) (pp a) =
     (ap (push_fl f2 g2) (nat_f a) @ pp (hA a)) @ (ap (push_fr f2 g2) (nat_g a)^).
 Proof.
-  unfold functor_pushout. unfold pushout_rec'. refine (pushout_rec_beta_pp (pushout f2 g2) _ _ a ).
+  unfold functor_pushout. unfold pushout_rec'. refine (pushout_rec_beta_pp (pushout f2 g2) _ _ _ a ).
 Defined.
 
 Definition functor_pushout_compose {A1 B1 C1 A2 B2 C2 A3 B3 C3}
@@ -122,7 +131,7 @@ Proof.
   srapply @path_pushout_rec'. cbn.
   apply path_forall. intro a.
   refine (ap_compose _ _ _ @ _).
-  refine (ap (fun q : functor_pushout hA1 hB1 hC1 nat_f1 nat_g1 (pushl a) = functor_pushout hA1 hB1 hC1 nat_f1 nat_g1 (pushr a)
+  refine (ap (fun q : functor_pushout hA1 hB1 hC1 nat_f1 nat_g1 (pushl (f1 a)) = functor_pushout hA1 hB1 hC1 nat_f1 nat_g1 (pushr (g1 a))
               => ap (functor_pushout hA2 hB2 hC2 nat_f2 nat_g2) q) (functor_pushout_beta_pp hA1 hB1 hC1 nat_f1 nat_g1 a) @ _).
   refine (ap_pp _ _ _ @ _).
   refine (whiskerR (ap_pp _ _ _) _ @ _).

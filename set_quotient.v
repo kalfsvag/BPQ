@@ -171,16 +171,17 @@ Section Equiv.
   Proof.
     intros x y H'.
     pattern (R x y).
-    eapply transport. apply in_class_pr.
-    pattern (class_of R x). apply (transport _ (H'^)).
-    apply Hrefl.
+    eapply transport.
+    - apply in_class_pr.
+    - pattern (class_of R x). apply (transport _ (H'^)).
+      apply Hrefl.
   Defined.
 
   (** Thm 10.1.8 *)
   Theorem sets_exact {sR: is_mere_relation _ R} : forall x y, (class_of R x = class_of R y) <~> R x y.
     intros ??. apply equiv_iff_hprop.
-    apply classes_eq_related.
-    apply related_classes_eq.
+    - apply classes_eq_related.
+    - apply related_classes_eq.
   Defined.
 
 
@@ -318,24 +319,28 @@ Section Kernel.
       - apply transport_const.
       - exact ((is_ker x y) ^-1 H). }
     exists m.
-    split. split. split.
-    - assumption.
-    - apply set_quotient_surjective.
-    - intro u.
+    split.
+    { split.
+      { split.
+        - assumption.
+        - apply set_quotient_surjective. }
+      intro u.
       apply hprop_allpath.
       assert (H : forall (x y : C) (p : m x = u) (p' : m y = u), x = y).
-      { simple refine (set_quotient_ind R _ _ _). intro a.
-        simple refine (set_quotient_ind R _ _ _). intros a' p p'; fold e in p, p'.
-        + apply related_classes_eq.
-          refine (is_ker a a' _).
-          change (m (e a) = m (e a')).
-          exact (p @ p'^).
-        + intros; apply path_ishprop.
-        + intros; apply path_ishprop. }
+      { simple refine (set_quotient_ind R _ _ _).
+        { intro a.
+          simple refine (set_quotient_ind R _ _ _).
+          { intros a' p p'; fold e in p, p'.
+            apply related_classes_eq.
+            refine (is_ker a a' _).
+            change (m (e a) = m (e a')).
+            exact (p @ p'^). }
+          intros; apply path_ishprop. }
+        intros; apply path_ishprop. }
       intros [x p] [y p'].
       apply path_sigma_hprop; simpl.
-      exact (H x y p p').
-    - reflexivity.
+      exact (H x y p p'). }
+    reflexivity.
   Defined.
 
 End Kernel.

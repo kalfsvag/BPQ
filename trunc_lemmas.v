@@ -19,9 +19,8 @@ Proof.
   intros H_B H_pq.
   intros ab ab'.
   cut (IsTrunc n ({p : ab.1 = ab'.1 & p# ab.2 = ab'.2})).
-  apply trunc_equiv'.
-  exact (BuildEquiv _ _ (path_sigma_uncurried B ab ab') _).
-
+  { apply trunc_equiv'.
+    exact (BuildEquiv _ _ (path_sigma_uncurried B ab ab') _). }
   apply trunc_sigma.
 Defined.
 
@@ -43,11 +42,11 @@ Proof.
   - intro t. exact (dec_A).
   - intros []. reflexivity.
   - intros [a | na].
-    destruct (dec_A) as [a' | na'].
-    apply (ap inl). apply (isprop_A a' a).
-    destruct (na' a).
-    destruct (dec_A) as [a' | na'].
-    destruct (na a').
-    apply (ap inr). apply path_arrow. intro a. destruct (na a).
+    + destruct (dec_A) as [a' | na'].
+      * apply (ap inl). apply (isprop_A a' a).
+      * destruct (na' a).
+    + destruct (dec_A) as [a' | na'].
+      * destruct (na a').
+      * apply (ap inr). apply path_arrow. intro a. destruct (na a).
 Defined.
 

@@ -6,7 +6,6 @@ pointed_lemmas.v
 set_quotient.v
 nat_lemmas.v
 smash.v 
-type_over.v
 finite_lemmas.v
 category_lemmas.v
 pushout_lemmas.v

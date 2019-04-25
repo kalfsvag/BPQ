@@ -65,8 +65,8 @@ Definition smash_rec (A B : pType)
 Proof.
   apply (smash_ind A B (fun _ => P) pair_smash' hub_l' hub_r'); intros;
     refine (transport_const _ _ @ _).
-  exact (ispointed_pairs_l' b).
-  exact (ispointed_pairs_r' a).
+  - exact (ispointed_pairs_l' b).
+  - exact (ispointed_pairs_r' a).
 Defined.
 
 Definition smash_rec_beta_ispointed_pairs_l (A B : pType)
@@ -84,9 +84,11 @@ Proof.
   apply (cancelL (transport_const (ispointed_pairs_l A B b) (pair_smash' (point A) b))).
   transitivity (apD (smash_rec A B P pair_smash' hub_l' hub_r' ispointed_pairs_l' ispointed_pairs_r')
                (ispointed_pairs_l A B b)).
-  symmetry; refine (apD_const
-                      (smash_rec A B P pair_smash' hub_l' hub_r' ispointed_pairs_l' ispointed_pairs_r') _).
-  refine (smash_ind_beta_ispointed_pairs_l A B _ _ _ _ _ _ b).
+  - symmetry;
+      refine
+        (apD_const
+           (smash_rec A B P pair_smash' hub_l' hub_r' ispointed_pairs_l' ispointed_pairs_r') _).
+  - refine (smash_ind_beta_ispointed_pairs_l A B _ _ _ _ _ _ b).
 Defined.
   
                                    
@@ -100,7 +102,9 @@ Proof.
   - cbn.
     srapply @smash_rec.
     + intros a b.
-      apply pair_smash. exact (f a). exact (g b).
+      apply pair_smash.
+      * exact (f a).
+      * exact (g b).
     + apply hub_l.
     + apply hub_r.
     + intros. cbn.

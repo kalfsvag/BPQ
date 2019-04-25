@@ -13,8 +13,9 @@ Definition ap12' `{Funext} {A B : Type} {a b : A} (p : a = b) {f g : A->B} (q : 
 Proof.
   refine (_ @ ap12 p (path_arrow _ _ q)).
   apply concat2.
-  apply whiskerR.
-  apply inverse2. exact (inverse (ap10_path_arrow f g q _)). exact (inverse (ap10_path_arrow f g q _)).
+  { apply whiskerR.
+    apply inverse2. exact (inverse (ap10_path_arrow f g q _)). }
+  exact (inverse (ap10_path_arrow f g q _)).
 Defined.
 
 Definition ap011_pp_pp {A B C : Type} (f : A -> B -> C) {x x' x'' : A} {y y' y'' : B}

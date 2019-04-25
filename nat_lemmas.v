@@ -30,8 +30,9 @@ Proof.
   revert n.
   induction m.
   - induction n; reflexivity.
-  - induction n. reflexivity.
-    simpl. apply IHm.
+  - induction n.
+    + reflexivity.
+    + simpl. apply IHm.
 Defined.
 
 Definition nat_plus_minus (m n : nat) : nat_minus m (m + n) = n.
@@ -87,7 +88,9 @@ Section Inequalities.
 
   Definition leq_succ (n : nat) : n <= n.+1.
   Proof.
-    induction n. reflexivity. apply IHn.
+    induction n.
+    - reflexivity.
+    - apply IHn.
   Defined.
 
   (* Lemma leq_refl_code (i j : nat) : i =n j -> i <= j. *)
@@ -187,8 +190,9 @@ Section Inequalities.
   Definition not_i_lt_i (i : nat) : ~(i < i).
   Proof.
     unfold not.
-    induction i. exact idmap.
-    exact IHi.
+    induction i.
+    - exact idmap.
+    - exact IHi.
   Defined.
   
   (* Lemma notleq_to_gt (i j : nat) : ~(j <= i) -> j > i. *)
@@ -226,13 +230,14 @@ Section Inequalities.
     revert j. induction i; intro j.
     - intro. 
       exists j. reflexivity.
-    - destruct j. intros [].
-      simpl. change (i < j.+1) with (i <= j).
-      intro i_leq_j.
-      apply (functor_sigma (A := nat) idmap (fun _ => ap S)).
-      apply (IHi j i_leq_j).
-      (* exists (IHi j i_leq_j).1. *)
-      (* apply (ap S). *)
+    - destruct j.
+      + intros [].
+      + simpl. change (i < j.+1) with (i <= j).
+        intro i_leq_j.
+        apply (functor_sigma (A := nat) idmap (fun _ => ap S)).
+        apply (IHi j i_leq_j).
+        (* exists (IHi j i_leq_j).1. *)
+        (* apply (ap S). *)
       (* apply (IHi j i_leq_j).2. *)
   Defined.
 

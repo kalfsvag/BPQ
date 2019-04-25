@@ -1,9 +1,11 @@
 Load monoidal_1type.
 
 
-    
+Require Import HoTT.Categories Category.
+Require Import category_lemmas.
+
 Section Localize.
-  Require Import HoTT.Categories.
+
   (* if we have a monoidal action with left_cancellation, we can build a category with objects X and arrows*)
   (* {m : M & m ⊗ x = m ⊗ y} *)
   Definition monoidal_action_morphism (M : Monoidal_1Type) (X : 1-Type) (a : monoidal_action M X) :
@@ -26,7 +28,7 @@ Section Localize.
     + intro p. exact _.
     + simpl.
       intros [q1 r1] [q2 r2]. simpl.
-      apply contr_inhabited_hprop. exact _.
+      apply contr_inhabited_hprop. { exact _. }
       apply (left_cancel _ _ q1 q2 x1).
       transitivity (p1 @ p2^).
       { apply moveL_pV. apply r1^. }
@@ -49,7 +51,9 @@ Section Localize.
       exact (montype_act_mult a s1 s2 x @ ap (a s1) p2 @ p1).
     (* associativity *)
     - intros x1 x2 x3 x4 [s1 []] [s2 []] [s3 []]. repeat rewrite ap_1. repeat rewrite concat_p1.
-      srapply @path_sigma. apply montype_assoc. cbn.
+      srapply @path_sigma.
+      { apply montype_assoc. }
+      cbn.
       refine (transport_paths_Fl (montype_assoc s3 s2 s1) _ @ _).
       rewrite montype_act_pentagon. repeat rewrite inv_pp. repeat rewrite inv_V.
       apply moveR_pM.
@@ -58,14 +62,17 @@ Section Localize.
     (* left identity *)
     - simpl.
       intros x1 x2 [s []]. simpl. rewrite concat_p1.
-      srapply @path_sigma. apply montype_lid. simpl. 
+      srapply @path_sigma.
+      { apply montype_lid. }
+      simpl. 
       refine (transport_paths_Fl (montype_lid s) _ @ _).
       apply moveR_Vp. refine (_ @ (concat_p1 _)^). apply inverse.
       apply montype_act_triangle1.
     (* right identity *)
     - simpl.
       intros x1 x2 [s []]. simpl. rewrite concat_p1.
-      srapply @path_sigma. apply montype_rid. simpl. 
+      srapply @path_sigma.
+      { apply montype_rid. } simpl. 
       refine (transport_paths_Fl (montype_rid s) _ @ _).
       apply moveR_Vp. refine (_ @ (concat_p1 _)^). apply inverse.
       apply montype_act_triangle2.
@@ -134,7 +141,8 @@ Section Localize.
   Proof.
     simpl. intro a. unfold monoidal_action_morphism. unfold act_on_self. simpl.
     apply (contr_equiv' {s : M & s = a}).
-    - srapply @equiv_functor_sigma'. exact equiv_idmap.
+    - srapply @equiv_functor_sigma'.
+      { exact equiv_idmap. }
       intro m. simpl.
       apply equiv_concat_l. apply montype_rid.
     - apply contr_basedpaths'.
@@ -209,7 +217,7 @@ Section Localize.
   (*     intro  *)
 
     
-
+  (* should be moved *)
   Definition ap_homotopy_idmap {A : Type} (f : A -> A) (h : f == idmap) (a : A):
     ap f (h a) = h (f a).
   Proof.
@@ -226,20 +234,23 @@ Section Localize.
   (* Proof. *)
   (*   destruct p. destruct (h a). reflexivity. *)
   (* Defined. *)
-  Require Import category_lemmas.
+  
   Definition prod_to_groupcompletion (S : Monoidal_1Type)
              (left_cancel : left_faithful (@montype_mult S))
              (* (left_cancel : forall (s t : S) (p q : s = t) (a : S), *)
              (*     ap (fun x => x ⊗ a) p = ap (fun x => x ⊗ a) q -> p = q) *):
     Functor ((Type_to_Cat S)*(Type_to_Cat S))%category (group_completion S left_cancel).
   Proof.
-    srapply @Build_Functor; simpl. exact idmap.
+    srapply @Build_Functor; simpl. { exact idmap. }
     - intros a b [p q].
       unfold monoidal_action_morphism.
-      exists montype_id. apply path_prod. apply (montype_lid _ @ p). apply (montype_lid _ @ q).
+      exists montype_id. apply path_prod.
+      { apply (montype_lid _ @ p). }
+      apply (montype_lid _ @ q).
     - intros [a1 a2] [b1 b2] [c1 c2] [p1 p2] [q1 q2]. simpl in *.
       destruct q2, q1, p2, p1. simpl. repeat rewrite concat_p1.
-      srapply @path_sigma;simpl. apply inverse. apply montype_lid. 
+      srapply @path_sigma;simpl.
+      { apply inverse. apply montype_lid. }
       refine (transport_paths_Fl (montype_lid montype_id)^
               (path_prod (functor_prod (montype_mult montype_id) (montype_mult montype_id) (a1, a2)) (a1, a2) (montype_lid a1) (montype_lid a2)) @ _).
       rewrite ap_V. rewrite inv_V.
@@ -275,7 +286,6 @@ Section Univalent_GroupGompletion.
   Context (M : Monoidal_1Type) (X : 1-Type) (act : monoidal_action M X)
           (left_cancel_act : left_faithful act).
 
-    Require Import Category.
 
   Lemma idtoiso_is_concat (x y : monoidal_action_cat M X act left_cancel_act) :
     forall (p : x = y),
@@ -283,17 +293,13 @@ Section Univalent_GroupGompletion.
       (montype_id; montype_act_id _ x @ p) :> morphism _ x y.
   Proof.
     intros []. simpl.
-    srapply @path_sigma. reflexivity.
+    srapply @path_sigma. { reflexivity. }
     simpl. apply (concat_p1 _)^.
   Defined.
 
   Definition equiv_path_isomorphic {C : PreCategory} (x y : C) (f g : (x <~=~> y)%category) :
-    (f = g :> morphism C x y) <~> f = g.
-  Proof.
-    srapply @BuildEquiv.
-    - apply path_isomorphic.
-    - exact _.
-  Defined.    
+    (f = g :> morphism C x y) <~> f = g
+    := BuildEquiv _ _ (path_isomorphic f g) _.
 
   Lemma fiber_idtoiso (x y : monoidal_action_cat M X act left_cancel_act) (f : (x <~=~> y) %category) :
     hfiber (@idtoiso _ x y) f <~>
@@ -345,9 +351,10 @@ Section Univalent_GroupGompletion.
     apply isequiv_fcontr. intro f.
     srefine (contr_equiv' _ (equiv_inverse (fiber_idtoiso x y f))).
     destruct f as [[s p] isiso]. simpl.
-    apply (contr_equiv' (montype_id = s)). apply equiv_path_inverse.
+    apply (contr_equiv' (montype_id = s)).
+    { apply equiv_path_inverse. }
     apply contr_inhabited_hprop.
-    apply contr_component_id.
+    { apply contr_component_id. }
     apply inverse.
     destruct isiso as [[t q] ]. simpl in *.
     apply (unit_is_id s t).
@@ -457,9 +464,9 @@ Section Univalent_GroupGompletion.
   (* Check Morphisms.Isomorphic. *)
 End Univalent_GroupGompletion.
      
-
+Require Import Category.Morphisms.
 Section Monoidal_Category.
-  Require Import Category.Morphisms.
+
   Local Notation "x --> y" := (morphism _ x y) (at level 99, right associativity, y at level 200) : type_scope.
   Open Scope morphism.
 
@@ -569,13 +576,13 @@ Section Monoidal_Category.
     repeat rewrite ap_pp. rewrite ap_V.
     assert (p : ap (smontype_mult t) (ap (fun x : S => x ⊗ b) (smontype_sym s a)) =
                 (smontype_assoc t (s ⊗ a) b)^ @ ap (fun x : S => x ⊗ b) (ap (fun x : S => t ⊗ x) (smontype_sym s a)) @ smontype_assoc t (a ⊗ s) b).
-    destruct (smontype_sym s a). simpl.
-    destruct (smontype_assoc t (s ⊗ a) b). simpl.  reflexivity.
+    { destruct (smontype_sym s a). simpl.
+      destruct (smontype_assoc t (s ⊗ a) b). simpl.  reflexivity. }
     rewrite p. clear p. repeat rewrite concat_pp_p.
     assert (p : ap (fun x : S => x ⊗ (s ⊗ b)) (smontype_sym t a) =
                 (smontype_assoc (t ⊗ a) s b)^ @ ap (fun x : S => x ⊗ b) (ap (fun x : S => x ⊗ s) (smontype_sym t a)) @ smontype_assoc (a ⊗ t) s b).
-    destruct (smontype_sym t a). simpl.
-    destruct (smontype_assoc (t ⊗ a) s b). simpl. reflexivity.
+    { destruct (smontype_sym t a). simpl.
+      destruct (smontype_assoc (t ⊗ a) s b). simpl. reflexivity. }
     rewrite p. clear p.
     rewrite (smontype_sym_inv S t a). repeat rewrite ap_V.
     rewrite (smontype_hexagon S a t s).
@@ -749,10 +756,13 @@ Section Monoidal_Category.
     + intros b c d. simpl in b,c,d.        
       intros [s p] [t q]. simpl in p,q.  simpl.
       destruct a as [a1 a2]; destruct b as [b1 b2]; simpl.
-      srapply @path_sigma. reflexivity. simpl.
+      srapply @path_sigma. { reflexivity. }
+      simpl.
       apply grp_complete_bifun_lem1.
     + simpl. intro b.
-      srapply @path_sigma. simpl. reflexivity. simpl.
+      srapply @path_sigma.
+      { simpl. reflexivity.  }
+      simpl.
       refine (whiskerL _ (ap_functor_prod _ _ _ _ _ _) @ _).
       destruct a as [a1 a2]. destruct b as [b1 b2]. simpl.
       refine ((path_prod_pp _ _ _ _ _ _ _)^ @ _).
@@ -777,13 +787,15 @@ Section Monoidal_Category.
           apply ((smontype_assoc _ _ _)^).
       + destruct a as [a1 a2]. intros [c1 c2] d.
         intros [t q]. simpl in q.
-        srapply @path_sigma. apply smontype_sym.
+        srapply @path_sigma.
+        { apply smontype_sym. }
         refine (transport_paths_Fl (smontype_sym s t) _ @ _). cbn.
         apply grp_complete_bifun_lem3.
     - intros a b c [s p] [t q].
       apply NaturalTransformation.path_natural_transformation. simpl.
       intro d. destruct p, q.
-      srapply @path_sigma. reflexivity. simpl.
+      srapply @path_sigma.
+      { reflexivity. } simpl.
       abstract (
           repeat rewrite concat_p1;
           destruct d as [d1 d2]; simpl;
@@ -802,7 +814,8 @@ Section Monoidal_Category.
     - intros [a1 a2].
       apply NaturalTransformation.path_natural_transformation. simpl.
       intros [b1 b2]. simpl.
-      srapply @path_sigma. reflexivity.
+      srapply @path_sigma.
+      { reflexivity. }
       simpl.
       change (fun b : S * S => functor_prod (smontype_mult (fst b)) (smontype_mult (snd b)) (b1, b2))
              with
@@ -822,75 +835,75 @@ Section Monoidal_Category.
      destruct p. reflexivity.
    Defined.
   
-  Definition moncat_group_completion (S : Symmetric_Monoidal_1Type)
-             (left_cancel : forall (s t : S) (p q : s = t) (a : S),
-                 ap (fun x => smontype_mult x a) p = ap (fun x => smontype_mult x a) q -> p = q) : Monoidal_Category.
-  Proof.
-    srefine (Build_Monoidal_Category
-               (group_completion S left_cancel) (mult_group_completion S left_cancel)
-               (smontype_id, smontype_id)
-               _ _ (fun a b c => Build_IsIsomorphism _ _ _ _ _ _ _)
-               _ _ (fun a => Build_IsIsomorphism _ _ _ _ _ _ _)
-               _ _ (fun a => Build_IsIsomorphism _ _ _ _ _ _ _) _ _ _).
-    (* associative *)
-    - intros a b c. simpl.
-      unfold monoidal_action_morphism. simpl.
-      destruct a as [a1 a2]. destruct b as [b1 b2]. destruct c as [c1 c2].
-      unfold functor_prod. simpl.
-      exists smontype_id.
-      apply path_prod; refine (smontype_lid _ @ _); apply smontype_assoc.
-    (* asssociativity is natural *)
-    - intros [a1 a2] [b1 b2] [c1 c2] a' b' c' [s p] [t q] [u r]. destruct p,q,r. simpl.
-      srapply @path_sigma. simpl.
-      { refine (smontype_rid _ @ (smontype_assoc _ _ _) @ (smontype_lid _)^). }
-      simpl.
-      refine (transport_paths_Fl
-                ((smontype_rid ((u ⊗ t) ⊗ s) @ smontype_assoc u t s) @ (smontype_lid (u ⊗ (t ⊗ s)))^) _ @ _).
-      repeat rewrite ap_pp.       repeat rewrite concat_p1.
-      repeat rewrite ap_V. repeat rewrite inv_V.
-      repeat rewrite ap_pair_path_prod. simpl.
-      repeat rewrite <- path_prod_pp.
-      rewrite <- path_prod_VV.
-      rewrite <- path_prod_pp. rewrite <- path_prod_VV.
-      rewrite <- path_prod_pp.
-      apply (ap011 (path_prod _ _)).
-      rewrite inv_pp. rewrite inv_pp. rewrite inv_V.
-      repeat rewrite concat_p_pp. admit. admit.
-    (* inverse associative *)
-    - simpl. unfold monoidal_action_morphism. simpl. unfold functor_prod. simpl.
-      destruct a as [a1 a2]. destruct b as [b1 b2]. destruct c as [c1 c2]. simpl.
-      exists smontype_id.
-      apply path_prod; refine (smontype_lid _ @ _); apply inverse; apply smontype_assoc.
-    - destruct a as [a1 a2]. destruct b as [b1 b2]. destruct c as [c1 c2]. simpl.
-      rewrite ap_functor_prod. rewrite <- path_prod_pp. rewrite <- path_prod_pp. unfold functor_prod.
-      srapply @path_sigma.
-      apply smontype_lid.           (* smontype_rid works as well *)
-      simpl.
-      refine (transport_paths_Fl (smontype_lid smontype_id) _ @ _).
-      admit.
-    - simpl. admit.
-    (* Left identity *)
-    - intros [a1 a2]. simpl.
-      unfold monoidal_action_morphism. simpl. unfold functor_prod. simpl.
-      exists smontype_id.
-      apply path_prod; refine (smontype_lid _ @ smontype_lid _).
-    - intros [a1 a2] a' [s p]. simpl in p. unfold functor_prod in p. simpl in p. destruct p.
-      simpl. admit.
-    - admit.
-    - admit.
-    - admit.
-    (* right identity *)
-    - intros [a1 a2]. simpl. unfold monoidal_action_morphism. simpl. unfold functor_prod. simpl.
-      exists smontype_id. apply path_prod; refine (smontype_lid _ @ smontype_rid _).
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    (* Coherence diagrams *)
-    - simpl. admit.
-    - admit.
-    - admit.
-  Admitted.    
+  (* Definition moncat_group_completion (S : Symmetric_Monoidal_1Type) *)
+  (*            (left_cancel : forall (s t : S) (p q : s = t) (a : S), *)
+  (*                ap (fun x => smontype_mult x a) p = ap (fun x => smontype_mult x a) q -> p = q) : Monoidal_Category. *)
+  (* Proof. *)
+  (*   srefine (Build_Monoidal_Category *)
+  (*              (group_completion S left_cancel) (mult_group_completion S left_cancel) *)
+  (*              (smontype_id, smontype_id) *)
+  (*              _ _ (fun a b c => Build_IsIsomorphism _ _ _ _ _ _ _) *)
+  (*              _ _ (fun a => Build_IsIsomorphism _ _ _ _ _ _ _) *)
+  (*              _ _ (fun a => Build_IsIsomorphism _ _ _ _ _ _ _) _ _ _). *)
+  (*   (* associative *) *)
+  (*   - intros a b c. simpl. *)
+  (*     unfold monoidal_action_morphism. simpl. *)
+  (*     destruct a as [a1 a2]. destruct b as [b1 b2]. destruct c as [c1 c2]. *)
+  (*     unfold functor_prod. simpl. *)
+  (*     exists smontype_id. *)
+  (*     apply path_prod; refine (smontype_lid _ @ _); apply smontype_assoc. *)
+  (*   (* asssociativity is natural *) *)
+  (*   - intros [a1 a2] [b1 b2] [c1 c2] a' b' c' [s p] [t q] [u r]. destruct p,q,r. simpl. *)
+  (*     srapply @path_sigma. simpl. *)
+  (*     { refine (smontype_rid _ @ (smontype_assoc _ _ _) @ (smontype_lid _)^). } *)
+  (*     simpl. *)
+  (*     refine (transport_paths_Fl *)
+  (*               ((smontype_rid ((u ⊗ t) ⊗ s) @ smontype_assoc u t s) @ (smontype_lid (u ⊗ (t ⊗ s)))^) _ @ _). *)
+  (*     repeat rewrite ap_pp.       repeat rewrite concat_p1. *)
+  (*     repeat rewrite ap_V. repeat rewrite inv_V. *)
+  (*     repeat rewrite ap_pair_path_prod. simpl. *)
+  (*     repeat rewrite <- path_prod_pp. *)
+  (*     rewrite <- path_prod_VV. *)
+  (*     rewrite <- path_prod_pp. rewrite <- path_prod_VV. *)
+  (*     rewrite <- path_prod_pp. *)
+  (*     apply (ap011 (path_prod _ _)). *)
+  (*     rewrite inv_pp. rewrite inv_pp. rewrite inv_V. *)
+  (*     repeat rewrite concat_p_pp. admit. admit. *)
+  (*   (* inverse associative *) *)
+  (*   - simpl. unfold monoidal_action_morphism. simpl. unfold functor_prod. simpl. *)
+  (*     destruct a as [a1 a2]. destruct b as [b1 b2]. destruct c as [c1 c2]. simpl. *)
+  (*     exists smontype_id. *)
+  (*     apply path_prod; refine (smontype_lid _ @ _); apply inverse; apply smontype_assoc. *)
+  (*   - destruct a as [a1 a2]. destruct b as [b1 b2]. destruct c as [c1 c2]. simpl. *)
+  (*     rewrite ap_functor_prod. rewrite <- path_prod_pp. rewrite <- path_prod_pp. unfold functor_prod. *)
+  (*     srapply @path_sigma. *)
+  (*     apply smontype_lid.           (* smontype_rid works as well *) *)
+  (*     simpl. *)
+  (*     refine (transport_paths_Fl (smontype_lid smontype_id) _ @ _). *)
+  (*     admit. *)
+  (*   - simpl. admit. *)
+  (*   (* Left identity *) *)
+  (*   - intros [a1 a2]. simpl. *)
+  (*     unfold monoidal_action_morphism. simpl. unfold functor_prod. simpl. *)
+  (*     exists smontype_id. *)
+  (*     apply path_prod; refine (smontype_lid _ @ smontype_lid _). *)
+  (*   - intros [a1 a2] a' [s p]. simpl in p. unfold functor_prod in p. simpl in p. destruct p. *)
+  (*     simpl. admit. *)
+  (*   - admit. *)
+  (*   - admit. *)
+  (*   - admit. *)
+  (*   (* right identity *) *)
+  (*   - intros [a1 a2]. simpl. unfold monoidal_action_morphism. simpl. unfold functor_prod. simpl. *)
+  (*     exists smontype_id. apply path_prod; refine (smontype_lid _ @ smontype_rid _). *)
+  (*   - admit. *)
+  (*   - admit. *)
+  (*   - admit. *)
+  (*   - admit. *)
+  (*   (* Coherence diagrams *) *)
+  (*   - simpl. admit. *)
+  (*   - admit. *)
+  (*   - admit. *)
+  (* Admitted.     *)
 
              
 End Monoidal_Category.

@@ -21,8 +21,12 @@ Proof.
   transitivity Bool.
   + unfold Fin.
     srapply @equiv_adjointify.
-    { intros [[[] | []] | []]. exact true. exact false. }
-    { intros  [ | ]. exact (inl (inr tt)). exact (inr tt). }
+    { intros [[[] | []] | []].
+      - exact true.
+      - exact false. }
+    { intros  [ | ].
+      - exact (inl (inr tt)).
+      - exact (inr tt). }
     * intros [ | ] ;reflexivity.
     * intros [[[] | []] | []]; reflexivity.
   + apply equiv_inverse. apply equiv_dprop_to_bool.
@@ -88,7 +92,8 @@ Section Finite_Types.
     apply (leq_inj_finite pr1).
     unfold IsEmbedding. simpl. intro a.
     apply (trunc_equiv' (P a) ).
-    apply hfiber_fibration. apply isprop_P.
+    - apply hfiber_fibration.
+    - apply isprop_P.
   Qed.
 
   (* Plus one for finite types *)
@@ -275,26 +280,26 @@ Section Finite_Types.
   Defined.
 
 
-  Definition BSigma_rec_1Type (n : nat) (X : Type) (istrunc_P : IsTrunc 1 X)
-             (x0 : X)
-             (wd : (Fin n <~> Fin n) -> x0 = x0)
-             (wd_comp : forall (e1 e2 : Fin n <~> Fin n),
-                 wd e1 @ wd e2 = wd (e2 oE e1)) :
-    Finite_Types n -> X.
-  Proof.
-    intro s.
+  (* Definition BSigma_rec_1Type (n : nat) (X : Type) (istrunc_P : IsTrunc 1 X) *)
+  (*            (x0 : X) *)
+  (*            (wd : (Fin n <~> Fin n) -> x0 = x0) *)
+  (*            (wd_comp : forall (e1 e2 : Fin n <~> Fin n), *)
+  (*                wd e1 @ wd e2 = wd (e2 oE e1)) : *)
+  (*   Finite_Types n -> X. *)
+  (* Proof. *)
+  (*   intro s. *)
     
-    apply (@pr1 X (fun x : X => {wd' : (forall e :Fin n <~> s, x = x0) &
-                             forall (e1 e2 : Fin n <~> Fin n), wd' e1 @ wd' e2 = wd' (e2 oE e1)})).
-    assert (isprop_goal : IsHProp
-                            {x : X &
-                                 {wd' : Fin n <~> Fin n -> x = x &
-                                       forall e1 e2 : Fin n <~> Fin n,
-                                         wd' e1 @ wd' e2 = wd' (e2 oE e1)}}).
-    { unfold IsHProp. simpl.
-      intros x y.
-      refine (contr_equiv' _ (equiv_path_sigma _ x y)^-1).
-      destruct x as [x1 x2]. destruct y as [y1 y2]. simpl.
+  (*   apply (@pr1 X (fun x : X => {wd' : (forall e :Fin n <~> s, x = x0) & *)
+  (*                            forall (e1 e2 : Fin n <~> Fin n), wd' e1 @ wd' e2 = wd' (e2 oE e1)})). *)
+  (*   assert (isprop_goal : IsHProp *)
+  (*                           {x : X & *)
+  (*                                {wd' : Fin n <~> Fin n -> x = x & *)
+  (*                                      forall e1 e2 : Fin n <~> Fin n, *)
+  (*                                        wd' e1 @ wd' e2 = wd' (e2 oE e1)}}). *)
+  (*   { unfold IsHProp. simpl. *)
+  (*     intros x y. *)
+  (*     refine (contr_equiv' _ (equiv_path_sigma _ x y)^-1). *)
+  (*     destruct x as [x1 x2]. destruct y as [y1 y2]. simpl. *)
       
     
 
@@ -340,7 +345,8 @@ Section Factorize_Monomorphism.
     srapply @equiv_adjointify.
     { intro b.
       destruct (detachable_image_finite f b) as [fib | nfib].
-      exact (inl (b; fib)). exact (inr (b; nfib)). }
+      - exact (inl (b; fib)).
+      - exact (inr (b; nfib)). }
     { intros [[b fib] | [b nfib]] ;exact b. }
     - intros [[b fib] | [b nfib]];
         destruct (detachable_image_finite f b) as [fib' | nfib']; cbn.
@@ -358,9 +364,9 @@ Section Factorize_Monomorphism.
   Proof.
     unfold IsEmbedding. intro b.
     apply (trunc_equiv' (not (hfiber f b))).
-    unfold compliment_to_range.
-    exact (hfiber_fibration b _).
-    exact _.
+    - unfold compliment_to_range.
+      exact (hfiber_fibration b _).
+    - exact _.
   Defined.
     
 
@@ -370,8 +376,9 @@ Section Factorize_Monomorphism.
     srapply @equiv_adjointify.
     { intro a. exists (f a). exists a. reflexivity. }
     { intros [b [a p]]. exact a. }
-    - intros [b [a p]]. srapply @path_sigma. exact p.
-      apply isemb_f.
+    - intros [b [a p]]. srapply @path_sigma.
+      +  exact p.
+      +  apply isemb_f.
     - intro a. reflexivity.
   Defined.
 
@@ -380,14 +387,16 @@ Section Factorize_Monomorphism.
     refine ((fcard_sum _ _)^ @ _).
     apply fcard_equiv'.
     refine (split_range^-1 oE _).
-    apply equiv_functor_sum'. exact equiv_image. reflexivity.
+    apply equiv_functor_sum'.
+    - exact equiv_image.
+    - reflexivity.
   Qed.
 
   (* a lemma for minus *)
   Lemma sum_minus (k l: nat) :
     l = (k+l)%nat - k.
   Proof.
-    induction k. simpl.
+    induction k; simpl.
     - destruct l; reflexivity.
     - simpl. exact IHk.
   Qed.
@@ -464,11 +473,12 @@ Section Finite_Subsets.
   Proof.
     srapply @equiv_adjointify.
     { intro P. srapply @exist.
-      exists {a : A & P a}.  exact _.
-      simpl.
-      exists pr1. intro a.
-      apply (trunc_equiv' (P a)).
-      apply (hfiber_fibration a P). exact _. }
+      - exists {a : A & P a}.  exact _.
+      - simpl.
+        exists pr1. intro a.
+        apply (trunc_equiv' (P a)).
+        + apply (hfiber_fibration a P).
+        + exact _. }
     { intros [[B fB] [f isemb_f]].
       apply ((project_to_dprop _ _) o (split_range B A f isemb_f)). }
     - intros [[B fB] [f isemb_f]].
@@ -482,8 +492,9 @@ Section Finite_Subsets.
           destruct (detachable_image_finite f (f b)) as [fib | nfib]; cbn.
           - exact tt. - apply nfib. exists b. reflexivity. }
         * intro b. cbn. simpl in f.
-          destruct (detachable_image_finite f (f b)) as [fib | nfib]. destruct fib as [b' p]; cbn.
-          { apply (isinj_embedding f isemb_f). exact p. }
+          destruct (detachable_image_finite f (f b)) as [fib | nfib].
+          { destruct fib as [b' p]; cbn.
+            apply (isinj_embedding f isemb_f). exact p. }
           apply Empty_rec. apply nfib. exists b. reflexivity.
         * cbn. intros [a h].
           apply path_sigma_hprop. cbn. simpl in f.
@@ -496,10 +507,14 @@ Section Finite_Subsets.
       + destruct fib as [[a' b] p].
         apply path_dprop. apply path_universe_uncurried. cbn.
         apply equiv_inverse.
-        srapply @equiv_contr_unit. apply contr_inhabited_hprop. exact _. exact (transport B p b).
+        srapply @equiv_contr_unit. apply contr_inhabited_hprop.
+        * exact _.
+        * exact (transport B p b).
       + apply path_dprop. apply path_universe_uncurried. apply equiv_inverse.
-        apply (if_not_hprop_then_equiv_Empty). exact _. intro b. apply nfib.
-        apply (hfiber_fibration a B b).
+        apply (if_not_hprop_then_equiv_Empty).
+        * exact _.
+        * intro b. apply nfib.
+          apply (hfiber_fibration a B b).
   Defined.
 
   Definition equiv_finite_subset {n : nat} {A : Finite_Types n} :
@@ -507,8 +522,9 @@ Section Finite_Subsets.
   Proof.
     srapply @equiv_adjointify.
     - intros [k [B f]]. simpl in f.
-      srapply @exist. exists B. exact _.
-      simpl. exact f.
+      srapply @exist.
+      + exists B. exact _.
+      + simpl. exact f.
     - intros [[B [k eB] f]]. simpl in f.
       exists k. exists (B; eB). exact f.
     - intros [[B [k eB] f]]. reflexivity.
@@ -522,21 +538,25 @@ Section Finite_Subsets.
   Proof.
     apply (finite_equiv' (A -> DProp)).
     - exact ((equiv_finite_subset)^-1 oE equiv_detachable_finite_subset).
-    - apply finite_forall. exact _. intro a. exact _.
+    - apply finite_forall.
+      + exact _.
+      + intro a. exact _.
   Qed.
   
   Definition equiv_detachable_finite_fix (k : nat) {n : nat} {A : Finite_Types n} :
     Finite_Subsets k A <~> {B : A -> DProp & fcard ({a : A & B a}) = k}.
   Proof.
-    transitivity {B : {B : {fB : Type & Finite fB} & {f : B.1 -> A & IsEmbedding f}} & @fcard _ B.1.2 = k}.
-    transitivity {B : {k' : nat & Finite_Subsets k' A} & B.1 = k}.
-    - srapply @equiv_adjointify.
-      { intro B. exists (k; B). reflexivity. }
-      { intros [[k' B] []]. exact B. }
-      { intros [[k' B] []]. reflexivity. }
-      { intro B. reflexivity. }
-    - apply (equiv_functor_sigma' equiv_finite_subset).
-      intros [k' B]. reflexivity.      
+    transitivity
+      {B : {B : {fB : Type & Finite fB} & {f : B.1 -> A & IsEmbedding f}} & @fcard _ B.1.2 = k}.
+    { 
+      transitivity {B : {k' : nat & Finite_Subsets k' A} & B.1 = k}.
+      - srapply @equiv_adjointify.
+        { intro B. exists (k; B). reflexivity. }
+        { intros [[k' B] []]. exact B. }
+        { intros [[k' B] []]. reflexivity. }
+        { intro B. reflexivity. }
+      - apply (equiv_functor_sigma' equiv_finite_subset).
+        intros [k' B]. reflexivity. }
     - apply equiv_inverse.
       apply (equiv_functor_sigma' equiv_detachable_finite_subset).
       intro B. reflexivity.
@@ -565,7 +585,9 @@ Section Finite_Subsets.
   Proof.
     unfold Finite_Subsets.
     intros [I [b emb_b]]. destruct B as [B [a emb_a]]. simpl in b.
-    exists I. exists (a o b). apply compose_embedding. exact emb_b. exact emb_a.
+    exists I. exists (a o b). apply compose_embedding.
+    - exact emb_b.
+    - exact emb_a.
   Defined.
 
   (* Definition include_subset_in_last {n k : nat} {A : Finite_Types n} {B : Finite_Subsets k A} : *)
@@ -603,18 +625,19 @@ Section Finite_Subsets.
     destruct B as [B [f embf]]. simpl.
     refine ((split_range B A f embf)^-1 oE _).
     srapply @equiv_functor_sum'.
-    apply equiv_image. exact embf. reflexivity.
+    - apply equiv_image. exact embf.
+    - reflexivity.
   Defined.
 
   Definition sum_compliment_subset {n k : nat} {A : Finite_Types n} (B : Finite_Subsets k A) :
       Finite_Subsets n A.
   Proof.
     srapply @exist.
-    exists (B + (compliment A B)). srapply @finite_eq_fcard.
-    change (fcard (Fin n)) with (fcard A).
-    apply fcard_equiv'. apply equiv_sum_compliment.
-    exists (equiv_sum_compliment B).
-    apply equiv_is_embedding. exact _.
+    - exists (B + (compliment A B)). srapply @finite_eq_fcard.
+      change (fcard (Fin n)) with (fcard A).
+      apply fcard_equiv'. apply equiv_sum_compliment.
+    - exists (equiv_sum_compliment B).
+      apply equiv_is_embedding. exact _.
   Defined.
 
   (* A as a subset of itself *)
@@ -628,11 +651,12 @@ Section Finite_Subsets.
     sum_compliment_subset B = last_subset A.
   Proof.
     srapply @path_finite_subsets.
-    apply equiv_sum_compliment.
-    apply path_arrow. intro a. simpl.
-    destruct B as [B [f embf]]. simpl.
-    destruct (detachable_image_finite f a) as [[a' p] |]. exact p.
-    simpl. reflexivity.
+    - apply equiv_sum_compliment.
+    - apply path_arrow. intro a. simpl.
+      destruct B as [B [f embf]]. simpl.
+      destruct (detachable_image_finite f a) as [[a' p] |].
+      + exact p.
+      + simpl. reflexivity.
   Defined.
 
   (* Definition equiv_compliment {n k : nat} {A : Finite_Types n} : *)
@@ -696,7 +720,9 @@ Section Magma.
     induction m.
     - exact finite_empty.
     - exact finite_unit.
-    - apply finite_sum. exact IHm1. exact IHm2.
+    - apply finite_sum.
+      + exact IHm1.
+      + exact IHm2.
   Defined.
 End Magma.
 
@@ -770,7 +796,7 @@ End Restrict_Equivalence.
 
   
 
-
+Require Import nat_lemmas.
 
 Section Pointed_Finite.
   Local Open Scope nat.
@@ -794,11 +820,12 @@ Section Pointed_Finite.
       intros [[] | [i Hi]]; reflexivity.
     - unfold Sect.
       intros [i Hi]. simpl.
-      induction i. simpl in Hi. destruct Hi. reflexivity.
-      reflexivity.
+      induction i.
+      + simpl in Hi. destruct Hi. reflexivity.
+      + reflexivity.
   Defined.
 
-  Require Import nat_lemmas.
+  
   Open Scope nat.
 
   (* The map sending n+1 to [inr tt] *)
@@ -907,8 +934,8 @@ Section Cosimplicial_maps.
       exists k.
       change (k <= n) with (k.+1 <= n.+1).
       apply (@leq_transd k.+1 j n.+1)%nat.
-      rewrite H. apply leq_refl.
-      apply j_leq_Sn.
+      + rewrite H. apply leq_refl.
+      + apply j_leq_Sn.
   Defined.
 
 End Cosimplicial_maps.

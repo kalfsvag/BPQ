@@ -49,8 +49,8 @@ Definition path_type_over {X : Type} (A B : Type_Over X)
 Proof.
   apply (equiv_ap issig_type_over A B)^-1.  
   srapply @path_sigma.
-  apply path_universe_uncurried. exact e.
-  refine (transport_exp X A B e (issig_type_over A).2 @ _).
+  - apply path_universe_uncurried. exact e.
+  - refine (transport_exp X A B e (issig_type_over A).2 @ _).
   apply (equiv_emoveR_fV). exact p.
 Defined.
 
@@ -108,15 +108,15 @@ Definition path_prod_over {X : Type} (A B : Type_Over X) (a1 a2 : A) (b1 b2 : B)
   : ((a1,b1);p1) = ((a2,b2);p2) :> prod_over A B.
 Proof.
   srapply @path_sigma.
-  exact (path_prod (a1,b1) (a2,b2) qa qb).
-  cbn.
-  destruct A as [A f]. destruct B as [B g]. cbn in *.
-  refine (transport_path_prod (fun ab : A * B => f (fst ab) = g (snd ab))
-                              (x := (a1, b1)) (y := (a2, b2)) qa qb p1 @ _).
-  cbn.
-  refine (transport_paths_Fl qa (transport (fun y : B => f a1 = g y) qb p1) @ _).
-  apply moveR_Vp.
-  refine (transport_paths_Fr qb p1 @ _). exact comm.
+  - exact (path_prod (a1,b1) (a2,b2) qa qb).
+  - cbn.
+    destruct A as [A f]. destruct B as [B g]. cbn in *.
+    refine (transport_path_prod (fun ab : A * B => f (fst ab) = g (snd ab))
+                                (x := (a1, b1)) (y := (a2, b2)) qa qb p1 @ _).
+    cbn.
+    refine (transport_paths_Fl qa (transport (fun y : B => f a1 = g y) qb p1) @ _).
+    apply moveR_Vp.
+    refine (transport_paths_Fr qb p1 @ _). exact comm.
 Defined.
 
 Definition terminal_obj_type_over {X : Type} : Type_Over X
@@ -125,7 +125,9 @@ Definition terminal_obj_type_over {X : Type} : Type_Over X
 
 Definition sum_over {X : Type} : (Type_Over X) -> (Type_Over X) -> Type_Over X.
 Proof.
-  intros [A f] [B g]. exists (A + B). intros [a | b]. exact (f a). exact (g b).
+  intros [A f] [B g]. exists (A + B). intros [a | b].
+  - exact (f a).
+  - exact (g b).
 Defined.
 
 Definition hunion {X : Type} : (Type_Over X) -> (Type_Over X) -> Type_Over X.
@@ -133,10 +135,9 @@ Proof.
   intros A B.
   exists (pushout (fst_over A B) (snd_over A B)).
   srapply @pushout_rec.
-  - apply sum_over.
-  - destruct A as [A f]. destruct B as [B g]. cbn.
-    intros [[a b] p]. cbn.
-    exact p.
+  - destruct A as [A f]. exact f.
+  - destruct B as [B g]. exact g.
+  - intros [[a b] p]. exact p.
 Defined.
 Arguments hunion X !A !B.
 

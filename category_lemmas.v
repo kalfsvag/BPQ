@@ -32,7 +32,7 @@ Section Type_to_Cat.
   Definition arrow_to_functor {X Y : 1-Type} (F : X -> Y) :
     Functor (Type_to_Cat X) (Type_to_Cat Y).
   Proof.
-    srapply @Build_Functor. exact F.
+    srapply (Build_Functor (Type_to_Cat X) (Type_to_Cat Y) F).
     - intros x1 x2. simpl.
       exact (ap F).
     - simpl. intros x1 x2 x3 p q.
@@ -44,7 +44,7 @@ Section Type_to_Cat.
     Functor (Type_to_Cat (BuildTruncType 1 (X -> Y))) (functor_category (Type_to_Cat X) (Type_to_Cat Y)).
   Proof.
     srapply @Build_Functor; simpl.
-    apply arrow_to_functor.
+    - apply arrow_to_functor.
     - intros f g p.
       srapply @Build_NaturalTransformation; simpl.
       + apply (ap10 p).

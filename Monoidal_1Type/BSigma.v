@@ -1,7 +1,7 @@
 Require Import HoTT.
-Require Import monoidal_1type.
-Require Import group_complete_1type.
 Require Import finite_lemmas.
+
+Require Import group_complete_1type.
 Require Import trunc_lemmas.
 
 (*Defining the monoidal 1-type of finite sets and isomorphisms*)
@@ -26,33 +26,86 @@ Section BΣ.
   Defined.
 
   (*Canonical objects in BΣ*)
-  Definition canon_BΣ (n : nat) : BΣ := (Fin n; Build_Finite (Fin n) n (tr 1%equiv)).
-  
+  Definition canon_BΣ (n : nat) : BΣ := (n; canon n).
 
-
-  (* Describing the path type of BΣ *)
-  Definition path_BΣ {S T : BΣ} : S <~> T <~> S = T
-    := path_finite_types_sum S T.
-
-  (* path_BΣ respects composition *)
-  Definition path_BΣ_compose {S1 S2 S3 : BΣ} (e1 : S2 <~> S1) (e2 : S3 <~> S2) :
-    path_BΣ e2 @ path_BΣ e1 = path_BΣ (e1 oE e2).
+  Lemma finite_types_eqcard {m n : nat} (A : Finite_Types m) (B : Finite_Types n) :
+    A <~> B -> m = n.
   Proof.
-    apply (equiv_inj path_BΣ^-1).
-    refine (_ @ (eissect (path_BΣ) (e1 oE e2))^).
-    apply path_equiv. simpl.
-    unfold pr1_path.
-    rewrite ap_pp.
-    rewrite ap_pr1_path_sigma_hprop. rewrite ap_pr1_path_sigma_hprop. apply path_arrow. intro s.
-    refine (transport_pp idmap _ _ _ @ _).
-    refine (ap10 (transport_idmap_path_universe e1) _ @ _). apply (ap e1).
-    apply (ap10 (transport_idmap_path_universe e2)).
+    destruct A as [A fA]. destruct B as [B fB]. simpl. intro e.
+    strip_truncations.
+    apply nat_eq_fin_equiv.
+    exact (fB oE e oE (equiv_inverse fA)).
   Qed.
 
+  (* in finite_lemmas: *)
+  (* (* Describing the path type of BΣ *) *)
+  Definition path_BΣ {A B : BΣ} : A <~> B -> A = B
+       := path_finite_types A B.
+  (* Proof. *)
+  (*   destruct A as [m A]. destruct B as [n B]. simpl. *)
+  (*   intro e. *)
+  (*   destruct (finite_types_eqcard A B e). *)
+  (*   apply (path_sigma (fun m : nat => Finite_Types m) (m; A) (m;B) idpath). simpl. *)
+  (*   apply path_finite_types_fix. *)
+  (*   exact e. *)
+  (* Defined. *)
+    
+ 
+
+  (* Definition isequiv_path_BΣ {A B : BΣ} : IsEquiv (@path_BΣ A B). *)
+  (* Proof. *)
+  (*   srapply @isequiv_adjointify. *)
+  (*   - intros []. exact equiv_idmap. *)
+  (*   - intros []. *)
+  (*     unfold path_BΣ. *)
+  (*     assert (H : (finite_types_eqcard (pr2 A) (pr2 A) equiv_idmap) = idpath). *)
+  (*     { apply hset_nat. } destruct H. *)
+  (*     destruct . *)
+
+  (* (* path_BΣ respects composition *) *)
+  (* shorter proof than in finite_lemmas *)
+  Definition path_BΣ_compose {A B C : BΣ} (e1 : A <~> B) (e2 : B <~> C) :
+    path_BΣ (e2 oE e1) = path_BΣ e1 @ path_BΣ e2.
+  Proof.
+    (* path_BΣ e2 @ path_BΣ e1 = path_BΣ (e1 oE e2). *)
+  Proof.
+    refine
+      (ap011 (fun g1 g2 => path_BΣ (g2 oE g1))
+             (eissect (@path_BΣ A B) e1)^ (eissect (@path_BΣ B C) e2)^ @ _).
+    generalize (path_BΣ e2). intros []. 
+    generalize (path_BΣ e1). intros []. simpl.
+    refine (path_finite_types_1 A).
+  Qed.
+  (* Proof. *)
+  (*   apply (equiv_inj path_BΣ^-1). *)
+  (*   refine (_ @ (eissect (path_BΣ) (e1 oE e2))^). *)
+  (*   apply path_equiv. simpl. *)
+  (*   unfold pr1_path. *)
+  (*   rewrite ap_pp. *)
+  (*   rewrite ap_pr1_path_sigma_hprop. rewrite ap_pr1_path_sigma_hprop. apply path_arrow. intro s. *)
+  (*   refine (transport_pp idmap _ _ _ @ _). *)
+  (*   refine (ap10 (transport_idmap_path_universe e1) _ @ _). apply (ap e1). *)
+  (*   apply (ap10 (transport_idmap_path_universe e2)). *)
+  (* Qed. *)
+
+  (* Move to finite_types.v when created *)
+  Definition sum_finite_types {m n : nat} (A : Finite_Types m) (B : Finite_Types n) :
+    Finite_Types (m + n).
+  Proof.
+    exists (A + B).
+    destruct A as [A fA]. destruct B as [B fB]. strip_truncations.
+    apply tr. simpl.
+    refine (_ oE equiv_functor_sum' fA fB).
+    apply equiv_inverse.
+    apply Fin_resp_sum.
+  Defined.
+    
+  
   Definition plus_BΣ : BΣ -> BΣ -> BΣ.
   Proof.
-    intros [S1 fin_S1] [S2 fin_S2].
-    refine (S1 + S2 ; finite_sum _ _)%type.
+    intros [m A] [n B].
+    exists (m + n)%nat.
+    exact (sum_finite_types A B).
   Defined.
 
   Definition BΣ_id : BΣ := canon_BΣ 0.
@@ -61,53 +114,28 @@ Section BΣ.
 
   (* path_BΣ behaves well with respect to sum *)
   Definition natural_path_BΣ_l {S1 S2 S3: BΣ} (e : S1 <~> S2) :
-    ap (fun x : BΣ => x ⊕ S3) (path_BΣ e) = path_BΣ (S := S1 ⊕ S3) (T := S2 ⊕ S3) (equiv_functor_sum_r (B := S3) e).
+    ap (fun x : BΣ => x ⊕ S3) (path_BΣ e) = path_BΣ (A := S1 ⊕ S3) (B := S2 ⊕ S3) (equiv_functor_sum_r (B := S3) e).
   Proof.
-    apply (equiv_inj (path_BΣ)^-1).
-    refine (_ @ (eissect (path_finite_types_sum (S1 ⊕ S3) (S2 ⊕ S3)) (equiv_functor_sum_r e))^).
-    apply path_equiv. simpl.
-    unfold pr1_path. 
-    transitivity
-      (transport idmap (ap (fun X : Type => X + S3) (ap Overture.pr1
-                             (path_sigma_hprop S1 S2 (path_universe_uncurried e))))).
-    { apply (ap (transport idmap)).
-      refine
-        ((ap_compose (fun x : BΣ => x ⊕ S3) Overture.pr1 _)^ @
-                    ap_compose Overture.pr1 (fun X : Type => X + S3) _). }
-    apply path_arrow. intro s.
-    refine ((transport_idmap_ap _ _ _ _ _ _)^ @ _).
-    refine ((ap (fun p => transport (fun X : Type => X + S3) p s) (ap_pr1_path_sigma_hprop _ _ _)) @ _).
-    destruct S1 as [S1 fin1]. destruct S2 as [S2 fin2]. destruct S3 as [S3 fin3]. simpl in *.
-    clear fin1 fin2 fin3.
-    revert e s.
-    apply (equiv_induction
-           (fun S2 e => forall s : (S1 + S3), transport (fun X : Type => X + S3) (path_universe_uncurried e) s = functor_sum e idmap s)).
-    change (path_universe_uncurried 1) with (path_universe (A := S1) idmap).      
-    rewrite path_universe_1. simpl.
-    intros [s1 | s3]; reflexivity.
+    
+    refine (_ @ ap (fun e' => @path_BΣ (S1⊕ S3) (S2 ⊕ S3) (equiv_functor_sum_r e'))
+              (eissect (@path_BΣ S1 S2) e)).
+    generalize (path_BΣ e). intros [].
+    simpl. unfold path_BΣ. apply inverse.
+    refine (_ @ path_finite_types_1 (S1 ⊕ S3)).
+    apply (ap (path_finite_types (S1 ⊕ S3) (S1 ⊕ S3))).
+    apply path_equiv. apply path_arrow. intros [s1 | s3]; reflexivity.
   Qed.
 
   Definition natural_path_BΣ_r {S1 S2 S3: BΣ} (e : S2 <~> S3) :
-    ap (fun x : BΣ => S1 ⊕ x) (path_BΣ e) = path_BΣ (S := S1 ⊕ S2) (T := S1 ⊕ S3) (equiv_functor_sum_l (A := S1) e).
+    ap (fun x : BΣ => S1 ⊕ x) (path_BΣ e) = path_BΣ (A := S1 ⊕ S2) (B := S1 ⊕ S3) (equiv_functor_sum_l (A := S1) e).
   Proof.
-    apply (equiv_inj (path_BΣ)^-1).
-    refine (_ @ (eissect (path_finite_types_sum (S1 ⊕ S2) (S1 ⊕ S3)) (equiv_functor_sum_l e))^).
-    apply path_equiv. simpl.
-    unfold pr1_path. 
-    transitivity
-      (transport idmap (ap (fun X : Type => S1 + X) (ap Overture.pr1 (path_sigma_hprop S2 S3 (path_universe_uncurried e))))).
-    { apply (ap (transport idmap)).
-      refine ((ap_compose (fun x : BΣ => S1 ⊕ x) Overture.pr1 _)^ @ ap_compose Overture.pr1 (fun X : Type => S1 + X ) _). }
-    apply path_arrow. intro s.
-    refine ((transport_idmap_ap _ _ _ _ _ _)^ @ _).
-    refine ((ap (fun p => transport (fun X : Type => S1 + X) p s) (ap_pr1_path_sigma_hprop _ _ _)) @ _).
-    destruct S1 as [S1 fin1]. destruct S2 as [S2 fin2]. destruct S3 as [S3 fin3]. simpl in *.
-    clear fin1 fin2 fin3. change (path_universe_uncurried e) with (path_universe e). 
-    revert e s. 
-    apply (equiv_induction
-           (fun S3 e => forall s : (S1 + S2), transport (fun X : Type => S1 + X) (path_universe e) s = functor_sum idmap e s)).
-    rewrite path_universe_1. simpl.
-    intros [s1 | s2]; reflexivity.
+    refine (_ @ ap (fun e' => @path_BΣ (S1 ⊕ S2) (S1 ⊕ S3) (equiv_functor_sum_l e'))
+              (eissect (@path_BΣ S2 S3) e)).
+    generalize (path_BΣ e). intros [].
+    simpl. unfold path_BΣ. apply inverse.
+    refine (_ @ path_finite_types_1 (S1 ⊕ S2)).
+    apply (ap (path_finite_types (S1 ⊕ S2) (S1 ⊕ S2))).
+    apply path_equiv. apply path_arrow. intros [s1 | s2]; reflexivity.
   Qed.
   
   (*The monoidal structure on BΣ*)
@@ -147,7 +175,7 @@ Section BΣ.
     unfold BΣ_lid.
     refine (natural_path_BΣ_l _ @ _).
     unfold BΣ_assoc.
-    refine (_ @ (path_BΣ_compose _ _)^).
+    refine (_ @ (path_BΣ_compose _ _)).
     apply (ap path_BΣ).
     apply path_equiv. apply path_arrow.
     intros [[[] | s1] | s2]; reflexivity.
@@ -158,7 +186,7 @@ Section BΣ.
     intros S1 S2. unfold BΣ_rid. unfold BΣ_assoc. unfold BΣ_lid. simpl.
     refine (natural_path_BΣ_l _ @ _).
     refine (_ @ whiskerL _ (natural_path_BΣ_r _)^).
-    refine (_ @ (path_BΣ_compose  _ _)^).
+    refine (_ @ (path_BΣ_compose  _ _)).
     apply (ap path_BΣ).
     apply path_equiv. apply path_arrow.
     intros [[s1 | []] | s2]; reflexivity.
@@ -169,11 +197,11 @@ Section BΣ.
     intros S1 S2 S3 S4.
     refine (natural_path_BΣ_l _  @ _).
     apply moveL_pV.
-    refine (path_BΣ_compose _ _ @ _).
+    refine ((path_BΣ_compose _ _)^ @ _).
     apply moveL_pV.
     refine (whiskerL _ (natural_path_BΣ_r _) @ _).
-    refine (path_BΣ_compose _ _ @ _).
-    refine (_ @ (path_BΣ_compose _ _)^).
+    refine ((path_BΣ_compose _ _)^ @ _).
+    refine (_ @ (path_BΣ_compose _ _)).
     apply (ap path_BΣ).
     apply path_equiv. apply path_arrow.
     intros [[[s1 | s2]| s3] | s4]; reflexivity.

@@ -2,6 +2,7 @@ Require Import HoTT.
 Require Import trunc_lemmas.
 Require Import sigma_lemmas.
 Require Import equiv_lemmas.
+Require Import category_lemmas.
 Require Import UnivalenceAxiom.
 
 
@@ -55,6 +56,20 @@ Proof.
   strip_truncations. intro p. apply tr. simpl in p. destruct p.
   exact (eB^-1 oE eA).
 Qed.
+
+
+Definition Fin_resp_sum (m n : nat) : Fin (m + n) <~> (Fin m) + (Fin n).
+Proof.
+  induction m.
+  - (*m is 0*)
+    apply equiv_inverse.
+    apply (sum_empty_l (Fin n)).
+  - simpl.
+    refine (_ oE (equiv_functor_sum_r IHm)).
+    refine ((equiv_sum_assoc (Fin m) Unit (Fin n))^-1 oE _ oE equiv_sum_assoc (Fin m) (Fin n) Unit).
+    apply equiv_functor_sum_l.
+    apply equiv_sum_symm.
+Defined.
 
 
 
@@ -153,8 +168,18 @@ Section Finite_Types.
     apply inverse.
     apply (concat2 (path_sigma_hprop_1 (x1; x2)) (path_sigma_hprop_1 (x1; x2))).
   Defined.
-  
-  
+
+  Lemma path_finite_types_fix_compose (m : nat) (A B C : Finite_Types m)
+        (e1 : A <~> B) (e2 : B <~> C) :
+    path_finite_types_fix m _ _ (e2 oE e1) =
+    (path_finite_types_fix m _ _ e1) @ (path_finite_types_fix m _ _ e2).
+  Proof.
+    unfold path_finite_types_fix. simpl.
+    refine (ap (path_sigma_hprop A C) (path_universe_compose e1 e2) @ _).
+    apply path_sigma_hprop_compose.
+  Defined.                  
+
+  (* This is more complicated, not sure if it is needed? *)
   Lemma path_finite_types_compose (A B C : {n : nat & Finite_Types n})
         (e1 : A.2 <~> B.2) (e2 : B.2 <~> C.2) :
     path_finite_types _ _ (e2 oE e1) = (path_finite_types _ _ e1) @ (path_finite_types _ _ e2).
@@ -309,7 +334,98 @@ End Finite_Types.
 
 
 
-(* Perhaps not the right placement? *)
+(* Section FinCat. *)
+(*   Definition fin_1type : 1-Type. *)
+(*     srapply (@BuildTruncType 1 {n : nat & Finite_Types n}). *)
+(*     red. *)
+(*     intros A B. *)
+(*     apply (trunc_equiv' (A.2 <~> B.2) (path_finite_types A B)). *)
+(*   Defined. *)
+
+(*   (* Check (fundamental_pregroupoid_category fin_1type). *) *)
+(*   (* Definition fincat : PreCategory. *) *)
+(*   (* Proof. *) *)
+(*   (*   srapply (Build_PreCategory (fun m n : nat => Fin m = Fin n)); simpl. *) *)
+(*   (*   - intro m. reflexivity. *) *)
+(*   (*   - intros l m n. *) *)
+(*   (*     intros p q. exact (q @ p). *) *)
+(*   (*   - intros. simpl. *) *)
+(*   (*     apply concat_p_pp. *) *)
+(*   (*   - simpl. intros. *) *)
+(*   (*     apply concat_p1. *) *)
+(*   (*   - simpl. intros. *) *)
+(*   (*     apply concat_1p. *) *)
+(*   (* Defined. *) *)
+
+(*   Definition fincat : PreCategory. *)
+(*   Proof. *)
+(*     srapply (Build_PreCategory (fun m n : nat => Fin m <~> Fin n)); simpl. *)
+(*     - intro m. apply equiv_idmap. *)
+(*     - intros l m n. *)
+(*       apply equiv_compose'. *)
+(*     - intros. simpl. *)
+(*       apply path_equiv. reflexivity. *)
+(*     - simpl. intros. *)
+(*       apply path_equiv. reflexivity. *)
+(*     - simpl. intros. apply path_equiv. reflexivity. *)
+(*   Defined. *)
+
+    
+  
+(*   (* Trying to show that these are equivalent *) *)
+(*   Definition F : Functor fincat (Type_to_Cat (fin_1type)). *)
+(*   Proof. *)
+(*     srapply @Build_Functor; simpl. *)
+(*     - intro m. exact (m; canon m). *)
+(*     - intros m n e. simpl.  *)
+(*       apply path_finite_types. *)
+(*       apply e. *)
+(*     - intros a b c e1 e2. *)
+(*       hnf.  *)
+(*       apply (path_finite_types_compose (a; canon a) (b; canon b) (c; canon c)). *)
+(*     - hnf. *)
+(*       intro n. *)
+(*       apply path_finite_types_1. *)
+(*   Defined. *)
+
+(*   Definition G : Functor (Type_to_Cat (fin_1type)) fincat. *)
+(*   Proof. *)
+(*     srapply @Build_Functor; simpl. *)
+(*     - apply pr1. *)
+(*     - intros A B []. exact equiv_idmap. *)
+(*     - intros a b c [] []. simpl. *)
+(*       apply path_equiv. reflexivity. *)
+(*     - reflexivity. *)
+(*   Defined. *)
+    
+(*   (* F is a weak equivalence (def 9.4.6) *) *)
+(*   Arguments path_finite_types : simpl never. *)
+  
+(*   Definition fullyfaithful_F : *)
+(*     forall (a b : _), IsEquiv (@morphism_of _ _ F a b).   *)
+(*   Proof. *)
+(*     intros a b. simpl in a, b. *)
+(*     unfold F. cbn. *)
+(*     apply equiv_isequiv. *)
+(*   Defined. *)
+
+(*   Definition essentially_surj_F : *)
+(*     Attributes.IsEssentiallySurjective F. *)
+(*   Proof. *)
+(*     unfold Attributes.IsEssentiallySurjective. simpl. *)
+(*     intros [m [A fA]]. strip_truncations. *)
+(*     apply tr. *)
+(*     exists m. *)
+(*     srapply @Build_Isomorphic. simpl. *)
+(*     apply path_finite_types. *)
+(*     simpl. apply equiv_inverse. *)
+(*     apply fA. *)
+(*   Defined.  *)
+    
+
+    
+(* End FinCat. *)
+
 
 
 
@@ -1061,18 +1177,6 @@ End Cosimplicial_maps.
 (*   simpl. unfold const. Abort. *)
 
 
-(* Definition Fin_resp_sum (m n : nat) : Fin (m + n) <~> (Fin m) + (Fin n). *)
-(* Proof. *)
-(*   induction m. *)
-(*   - (*m is 0*) *)
-(*     apply equiv_inverse. *)
-(*     apply (sum_empty_l (Fin n)). *)
-(*   - simpl. *)
-(*     refine (_ oE (equiv_functor_sum_r IHm)). *)
-(*     refine ((equiv_sum_assoc (Fin m) Unit (Fin n))^-1 oE _ oE equiv_sum_assoc (Fin m) (Fin n) Unit). *)
-(*     apply equiv_functor_sum_l. *)
-(*     apply equiv_sum_symm. *)
-(* Defined. *)
 
 (* Definition decompose_fin {n : nat} (i : Fin n) : *)
 (*   Fin n <~>  Fin (nat_minus (nat_fin' i).+1 n) + Unit + Fin (nat_fin' i). *)

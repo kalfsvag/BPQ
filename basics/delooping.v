@@ -117,6 +117,25 @@ Section deloop_induction.
   Qed.
 End deloop_induction.
 
+Section deloop_ind_prop.
+  Context (X : Type) (x0 : X) 
+          (isconn_X : forall (x : X), merely (x0 = x)).
+  Context (Y : X -> hProp)
+          (y0 : Y (x0)).
+
+  Definition deloop_ind_prop : forall x : X, Y x.
+  Proof.
+    intro x.
+    generalize (isconn_X x).
+    apply Trunc_ind.
+    { exact _. }
+    intros []. exact y0.
+  Defined.
+End deloop_ind_prop.
+                     
+    
+    
+
 Section deloop_ind_set.
   Context (X : Type) (x0 : X) (* (istrunc_X : IsTrunc 1 X) *)
           (isconn_X : forall (x : X), merely (x0 = x)).
@@ -231,7 +250,41 @@ Section universal.
       
   
 End universal.
-      
+
+
+Section deloop_double_ind_set.
+  Context (X1 : Type) (a : X1) 
+          (isconn_X1 : forall (x : X1), merely (a = x)).
+  Context (X2 : Type) (b : X2) 
+          (isconn_X2 : forall (x : X2), merely (b = x)).
+
+  Context (Y : X1 -> X2 -> 0-Type)
+          (y0 : Y a b)
+          (fr : forall (ω : b = b), transport (Y a) ω y0 = y0)
+          (fl : forall (ω : a = a), transport (fun x1 => Y x1 b) ω y0 = y0).
+  
+  Definition deloop_double_ind_set : forall (x1 : X1) (x2 : X2), Y x1 x2.
+  Proof.
+    intros x1.
+    simple refine (deloop_ind_set X2 b isconn_X2 (fun x2 => Y x1 x2) _ _).
+    - exact (deloop_ind_set X1 a isconn_X1 (fun x1 => Y x1 b) y0 fl x1).
+    - simpl. intro.
+      revert x1.
+      apply (deloop_ind_prop X1 a isconn_X1). simpl.
+      refine (_ @ fr ω @ _).
+      + apply (ap (transport (fun x : X2 => Y a x) ω)).
+        unfold deloop_ind_set.
+        exact (deloop_ind_beta_x0 X1 a isconn_X1
+                   (fun x : X1 =>
+                      {| trunctype_type := Y x b; istrunc_trunctype_type := trunc_hset |}) y0 _ _ ) .
+      + apply inverse.
+        unfold deloop_ind_set.
+        exact (deloop_ind_beta_x0 X1 a isconn_X1
+                   (fun x : X1 =>
+                      {| trunctype_type := Y x b; istrunc_trunctype_type := trunc_hset |}) y0 _ _).
+  Defined.
+End deloop_double_ind_set.
+
     
 
 

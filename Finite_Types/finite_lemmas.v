@@ -846,62 +846,56 @@ End Magma.
 
 
 Section Restrict_Equivalence.
-  (* This is just copied from fin_equiv_hfiber, but I wanted it as its own result *)
+  Context {n : nat}
+          {A : Type}
+          (e : A + Unit <~> Fin n.+1).
 
-  (* My doing: One of the Fin n's is generalized. *)
-  Local Lemma is_inl_restrict_equiv_notfixlast {n : nat} {A : Type}
-        (e : A+Unit <~> Fin n.+1) (y : Fin n) (p : e (inr tt) = inl y) :
-    forall a : A, is_inl ((fin_transpose_last_with n (inl y) oE e) (inl a)).
+  Local Definition swap := fin_transpose_last_with n (e (inr tt)).
+
+  (* Lemma swap_fix_last : *)
+  (*   (swap oE e) (inr tt) = inr tt. *)
+  (* Proof. *)
+  (*   unfold swap. ev_equiv. apply fin_transpose_last_with_with. *)
+  (* Qed. *)
+
+  Lemma is_inr_restrict_equiv :
+    forall u : Unit,
+      is_inr ((swap oE e) (inr u)).
   Proof.
-    intro a. ev_equiv.
-    assert (q : inl y <> e (inl a))
-      by exact (fun z => inl_ne_inr _ _ (equiv_inj e (z^ @ p^))).
-    set (z := e (inl a)) in *.
-    destruct z as [z|[]].
-    - rewrite fin_transpose_last_with_rest;
-        try exact tt; try assumption.
-    - rewrite fin_transpose_last_with_last; exact tt.
+    intros []. unfold swap.
+    ev_equiv. rewrite fin_transpose_last_with_with. exact tt.
   Qed.
-
-  Local Lemma is_inr_restrict_equiv_notfixlast {n : nat} {A : Type}
-        (e : A + Unit <~> Fin n.+1) (y : Fin n) (p : e (inr tt) = inl y) :
-    forall b : Unit, is_inr ((fin_transpose_last_with n (inl y) oE e) (inr b)).
+  
+  Lemma is_inl_restrict_equiv :
+    forall a : A,
+      is_inl ((swap oE e) (inl a)).
   Proof.
-    intros []. ev_equiv.
-    rewrite p.
-    rewrite fin_transpose_last_with_with; exact tt.
-  Qed.
-
-  Local Lemma is_inl_restrict_equiv_last_fixed {A B: Type} (e : A + Unit <~> B + Unit) (p : e (inr tt) = inr tt)
-    : forall a : A, is_inl (e (inl a)).
-  Proof.
-    intro a.
-    destruct (is_inl_or_is_inr (e (inl a))) as [l|r].
-    - exact l.
-    - assert (q := inr_un_inr (e (inl a)) r).
-      apply moveR_equiv_V in q.
-      assert (s := q^ @ ap (e^-1 o inr) (path_unit _ _) @ (moveL_equiv_V _ _ p)^).
-      elim (inl_ne_inr _ _ s).
-  Qed.
-
-  Local Lemma is_inr_restrict_equiv_last_fixed {A B : Type} (e : A+Unit <~> B+Unit) (p : e (inr tt) = inr tt) :
-    forall b : Unit, is_inr (e (inr b)).
-  Proof.
-    intros []; exact (p^ # tt).
-  Defined.
-
-  Definition equiv_restrict {n : nat} {A : Type} (e : A+Unit <~> Fin n.+1) :  A<~> Fin n.
-  Proof.
-    simpl in e.
-    recall (e (inr tt)) as y eqn:p.
-    assert (p' := (moveL_equiv_V _ _ p)^).
+    intro a. unfold swap. ev_equiv.
+    (* two cases: e (inl a) is the last element, or it isn't *)
+    assert (neq : (e (inr tt) <> e (inl a)))
+        by exact (fun z => inl_ne_inr _ _ (equiv_inj e (z^))).
+    recall (e (inl a)) as y eqn:p.
     destruct y as [y | []].
-    (*  *)
-    - apply (equiv_unfunctor_sum_l (fin_transpose_last_with n (inl y) oE e)).
-      + apply is_inl_restrict_equiv_notfixlast. exact p.
-      + apply is_inr_restrict_equiv_notfixlast. exact p.
-    - apply (equiv_unfunctor_sum_l e (is_inl_restrict_equiv_last_fixed e p) (is_inr_restrict_equiv_last_fixed e p)).
-  Defined.
+    - rewrite p.
+      rewrite fin_transpose_last_with_rest.
+      { exact tt. }
+      exact (fun q => neq (q @ p^)).
+    - rewrite p.
+      rewrite fin_transpose_last_with_last.
+      (* two cases: e (inr tt) is inl(z) or inr(tt), the latter wich is absurd *)
+      recall (e (inr tt)) as z eqn:p'.
+      destruct z as [z | []].
+      + rewrite p'. exact tt.
+      + destruct (neq (p' @ p^)).
+  Qed.
+
+  Definition equiv_restrict :=
+    equiv_unfunctor_sum_l (swap oE e)
+                          is_inl_restrict_equiv
+                          is_inr_restrict_equiv.
+
+  
+
 End Restrict_Equivalence.
 
       

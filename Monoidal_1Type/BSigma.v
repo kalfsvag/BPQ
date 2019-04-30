@@ -39,7 +39,7 @@ Section BΣ.
 
   (* in finite_lemmas: *)
   (* (* Describing the path type of BΣ *) *)
-  Definition path_BΣ {A B : BΣ} : A <~> B -> A = B
+  Definition path_BΣ {A B : BΣ} : A <~> B <~> A = B
        := path_finite_types A B.
   (* Proof. *)
   (*   destruct A as [m A]. destruct B as [n B]. simpl. *)
@@ -266,7 +266,7 @@ Section BΣ.
   Defined.    
 
   Definition univalent_group_completion_BΣ :
-    IsCategory group_completion_BΣ.
+    Categories.IsCategory group_completion_BΣ.
   Proof.
     apply univalent_monactcat; simpl.
     - intros A B.
@@ -276,10 +276,10 @@ Section BΣ.
       apply ((path_BΣ)^-1 p).
     - intro A.
       apply (trunc_equiv' (Empty <~> A)).
-      apply (path_BΣ (S := (canon_BΣ 0))).
-      apply (trunc_equiv' (A <~> Empty)).
-      apply equiv_equiv_inverse.
-      exact _.
+      + apply (path_BΣ (A := (canon_BΣ 0))).
+      + apply (trunc_equiv' (A <~> Empty)).
+        * apply equiv_equiv_inverse.
+        * exact _.
   Qed.
 
   
@@ -290,3 +290,88 @@ Section BΣ.
     
   
 End BΣ.
+
+Require Import delooping.
+(* Section deloop_BΣ. *)
+(*   Definition finite_types_ind_1type (m : nat) *)
+(*              (P : Finite_Types m -> 1-Type) *)
+(*              (p0 : P (canon m)) *)
+(*              (f : forall (e : canon m <~> canon m), *)
+(*                  transport P (path_finite_types_fix m _ _ e) p0 = p0) *)
+(*              (* (ishom_f : *) *)
+(*              (*    forall (e g : canon m <~> canon m), *) *)
+(*              (*      f (g oE e) = transport_pp P *) *)
+(*              (*                                (path_finite_types_fix m _ _ e) *) *)
+(*              (*                                (path_finite_types_fix m _ _ g) *) *)
+(*   : forall x : Finite_Types m, P x. *)
+(*   Proof. *)
+(*     srefine (deloop_ind (Finite_Types m) (canon m) _ P p0 _ _).  *)
+(*     - intros [A fA]. strip_truncations. *)
+(*       apply tr. apply inverse. *)
+(*       apply path_finite_types_fix. exact fA. *)
+(*     - intro ω. *)
+(*       refine (_ @ f ((path_finite_types_fix m (canon m) (canon m))^-1 ω)). *)
+(*       apply (ap (fun x => *)
+(*                transport P x p0)). *)
+(*       apply inverse. apply eisretr. *)
+(*     - intros. hnf. *)
+(*       repeat rewrite concat_1p. *)
+  
+(*   (* TODO *) *)
+(* End deloop_BΣ. *)
+
+Add Rec LoadPath "~/groupoids" as GR.
+Require Import cquot.
+Require Import cquot_principles.
+
+
+Definition tr1_group_completion_BΣ := cquot (group_completion_BΣ).
+
+Lemma isconn_finite_types (m : nat) :
+  forall x : Finite_Types m,
+    merely (canon m = x).
+Proof.
+  intros [A fA]. strip_truncations.
+  apply tr. apply inverse. apply path_finite_types_fix.
+  exact fA.
+Qed.
+
+Definition grp_compl_BΣ_ind_set
+           (P : tr1_group_completion_BΣ -> hSet)
+           (f : forall (m n : nat), P (ccl group_completion_BΣ ((canon_BΣ m), (canon_BΣ n))))
+           : forall z : tr1_group_completion_BΣ, P z.
+  Proof.
+    srapply @cquot_ind_set. 
+    - simpl.
+      intros [[m x] [n y]]. revert x y.
+      srefine (deloop_double_ind_set
+               (Finite_Types m) (canon m) (isconn_finite_types m)
+               (Finite_Types n) (canon n) (isconn_finite_types n)
+               _
+               (f m n)
+               _ _
+               
+             ).
+      + admit.
+      + admit.
+    - simpl. unfold monoidal_action_morphism.
+      intros [[m a1] [n a2]] b [s p].  destruct p. simpl.
+      revert a2.
+      srefine (deloop_ind_prop
+               (Finite_Types n) (canon n) (isconn_finite_types n)
+               _ _).
+      revert a1.
+      srefine (deloop_ind_prop
+               (Finite_Types m) (canon m) (isconn_finite_types m)
+               _ _).
+      destruct s as [s x]. revert x.
+      srefine (deloop_ind_prop
+               (Finite_Types s) (canon s) (isconn_finite_types s)
+               _ _).
+      simpl.
+      
+      admit.
+    
+    
+    
+  

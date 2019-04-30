@@ -879,14 +879,14 @@ Section Restrict_Equivalence.
     - rewrite p.
       rewrite fin_transpose_last_with_rest.
       { exact tt. }
-      exact (fun q => neq (q @ p^)).
+      destruct p. exact neq.
     - rewrite p.
       rewrite fin_transpose_last_with_last.
       (* two cases: e (inr tt) is inl(z) or inr(tt), the latter wich is absurd *)
-      recall (e (inr tt)) as z eqn:p'.
+      recall (e (inr tt)) as z eqn:q.
       destruct z as [z | []].
-      + rewrite p'. exact tt.
-      + destruct (neq (p' @ p^)).
+      + rewrite q. exact tt.
+      + destruct q^. apply neq. exact p^.
   Qed.
 
   Definition equiv_restrict :=

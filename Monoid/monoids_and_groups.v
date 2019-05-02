@@ -119,7 +119,7 @@ Section nat_monoid.
 
   Definition nat_symm_monoid : Symmetric_Monoid := Build_Symmetric_Monoid nat_monoid nat_plus_comm.    
 End nat_monoid.
-
+Declare Scope monoid_scope.
 Infix "+" := mon_mult : monoid_scope.
 (* Notation "a + b"  := (mon_mult a b) : monoid_scope. *)
 Notation "- a" := (grp_inv a) : monoid_scope.
@@ -147,6 +147,50 @@ Section Loop_is_group.
     - exact concat_pV.
   Defined.
 End Loop_is_group.
+
+Section Group_2.
+  Inductive grp_2_set : Type :=
+    |ι : grp_2_set
+    |τ : grp_2_set.
+
+  Definition twist_2 : grp_2_set -> grp_2_set :=
+    fun b => if b then τ else ι.
+
+  Global Instance isset_grp_2 : IsHSet grp_2_set.
+  Proof.
+    srefine (trunc_equiv' (Bool) _).
+    srapply @equiv_adjointify.
+    - intros [ | ].
+      + exact ι.
+      + exact τ.
+    - intros [ | ].
+      + exact true.
+      + exact false.
+    - intros [ | ]; reflexivity.
+    - intros [|]; reflexivity.
+  Qed. 
+  
+  Definition group_2 : Group.
+  Proof.
+    srapply Build_Group.
+    - srapply Build_Monoid.
+      + exact (BuildTruncType 0 grp_2_set).
+      + intro b.
+        exact (if b then idmap else twist_2).
+      + exact ι.
+      + unfold associative.
+        intros [ | ] [ | ] [ | ]; reflexivity.
+      + unfold left_identity. reflexivity.
+      + unfold right_identity.
+        intros [|]; reflexivity.
+    - simpl. exact idmap.       (* every element is its own inverse *)
+    - unfold left_inverse. simpl.
+      intros [|]; reflexivity.
+    - unfold right_inverse. simpl.
+      intros [|]; reflexivity.
+  Defined.
+End Group_2.
+    
 
 Section Group_lemmas.
   Open Scope monoid_scope.

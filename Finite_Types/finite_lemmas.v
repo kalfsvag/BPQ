@@ -15,22 +15,75 @@ Definition Embedding (A B : Type) := {f : A -> B & IsEmbedding f}.
 Definition fun_of_emb (A B : Type) : Embedding A B -> (A -> B) := pr1.
 Coercion fun_of_emb : Embedding >-> Funclass.
 
+Definition τ : Fin 2 -> Fin 2.
+Proof.
+  unfold Fin.
+    intros [[[] |[]] | [] ].
+    + apply inr. exact tt.
+    + apply inl. apply inr. exact tt.
+Defined.
+
+Definition τ_squared : τ o τ == idmap.
+Proof.
+  intros [[[] |[]] | [] ]; reflexivity.
+Defined.  
+
+Definition isequiv_τ : IsEquiv τ.
+  apply (isequiv_adjointify τ τ); apply τ_squared.
+Defined.
+
+Definition equiv_τ : Fin 2 <~> Fin 2 :=
+  BuildEquiv _ _ τ isequiv_τ.
+
+Definition equiv_fin2_bool : Fin 2 <~> Bool.
+Proof.
+  srapply @equiv_adjointify.
+  { intros [[[] | []] | []].
+    - exact true.
+    - exact false. }
+  { intros  [ | ].
+    - exact (inl (inr tt)).
+    - exact (inr tt). }
+  - intros [ | ] ;reflexivity.
+  - intros [[[] | []] | []]; reflexivity.
+Defined.
+
+(* Definition equiv_bool_autFin2 : *)
+(*   Bool <~> (Fin 2 <~> Fin 2). *)
+(* Proof. *)
+(*   srapply @equiv_adjointify. *)
+(*   - intros [ | ]. *)
+(*     + exact equiv_idmap. *)
+(*     + exact equiv_τ. *)
+(*   - intro e. recall (e (inr tt)) as x eqn:p. *)
+(*     destruct x as [[[] | []] |[] ]. *)
+(*     + exact false. *)
+(*     + exact true. *)
+(*   - intro e.  *)
+(*     destruct (e (inr tt)) as [[[] | []] |[] ]; simpl. *)
+    
+    
+
+
+(* Definition equiv_Fin2_τ_or_id (e : Fin 2 <~> Fin 2) : *)
+(*   (e = equiv_τ) + (e = 1%equiv). *)
+(* Proof. *)
+(*   recall (e (inr tt)) as x eqn:p. *)
+(*   destruct x as [x | []]. *)
+(*   - apply inl. *)
+    
+(*     equiv_bool_aut_bool *)
+
+(* Definition comm_equiv_Fin2 (e1 e2 : Fin 2 <~> Fin 2) : *)
+
+
+
 (* The type of decidable propositions is finite *)
 Global Instance finite_dprop : Finite DProp.
 Proof.
   refine (finite_equiv' (Fin 2) _ _).
-  transitivity Bool.
-  + unfold Fin.
-    srapply @equiv_adjointify.
-    { intros [[[] | []] | []].
-      - exact true.
-      - exact false. }
-    { intros  [ | ].
-      - exact (inl (inr tt)).
-      - exact (inr tt). }
-    * intros [ | ] ;reflexivity.
-    * intros [[[] | []] | []]; reflexivity.
-  + apply equiv_inverse. apply equiv_dprop_to_bool.
+  refine (_ oE equiv_fin2_bool).
+  apply equiv_inverse. apply equiv_dprop_to_bool.
 Qed.
 
 (* This is also in monoidal_1type.v *)
@@ -850,61 +903,133 @@ Section Restrict_Equivalence.
           {A : Type}
           (e : A + Unit <~> Fin n.+1).
 
-  Local Definition swap := fin_transpose_last_with n (e (inr tt)).
+  Definition swap_last := fin_transpose_last_with n (e (inr tt)).
 
-  (* Lemma swap_fix_last : *)
-  (*   (swap oE e) (inr tt) = inr tt. *)
-  (* Proof. *)
-  (*   unfold swap. ev_equiv. apply fin_transpose_last_with_with. *)
-  (* Qed. *)
+  Lemma swap_fix_last :
+    (swap_last oE e) (inr tt) = inr tt.
+  Proof.
+    unfold swap_last. ev_equiv. apply fin_transpose_last_with_with.
+  Qed.
 
   Lemma is_inr_restrict_equiv :
     forall u : Unit,
-      is_inr ((swap oE e) (inr u)).
+      is_inr ((swap_last oE e) (inr u)).
   Proof.
-    intros []. unfold swap.
-    ev_equiv. rewrite fin_transpose_last_with_with. exact tt.
+    intros []. rewrite swap_fix_last. exact tt.
   Qed.
+
+  Lemma not_inr_is_inl {X Y : Type}
+        (x :  X + Y)
+        (not_inr : forall y : Y, x <> inr y)
+    : is_inl x.
+  Proof.
+    destruct x as [x | y'].
+    - exact tt.
+    - destruct (not_inr y' idpath).
+  Qed.
+        
   
   Lemma is_inl_restrict_equiv :
     forall a : A,
-      is_inl ((swap oE e) (inl a)).
+      is_inl ((swap_last oE e) (inl a)).
   Proof.
-    intro a. unfold swap. ev_equiv.
-    (* two cases: e (inl a) is the last element, or it isn't *)
-    assert (neq : (e (inr tt) <> e (inl a)))
-        by exact (fun z => inl_ne_inr _ _ (equiv_inj e (z^))).
-    recall (e (inl a)) as y eqn:p.
-    destruct y as [y | []].
-    - rewrite p.
-      rewrite fin_transpose_last_with_rest.
-      { exact tt. }
-      destruct p. exact neq.
-    - rewrite p.
-      rewrite fin_transpose_last_with_last.
-      (* two cases: e (inr tt) is inl(z) or inr(tt), the latter wich is absurd *)
-      recall (e (inr tt)) as z eqn:q.
-      destruct z as [z | []].
-      + rewrite q. exact tt.
-      + destruct q^. apply neq. exact p^.
+    intro a.
+    apply not_inr_is_inl.
+    intros [].
+    rewrite <- swap_fix_last.
+    intro p. apply (inl_ne_inr a tt).
+    exact (equiv_inj (swap_last oE e) p).
   Qed.
+    
+    
+  (*   intro a. unfold swap_last. ev_equiv. *)
+  (*   (* two cases: e (inl a) is the last element, or it isn't *) *)
+  (*   assert (neq : (e (inr tt) <> e (inl a))) *)
+  (*       by exact (fun z => inl_ne_inr _ _ (equiv_inj e (z^))). *)
+  (*   recall (e (inl a)) as y eqn:p. *)
+  (*   destruct y as [y | []]. *)
+  (*   - rewrite p. *)
+  (*     rewrite fin_transpose_last_with_rest. *)
+  (*     { exact tt. } *)
+  (*     destruct p. exact neq. *)
+  (*   - rewrite p. *)
+  (*     rewrite fin_transpose_last_with_last. *)
+  (*     (* two cases: e (inr tt) is inl(z) or inr(tt), the latter wich is absurd *) *)
+  (*     recall (e (inr tt)) as z eqn:q. *)
+  (*     destruct z as [z | []]. *)
+  (*     + rewrite q. exact tt. *)
+  (*     + destruct q^. exact (neq p^). *)
+  (* Qed. *)
 
   Definition equiv_restrict :=
-    equiv_unfunctor_sum_l (swap oE e)
+    equiv_unfunctor_sum_l (swap_last oE e)
                           is_inl_restrict_equiv
                           is_inr_restrict_equiv.
 
-  
+  Definition equiv_restrict_eta :
+    equiv_restrict +E equiv_idmap == swap_last oE e.
+  Proof.
+    intro x.
+    refine (_ @ unfunctor_sum_eta _ is_inl_restrict_equiv is_inr_restrict_equiv x).
+    destruct x as [x | []]; try reflexivity.    
+    simpl.
+    destruct (unfunctor_sum_r (fun x : A + Unit => swap_last (e x)) is_inr_restrict_equiv tt).
+    reflexivity.
+  Qed.
 
+  (* Definition equiv_restrict_fixlast : *)
+  (*   (e (inr tt) = inr tt) -> equiv_restrict +E equiv_idmap = e. *)
+  (* Proof. *)
+  (*   intro p. *)
+  (*   cut (swap = equiv_idmap). *)
+  (*   { intro q. unfold equiv_restrict. *)
+  (*     apply path_equiv. simpl. *)
+  (*     apply path_arrow. intros [a | []]; simpl. *)
+  (*     -  *)
+      
 End Restrict_Equivalence.
 
-      
+Definition equiv_restrict_plus1 {n : nat} {A : Type} (e : A <~> Fin n) :
+  equiv_restrict (e +E equiv_idmap) == e.
+Proof.
+  intro a.
+  apply (path_sum_inl Unit).
+  refine (unfunctor_sum_l_beta _ _ a @ _).
+  simpl. destruct n; reflexivity.      (* for some reason I have to destruct n *)
+Qed.
 
-
-
-
-
+(* Definition swap_last_compose {n : nat} (e1 e2 : Fin n.+1 <~> Fin n.+1) : *)
+(*   swap_last (e2 oE e1) == (swap_last e2) oE (swap_last e1). *)
+(* Proof. *)
+(*   intro x. unfold swap_last. *)
   
+(* Definition swap_compose {n : nat} (e1 e2 : Fin n.+1 <~> Fin n.+1) : *)
+(*   e2 oE swap_last e1 oE e1 == e2 oE e1. *)
+(* Proof. *)
+(*   hnf. intro x. *)
+  
+
+(* Definition equiv_restrict_compose {n : nat} (e1 e2 : Fin n.+1 <~> Fin n.+1) : *)
+(*   equiv_restrict (e2 oE e1) == (equiv_restrict e2) oE (equiv_restrict e1). *)
+(* Proof. *)
+(*   destruct n. { intros []. } *)
+(*   intro x. *)
+(*   apply (path_sum_inl Unit). *)
+(*   refine (_ @ (unfunctor_sum_l_beta _ _ (equiv_restrict e1 x))^). *)
+(*   refine (_ @ (ap (swap_last e2 oE e2) (unfunctor_sum_l_beta _ _ x)^)). *)
+(*   refine (unfunctor_sum_l_beta _ _ x @ _). *)
+(*   assert (comm_sigma2 : forall g1 g2 : Fin 2 <~> Fin 2, g1 oE g2 == g2 oE g1). *)
+(*   { admit. } *)
+(*   transitivity ((swap_last e2 oE swap_last e1 oE (e2 oE e1)) (inl x)). *)
+(*   { simpl. generalize (e2 (e1 (inl x))). (* not true. . . *) admit. } *)
+(*   apply (ap (swap_last e2)). *)
+(*   apply (comm_sigma2 (swap_last e1) e2 (e1 (inl x))). *)
+  
+  
+
+(*   (* Fin 2 <~> Fin 2 commutative, and swap functorial *) *)
+(* Admitted. *)
+
 
 Require Import nat_lemmas.
 

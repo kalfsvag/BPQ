@@ -7,159 +7,136 @@ Require Import HoTT.
 (* exact a. *)
 (* destruct (X n). *)
 Require Import finite_lemmas.
-
-Definition twist2 : Fin 2 -> Fin 2.
-Proof.
-  unfold Fin.
-    intros [[[] |[]] | [] ].
-    + apply inr. exact tt.
-    + apply inl. apply inr. exact tt.
-Defined.
-
-Definition twist2_squared : twist2 o twist2 == idmap.
-Proof.
-  intros [[[] |[]] | [] ]; reflexivity.
-Defined.  
-
-Definition isequiv_twist2 : IsEquiv twist2.
-  apply (isequiv_adjointify twist2 twist2); apply twist2_squared.
-Defined.
-
-Definition equiv_twist2 : Fin 2 <~> Fin 2 :=
-  BuildEquiv _ _ twist2 isequiv_twist2.
-
-Fixpoint endpoint_minus {n : nat} (k : Fin n.+1) : nat.
-Proof.
-  simpl in k.
-  destruct k as [k | endpoint].
-  destruct n. destruct k.
-  (* (n+1)-(k+1) := n - k  *)
-  - exact (endpoint_minus n k).
-  (* (n+1)-(n+1) = 0 *)
-  - exact 0.
-Defined.
-
-Fixpoint iterated_composition {A : Type} (n : nat) (f : A <~> A) : A <~> A.
-Proof.
-  destruct n.
-  - exact equiv_idmap.
-  - exact (f oE (iterated_composition A n f)).
-Defined.
+Require Import monoids_and_groups.
+  
 
 Section Determinant.
-  Fixpoint determinant (n : nat) :
-    (Fin n <~> Fin n) -> (Fin 2 <~> Fin 2).
+  (* the determinant of the map swapping k and the last element of Fin n *)
+  Definition det_twist (n : nat) (k : Fin n) : group_2.
   Proof.
-    intro e.
-
-    (* refine (_ oE determinant n e_restr). *)
-    
-    destruct n.
-    (*  *)
-    - exact equiv_idmap.
-    - (** the determinant of e is the determinant of the restriction times the determinant of the twist.
-          the determinant of the twist is tw : 2 <~> 2 to the power of the number of transpositions *)
-      (* destruct  as [twist_to e_restr]. *)
-      refine (_ oE determinant n (snd ((equiv_fin_equiv n n)^-1 e))).
-      exact (iterated_composition (endpoint_minus (fst ((equiv_fin_equiv n n)^-1 e))) equiv_twist2).
-  Defined.
-
-  Definition fin_equiv_inv_plus1 {m n : nat} (e : Fin m <~> Fin n) :
-    (equiv_fin_equiv m n)^-1 (e +E 1) = (inr tt, e).
-  Proof.
-    apply (equiv_inj (fin_equiv' m n)).
-    refine (eisretr (fin_equiv' m n) (e +E 1) @ _).
-    unfold fin_equiv'. unfold fin_equiv. simpl.
-    destruct n; apply inverse;
-      apply ecompose_1e.
-  Defined.
-
-  
-  Definition det_plus_1 {n : nat} (e : Fin n <~> Fin n) :
-    determinant n.+1 (e +E 1) = determinant n e.
-  Proof.
-    simpl.
-    rewrite (ap fst (fin_equiv_inv_plus1 e)). simpl.
-    rewrite (ap snd (fin_equiv_inv_plus1 e)). simpl.
-    destruct n. reflexivity. 
-    apply ecompose_1e.
-  Defined.
-
-  Lemma fin_sum (m n : nat) : Fin (m + n)%nat <~>  (Fin n) + (Fin m).
-  Proof.
-    induction m; simpl.
-    - apply equiv_inverse. apply sum_empty_r.
-    - refine (equiv_sum_assoc _ _ _ oE (IHm +E 1)).
-  Defined.
-    
-
-  Definition det_plus_id {m n : nat} (e : Fin n <~> Fin n) :
-    determinant (m+n) ((fin_sum m n)^-1 oE (e +E 1) oE (fin_sum m n)) = determinant n e.
-  Proof.
-    revert n e.
-    induction m. simpl.
-    - intros n e. apply (ap (determinant n)). apply path_equiv. simpl. reflexivity.
-    - intros n e.
-      refine (_ @ det_plus_1 _).
-      refine (_ @ IHm _ _).
-      apply (ap (determinant (m + n).+1)).
-      clear IHm.
-      induction m.
-      + apply path_equiv. simpl. apply path_arrow. intro x.
-        destruct x as [k | []]; reflexivity.
-      + simpl.
-
-      
-      apply (ap011 (fun e1 e2 => e1 oE (e +E 1) oE e2)).
-
-      apply path_equiv.
-      apply path_arrow. 
-      intros [k | []]. simpl.
-      
-
-      admit.
-      reflexivity.
-
-
-
-  
-
-  
-
-  
-    
-    
-    
-
-
-    simpl.
-         unfold endpoint_minus.
-         unfold fin_equiv'.
-         
     induction n.
-    - apply path_equiv. apply path_arrow.
-      intro t. simpl. unfold equiv_inv.
-      destruct isequiv_fin_equiv. simpl.
-      + simpl.
-      
-      
-  
-    
-  
+    - exact ι.
+    - destruct k as [k | lastpoint].
+      + exact (twist_2 (IHn k)).
+      + exact ι.
+  Defined.
+
+  Arguments det_twist : simpl never.
   
   Definition determinant (n : nat) :
-    Finite_Types n -> Finite_Types 2.
+    (Fin n <~> Fin n) -> group_2.
   Proof.
-    intros [A H]. unfold Finite_Types.
+    intro e.
+    (* For n = 0, the determinant is trivial *)
+    induction n. { exact ι. }
+    
+    exact (mon_mult (det_twist n.+1 (e (inr tt))) (IHn (equiv_restrict e))).
+  Defined.
+
+Definition det_plus_1 {n : nat} (e : Fin n <~> Fin n) :
+  determinant n (equiv_restrict (e +E 1)) = determinant n e.
+Proof.
+  apply (ap (determinant n)).
+  apply path_equiv. apply path_arrow.
+  apply equiv_restrict_plus1.
+Defined.
+
+
+Putting this instead fails. . .  
+    determinant n.+1 (e +E 1) = determinant n e.
+Proof.
+  simpl.
+  
+Defined.
+
+(* put everything in one file and see... *)
     
 
-    
-    exists [2].
-    
-    strip_truncations.
-    
-    apply tr.
+    intro x. apply (path_sum_inl Unit).
+    refine (unfunctor_sum_l_beta _ _ x @ _).
+    induction n.
+    - reflexivity.
+    - reflexivity.
+  
+Defined.
 
+    
+    
+  Defined.
+  
+
+
+  (* Definition fin_equiv_inv_plus1 {m n : nat} (e : Fin m <~> Fin n) : *)
+  (*   (equiv_fin_equiv m n)^-1 (e +E 1) = (inr tt, e). *)
+  (* Proof. *)
+  (*   apply (equiv_inj (fin_equiv' m n)). *)
+  (*   refine (eisretr (fin_equiv' m n) (e +E 1) @ _). *)
+  (*   unfold fin_equiv'. unfold fin_equiv. simpl. *)
+  (*   destruct n; apply inverse; *)
+  (*     apply ecompose_1e. *)
+  (* Defined. *)
+
+  (* Definition det_compose (n : nat) (e1 e2 : Fin n <~> Fin n) : *)
+  (*   determinant n (e2 oE e1) = mon_mult (determinant n e2)(determinant n e1). *)
+  (* Proof. *)
+  (*   induction n. *)
+  (*   - simpl. reflexivity. *)
+  (*   - simpl.  *)
+
+  (*     admit. *)
+  (*     Admitted. *)
+    
+    simpl.
+    rewrite (path_equiv (path_arrow
+                            (equiv_restrict (e +E equiv_idmap))
+                             e (equiv_restrict_plus1 e))).
+    reflexivity.
+  
+  Qed.
+
+
+  :=
+    ap (determinant n) (path_equiv
+                          (path_arrow
+                             )).
+  Proof.
+  
+Defined.
+  
+
+  (* Lemma fin_sum (m n : nat) : Fin (m + n)%nat <~>  (Fin n) + (Fin m). *)
+  (* Proof. *)
+  (*   induction m; simpl. *)
+  (*   - apply equiv_inverse. apply sum_empty_r. *)
+  (*   - refine (equiv_sum_assoc _ _ _ oE (IHm +E 1)). *)
+  (* Defined. *)
+
+  Definition block_sum_id (m : nat) {n : nat} (e : Fin n <~> Fin n) :
+    Fin (m + n) <~> Fin (m + n).
+  Proof.
+    induction m; simpl.
+    - exact e.
+    - exact (equiv_functor_sum' IHm 1).
+  Defined.
+
+  Definition block_sum_id_1 (m : nat) {n : nat} (e : Fin n <~> Fin n) :
+    block_sum_id m.+1 e = (block_sum_id m e) +E 1 := idpath.    
+
+  Definition det_plus_id {m n : nat} (e : Fin n <~> Fin n) :
+    determinant (m+n) (block_sum_id m e) = determinant n e.
+  Proof.
+    revert n e.
+    induction m.
+    - intros n e. reflexivity.
+    - intros n e. simpl.
+      refine (ecompose_1e _ @ _).
+      refine (_ @ IHm _ _).
+      apply (ap (determinant (m + n))).
+      apply path_equiv. apply path_arrow.
+      apply equiv_restrict_plus1.
+  Qed.
+
+  
 
 (* I think the following is in finite_lemmas...*)
 

@@ -1,4 +1,4 @@
-Require Import HoTT.
+tRequire Import HoTT.
 Require Import UnivalenceAxiom.
 Require Import smash.
 Require Import pointed_lemmas.

@@ -153,8 +153,29 @@ Section Group_2.
     |ι : grp_2_set
     |τ : grp_2_set.
 
+
+  Definition id_2 : grp_2_set -> grp_2_set :=
+    fun i => if i then ι else τ.
+
+  Definition id_2_is_id : id_2 == idmap :=
+    fun i => match i with
+               |ι => idpath
+               |τ => idpath
+             end.
+
   Definition twist_2 : grp_2_set -> grp_2_set :=
-    fun b => if b then τ else ι.
+    fun i => if i then τ else ι.
+
+  Definition twist_2_twice : twist_2 o twist_2 == idmap :=
+    fun i => match i with
+               |ι => idpath 
+               |τ => idpath
+             end.
+
+  (* for some reason things freeze later if we use idmap and not id_2. . . *)
+  Definition mult_2 : grp_2_set -> grp_2_set -> grp_2_set :=
+    fun i =>
+      if i then id_2 else twist_2.
 
   Global Instance isset_grp_2 : IsHSet grp_2_set.
   Proof.
@@ -175,12 +196,14 @@ Section Group_2.
     srapply Build_Group.
     - srapply Build_Monoid.
       + exact (BuildTruncType 0 grp_2_set).
-      + intro b.
-        exact (if b then idmap else twist_2).
+      + exact mult_2.
+        (* intro b. *)
+        (* exact (if b then idmap else twist_2). *)
       + exact ι.
       + unfold associative.
         intros [ | ] [ | ] [ | ]; reflexivity.
-      + unfold left_identity. reflexivity.
+      + unfold left_identity.
+        intros [|]; reflexivity.
       + unfold right_identity.
         intros [|]; reflexivity.
     - simpl. exact idmap.       (* every element is its own inverse *)
@@ -189,6 +212,13 @@ Section Group_2.
     - unfold right_inverse. simpl.
       intros [|]; reflexivity.
   Defined.
+  Open Scope monoid_scope.
+  Definition symm_group_2 : forall a b : group_2,
+      (a + b = b + a).
+  Proof.
+    intros [|] [|]; reflexivity.
+  Defined.
+    
 End Group_2.
     
 

@@ -895,15 +895,177 @@ Section Magma.
   Defined.
 End Magma.
 
-  
+
+Section Fin_Transpose.
+  Definition fin_transpose {n : nat} (x y : Fin n)
+  : Fin n <~> Fin n.
+  Proof.
+    induction n.
+    - destruct x.
+    - destruct y as [y | []].
+      + destruct x as [x | []].
+        * exact (IHn x y +E 1).
+        * exact (fin_transpose_last_with n (inl y)).
+      + exact (fin_transpose_last_with n x).
+  Defined.
+
+  (* Definition fin_transpose_is_withlast_r {n : nat} (x : Fin n.+1) : *)
+  (*   fin_transpose x (inr tt) = fin_transpose_last_with n x := idpath. *)
+
+  (* Definition fin_transpose_is_withlast_l {n : nat} (y : Fin n.+1) : *)
+  (*   fin_transpose (n := n.+1) (inr tt) y = fin_transpose_last_with n y. *)
+  (* Proof. *)
+  (*   destruct y as [y | []]; reflexivity. *)
+  (* Defined. *)
+
+  Definition fin_transpose_same_is_id {n : nat} (x : Fin n) :
+    fin_transpose x x == idmap.
+  Proof.
+    intro i.
+    induction n.
+    { destruct x. }
+    destruct x as [x | []].
+    - simpl. destruct i as [i | []].
+      + apply (ap inl). apply IHn.
+      + reflexivity.
+    - simpl. apply fin_transpose_last_with_last_other.
+  Defined.
+
+  Definition fin_transpose_invol {n : nat} (x y : Fin n) :
+    fin_transpose x y oE fin_transpose x y == idmap.
+  Proof.
+    induction n.
+    {destruct x. }
+    intro i. ev_equiv.
+    destruct y as [y | []].
+    - destruct x as [x | []].
+      + simpl. destruct i as [i | []].
+        { simpl. apply (ap inl). apply IHn. }
+        reflexivity.
+      + simpl. apply fin_transpose_last_with_invol.
+    - simpl. apply fin_transpose_last_with_invol.
+  Defined.
+
+  Definition fin_transpose_sym {n : nat} (x y : Fin n) :
+    fin_transpose x y == fin_transpose y x.
+  Proof.
+    induction n.
+    { destruct x. }
+    intro i.
+    destruct y as [y | []]; destruct x as [x | []]; try reflexivity.
+    - simpl. destruct i as [i | []].
+      + apply (ap inl). apply IHn.
+      + reflexivity.
+  Defined.
+
+  Definition fin_transpose_beta_r {n : nat} (x y : Fin n) :
+    fin_transpose x y y = x.
+  Proof.
+    induction n.
+    { destruct x. }
+    destruct y as [y | []]; destruct x as [x | []]; try (apply fin_transpose_last_with_last).
+    - simpl. apply (ap inl). apply IHn.
+    - simpl. apply fin_transpose_last_with_with.
+  Defined.
+
+  Definition fin_transpose_beta_l {n : nat} (x y : Fin n) :
+    fin_transpose x y x = y.
+  Proof.
+    refine (fin_transpose_sym x y x @ _).
+    apply fin_transpose_beta_r.
+  Defined.
+
+  Definition fin_transpose_other {n : nat} (x y : Fin n) (i : Fin n):
+    (i <> x) -> (i <> y) -> fin_transpose x y i = i.
+  Proof.
+    intros n_x n_y.
+    induction n.
+    { destruct x.  }
+    destruct y as [y | []].
+    - destruct x as [x | []].
+      + simpl. destruct i as [i | []].
+        * apply (ap inl). apply IHn.
+          { intro p. apply n_x. exact (ap inl p). }
+          { intro p. apply n_y. exact (ap inl p). }
+        * reflexivity.
+      + simpl. destruct i as [i | []].
+        * apply fin_transpose_last_with_rest.
+          intro p. apply n_y. exact p^.
+        * destruct (n_x idpath).
+    - simpl. destruct i as [i | []].
+      + apply fin_transpose_last_with_rest.
+        intro p. apply n_x. exact p^.
+      + destruct (n_y idpath).
+  Defined.
+
+  (* either i = x, i = y, or equal to neither *)
+  Definition decompose_fin_n {n : nat} (x y : Fin n) (i : Fin n) :
+    (i = x) + (i = y) + ((i <> x) * (i <> y)).
+  Proof.
+    destruct (decidablepaths_fin n i x).
+    - exact (inl (inl p)).
+    - destruct (decidablepaths_fin n i y).
+      + apply inl. exact (inr p).
+      + apply inr. exact (n0, n1).
+  Qed.    
+
+  Definition natural_fin_transpose {n : nat} (x y : Fin n) (e : Fin n <~> Fin n) :
+    e oE (fin_transpose x y) == fin_transpose (e x) (e y) oE e.
+  Proof.
+    intro i. ev_equiv.
+    destruct (decompose_fin_n x y i) as [[p | p] |[n_x n_y] ].
+    - rewrite p.
+      rewrite fin_transpose_beta_l.
+      apply inverse. apply fin_transpose_beta_l.
+    - rewrite p.
+      rewrite fin_transpose_beta_r.
+      apply inverse. apply fin_transpose_beta_r.
+    - rewrite (fin_transpose_other x y i n_x n_y).
+      apply inverse. apply fin_transpose_other.
+      + intro p. apply n_x. apply (equiv_inj e p).
+      + intro p. apply n_y. apply (equiv_inj e p).
+  Qed.
+    
+End Fin_Transpose.
+
 
 
 Section Restrict_Equivalence.
   Context {n : nat}
-          {A : Type}
-          (e : A + Unit <~> Fin n.+1).
+          {A : Type}.
 
-  Definition swap_last := fin_transpose_last_with n (e (inr tt)).
+  Lemma not_inr_is_inl {X Y : Type}
+        (x :  X + Y)
+        (not_inr : forall y : Y, x <> inr y)
+    : is_inl x.
+  Proof.
+    destruct x as [x | y'].
+    - exact tt.
+    - destruct (not_inr y' idpath).
+  Qed.
+  
+  Lemma fix_last_is_inr (f : A + Unit -> Fin n.+1):
+    f (inr tt) = inr tt ->
+    forall u : Unit, is_inr (f (inr u)).
+  Proof.
+    intros p []. rewrite p.
+    exact tt.
+  Qed.
+
+  Lemma fix_last_is_inl (f : A + Unit <~> Fin n.+1):
+    f (inr tt) = inr tt ->
+    forall a : A, is_inl (f (inl a)).
+  Proof.
+    intros p a. apply not_inr_is_inl.
+    intros []. rewrite <- p.
+    intro q. apply (inl_ne_inr a tt).
+    exact (equiv_inj f q).
+  Qed.
+
+  Context (e : A + Unit <~> Fin n.+1).
+          
+
+  Definition swap_last := fin_transpose (e (inr tt)) (inr tt).
 
   Lemma swap_fix_last :
     (swap_last oE e) (inr tt) = inr tt.
@@ -915,30 +1077,14 @@ Section Restrict_Equivalence.
     forall u : Unit,
       is_inr ((swap_last oE e) (inr u)).
   Proof.
-    intros []. rewrite swap_fix_last. exact tt.
-  Qed.
+    exact (fix_last_is_inr (swap_last oE e) swap_fix_last).
+  Qed. 
 
-  Lemma not_inr_is_inl {X Y : Type}
-        (x :  X + Y)
-        (not_inr : forall y : Y, x <> inr y)
-    : is_inl x.
-  Proof.
-    destruct x as [x | y'].
-    - exact tt.
-    - destruct (not_inr y' idpath).
-  Qed.
-        
-  
   Lemma is_inl_restrict_equiv :
     forall a : A,
       is_inl ((swap_last oE e) (inl a)).
   Proof.
-    intro a.
-    apply not_inr_is_inl.
-    intros [].
-    rewrite <- swap_fix_last.
-    intro p. apply (inl_ne_inr a tt).
-    exact (equiv_inj (swap_last oE e) p).
+    exact (fix_last_is_inl (swap_last oE e) swap_fix_last).
   Qed.
     
     
@@ -998,14 +1144,99 @@ Proof.
   simpl. destruct n; reflexivity.      (* for some reason I have to destruct n *)
 Qed.
 
+(* Given e2 and e1, we have three cases: e1 preserve basepoint, e1 does not preserve basepoint *)
+Definition diff_cases {n : nat} (e1 e2 : Fin n.+1 <~> Fin n.+1) :
+  (e1 (inr tt) = inr tt) +
+  ({x : Fin n & e1 (inr tt) = inl x} *
+   ((e2 (e1 (inr tt)) = inr tt) + ({y : Fin n & e2 (e1 (inr tt)) = inl y}))).
+Proof.
+  recall (e1 (inr tt)) as x eqn:p. 
+  destruct x as [x | []]. 
+  - apply inr.
+    apply (pair (x; p)).
+    recall (e2 (e1 (inr tt))) as y eqn:q.
+    destruct y as [y | []].
+    + apply inr. exact (y; q).
+    + apply inl. exact q.
+  - apply inl. exact p.
+Defined.
+
+(* Find how far equiv_restrict is from respecting composition. We find an equivalence such that*)
+Definition diff_equiv_restrict {n : nat} (e1 e2 : Fin n.+1 <~> Fin n.+1) :
+  Fin n.+1 <~> Fin n.+1.
+Proof.
+  destruct (diff_cases e1 e2) as
+      [p |[[x p] [q | [y q]] ]].
+  - exact equiv_idmap.          (* e1 preserves last point *)
+  - exact equiv_idmap.          (* the composition preserves last point *)
+  - exact (fin_transpose (e1 (inr tt)) (e2 (e1 (inr tt)))). (* neither preserve basepoint *)
+Defined.
+
+Definition compose_diff_equiv_restrict {n : nat} (e1 e2 : Fin n.+1 <~> Fin n.+1) :
+  (diff_equiv_restrict e1 e2) oE (swap_last e2) oE e2 oE (swap_last e1) oE e1 ==
+  swap_last (e2 oE e1) oE e2 oE e1.
+Proof.
+  unfold diff_equiv_restrict.
+  destruct (diff_cases e1 e2) as
+      [p |[[x p] [q | [y q]] ]].
+  - simpl. unfold swap_last. ev_equiv.
+    rewrite p. intro i. apply (ap (fin_transpose (e2 (inr tt)) (inr tt))). apply (ap e2).
+    apply fin_transpose_same_is_id.
+  - intro i. simpl. unfold swap_last. ev_equiv. rewrite q.
+    rewrite fin_transpose_same_is_id.
+    refine (ap (fin_transpose (e2 (inr tt)) (inr tt))
+               (natural_fin_transpose (e1 (inr tt)) (inr tt) e2 (e1 i)) @ _).
+    rewrite q.
+    ev_equiv. 
+    rewrite (fin_transpose_sym (n := n.+1) (inr tt) (e2 (inr tt)) _).
+    apply (fin_transpose_invol).
+  - intro i. unfold swap_last. ev_equiv.
+    refine (ap (fin_transpose (e1 (inr tt)) ((e2 (e1 (inr tt)))) o
+                              fin_transpose (e2 (inr tt)) (inr tt))
+               (natural_fin_transpose (e1 (inr tt)) (inr tt) e2 (e1 i)) @ _).
+    ev_equiv. generalize (e2 (e1 i)). clear i. intro i.
+    rewrite q. rewrite p.
+
+    
+    rewrite q. rewrite p. simpl.
+    
+    destruct i as [i | []].
+    + simpl. 
+    rewrite p. 
+
+    
+Qed. 
+    rewrite (fin_transpose_invol (n := n.+1) (e2 (inr tt)) (inr tt) (e2 (e1 i))).
+    rewrite .
+  
+  
+  
+
 (* Definition swap_last_compose {n : nat} (e1 e2 : Fin n.+1 <~> Fin n.+1) : *)
 (*   swap_last (e2 oE e1) == (swap_last e2) oE (swap_last e1). *)
 (* Proof. *)
 (*   intro x. unfold swap_last. *)
   
-(* Definition swap_compose {n : nat} (e1 e2 : Fin n.+1 <~> Fin n.+1) : *)
-(*   e2 oE swap_last e1 oE e1 == e2 oE e1. *)
-(* Proof. *)
+Definition swap_compose {n : nat} (e1 e2 : Fin n.+1 <~> Fin n.+1) :
+  (swap_last e2) oE e2 oE (swap_last e1) oE e1 ==
+  fin_transpose (e2 (inr tt)) (e2 (e1 (inr tt))) oE swap_last (e2 oE e1) oE e2 oE e1.
+Proof.
+  intro x. ev_equiv. unfold swap_last.
+  destruct x as [x | []].
+  - 
+  - ev_equiv.
+    rewrite fin_transpose_beta_l.
+    rewrite fin_transpose_beta_l.
+    rewrite fin_transpose_beta_l.
+    
+    
+
+    + 
+  - 
+  
+  
+  e2 oE swap_last e1 oE e1 == e2 oE e1.
+Proof.
 (*   hnf. intro x. *)
   
 

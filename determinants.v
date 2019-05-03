@@ -11,17 +11,18 @@ Require Import monoids_and_groups.
   
 
 Section Determinant.
+  Open Scope monoid_scope.
   (* the determinant of the map swapping k and the last element of Fin n *)
   Definition det_twist (n : nat) (k : Fin n) : group_2.
   Proof.
     induction n.
     - exact ι.
-    - destruct k as [k | lastpoint].
+    - destruct k as [k | []].
       + exact (twist_2 (IHn k)).
       + exact ι.
   Defined.
 
-  Arguments det_twist : simpl never.
+  (* Arguments det_twist !n k. *)
   
   Definition determinant (n : nat) :
     (Fin n <~> Fin n) -> group_2.
@@ -34,35 +35,17 @@ Section Determinant.
   Defined.
 
 Definition det_plus_1 {n : nat} (e : Fin n <~> Fin n) :
-  determinant n (equiv_restrict (e +E 1)) = determinant n e.
+  determinant n.+1 (e +E 1) = determinant n e.
 Proof.
+  simpl. refine (id_2_is_id _ @ _).
   apply (ap (determinant n)).
   apply path_equiv. apply path_arrow.
   apply equiv_restrict_plus1.
-Defined.
+Defined. 
 
 
-Putting this instead fails. . .  
-    determinant n.+1 (e +E 1) = determinant n e.
-Proof.
-  simpl.
-  
-Defined.
-
-(* put everything in one file and see... *)
-    
-
-    intro x. apply (path_sum_inl Unit).
-    refine (unfunctor_sum_l_beta _ _ x @ _).
-    induction n.
-    - reflexivity.
-    - reflexivity.
-  
-Defined.
-
-    
-    
-  Defined.
+(* Putting this instead fails. . .   *)
+(*     determinant n.+1 (e +E 1) = determinant n e. *)
   
 
 
@@ -76,33 +59,22 @@ Defined.
   (*     apply ecompose_1e. *)
   (* Defined. *)
 
-  (* Definition det_compose (n : nat) (e1 e2 : Fin n <~> Fin n) : *)
-  (*   determinant n (e2 oE e1) = mon_mult (determinant n e2)(determinant n e1). *)
-  (* Proof. *)
-  (*   induction n. *)
-  (*   - simpl. reflexivity. *)
-  (*   - simpl.  *)
+  Definition det_compose (n : nat) (e1 e2 : Fin n <~> Fin n) :
+    determinant n (e2 oE e1) = mon_mult (determinant n e2)(determinant n e1).
+  Proof.
+    induction n.
+    - simpl. reflexivity.
+    - hnf. simpl.
+      destruct (e1 (inr tt)) as [y | []].
+      + admit.
+      + simpl. rewrite id_2_is_id.
+        destruct (e2 (inr tt)) as [y | []].
+        * 
 
   (*     admit. *)
   (*     Admitted. *)
     
-    simpl.
-    rewrite (path_equiv (path_arrow
-                            (equiv_restrict (e +E equiv_idmap))
-                             e (equiv_restrict_plus1 e))).
-    reflexivity.
-  
-  Qed.
-
-
-  :=
-    ap (determinant n) (path_equiv
-                          (path_arrow
-                             )).
-  Proof.
-  
-Defined.
-  
+    
 
   (* Lemma fin_sum (m n : nat) : Fin (m + n)%nat <~>  (Fin n) + (Fin m). *)
   (* Proof. *)
@@ -111,7 +83,7 @@ Defined.
   (*   - refine (equiv_sum_assoc _ _ _ oE (IHm +E 1)). *)
   (* Defined. *)
 
-  Definition block_sum_id (m : nat) {n : nat} (e : Fin n <~> Fin n) :
+  Definition block_sum_lid (m : nat) {n : nat} (e : Fin n <~> Fin n) :
     Fin (m + n) <~> Fin (m + n).
   Proof.
     induction m; simpl.
@@ -119,21 +91,21 @@ Defined.
     - exact (equiv_functor_sum' IHm 1).
   Defined.
 
-  Definition block_sum_id_1 (m : nat) {n : nat} (e : Fin n <~> Fin n) :
-    block_sum_id m.+1 e = (block_sum_id m e) +E 1 := idpath.    
+  (* Definition block_sum_lid_1 (m : nat) {n : nat} (e : Fin n <~> Fin n) : *)
+  (*   block_sum_lid m.+1 e = (block_sum_lid m e) +E 1 := idpath.     *)
 
   Definition det_plus_id {m n : nat} (e : Fin n <~> Fin n) :
-    determinant (m+n) (block_sum_id m e) = determinant n e.
+    determinant (m+n) (block_sum_lid m e) = determinant n e.
   Proof.
     revert n e.
     induction m.
     - intros n e. reflexivity.
     - intros n e. simpl.
-      refine (ecompose_1e _ @ _).
+      refine (id_2_is_id _ @ _).
       refine (_ @ IHm _ _).
       apply (ap (determinant (m + n))).
       apply path_equiv. apply path_arrow.
-      apply equiv_restrict_plus1.
+      apply equiv_restrict_plus1.  
   Qed.
 
   

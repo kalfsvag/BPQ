@@ -150,26 +150,26 @@ End Loop_is_group.
 
 Section Group_2.
   Inductive grp_2_set : Type :=
-    |ι : grp_2_set
-    |τ : grp_2_set.
+    |even : grp_2_set
+    |odd : grp_2_set.
 
 
   Definition id_2 : grp_2_set -> grp_2_set :=
-    fun i => if i then ι else τ.
+    fun i => if i then even else odd.
 
   Definition id_2_is_id : id_2 == idmap :=
     fun i => match i with
-               |ι => idpath
-               |τ => idpath
+               |even => idpath
+               |odd => idpath
              end.
 
   Definition twist_2 : grp_2_set -> grp_2_set :=
-    fun i => if i then τ else ι.
+    fun i => if i then odd else even.
 
   Definition twist_2_twice : twist_2 o twist_2 == idmap :=
     fun i => match i with
-               |ι => idpath 
-               |τ => idpath
+               |even => idpath 
+               |odd => idpath
              end.
 
   (* for some reason things freeze later if we use idmap and not id_2. . . *)
@@ -182,8 +182,8 @@ Section Group_2.
     srefine (trunc_equiv' (Bool) _).
     srapply @equiv_adjointify.
     - intros [ | ].
-      + exact ι.
-      + exact τ.
+      + exact even.
+      + exact odd.
     - intros [ | ].
       + exact true.
       + exact false.
@@ -199,7 +199,7 @@ Section Group_2.
       + exact mult_2.
         (* intro b. *)
         (* exact (if b then idmap else twist_2). *)
-      + exact ι.
+      + exact even.
       + unfold associative.
         intros [ | ] [ | ] [ | ]; reflexivity.
       + unfold left_identity.
@@ -218,6 +218,9 @@ Section Group_2.
   Proof.
     intros [|] [|]; reflexivity.
   Defined.
+
+  Definition ι : group_2 := even.
+  Definition τ : group_2 := odd.
     
 End Group_2.
     

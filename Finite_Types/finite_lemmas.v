@@ -1033,7 +1033,7 @@ Section Fin_Transpose.
   Qed.    
 
   Definition natural_fin_transpose {n : nat} (x y : Fin n) (e : Fin n <~> Fin n) :
-    e oE (fin_transpose x y) == fin_transpose (e x) (e y) oE e.
+    e o (fin_transpose x y) == fin_transpose (e x) (e y) o e.
   Proof.
     intro i. ev_equiv.
     destruct (decompose_fin_n x y i) as [[p | p] |[n_x n_y] ].

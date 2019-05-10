@@ -380,7 +380,7 @@ Section Determinant.
         (x1 x2 x12: Fin n)
         (p1 : e1 (inr tt) = inl x1)
         (p2 : e2 (inr tt) = inl x2)
-        (p3 : e2 (e1 (inr tt)) = inl x12) :
+        (p12 : e2 (e1 (inr tt)) = inl x12) :
     transpose_and_restrict (e2 oE e1) ==
     (fin_transpose x2 x12)
       oE (transpose_and_restrict e2) oE (transpose_and_restrict e1).
@@ -395,7 +395,18 @@ Section Determinant.
               (transpose_and_restrict_eta e1 x)^).
     refine (_ @ ap (functor_sum (fin_transpose x2 x12) idmap)
               (transpose_and_restrict_eta e2 _)^).
-    ev_equiv. 
+    ev_equiv.
+    assert (fin_transpose (e2 (inr tt)) (e2 (e1 (inr tt))) ==
+            functor_sum (B := Unit) (fin_transpose x2 x12) idmap ).
+    { apply fin_transpose_eta.
+      - rewrite p2. rewrite p12.
+        simpl.  apply (ap inl). apply fin_transpose_beta_l.
+      - rewrite p2. rewrite p12. simpl.
+        apply (ap inl).  apply fin_transpose_beta_r.
+      - 
+          
+        
+        
               
     rewrite (transpose_and_restrict_eta e1 x).
     

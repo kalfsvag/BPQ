@@ -1049,7 +1049,7 @@ Section Fin_Transpose.
       + intro p. apply n_y. apply (equiv_inj e p).
   Qed.
 
-  Definition fin_transpose_eta {n : nat} (x y : Fin n) (e : Fin n <~> Fin n) :
+  Definition fin_transpose_eta {n : nat} (x y : Fin n) (e : Fin n -> Fin n) :
     (e x = y) -> (e y = x) -> (forall i : Fin n, i <> x -> i <> y -> e i = i) ->
     fin_transpose x y == e.
   Proof.

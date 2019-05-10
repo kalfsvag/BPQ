@@ -955,7 +955,7 @@ Section Fin_Transpose.
   Defined.
 
   Definition fin_transpose_invol {n : nat} (x y : Fin n) :
-    fin_transpose x y oE fin_transpose x y == idmap.
+    fin_transpose x y o fin_transpose x y == idmap.
   Proof.
     induction n.
     {destruct x. }

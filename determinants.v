@@ -193,6 +193,15 @@ Section Determinant.
     destruct n. { exact ι. }
     exact (det_transpose (e (inr tt)) + determinant n (transpose_and_restrict e)).
   Defined.
+
+  Lemma det_transpose_notlast {n : nat} (i : Fin n.+1) :
+        (i <> inr tt) -> det_transpose i = τ.
+  Proof.
+    intro nlast.
+    destruct i as [i | []].
+    - reflexivity.
+    - destruct (nlast idpath).
+  Qed.
  
 
   
@@ -332,7 +341,7 @@ Section Determinant.
       destruct x as  [x | []]; reflexivity.
   Qed.
 
-  Definition det_transpose_beta (m : nat) (x y : Fin m) :
+  Definition det_beta_transpose (m : nat) (x y : Fin m) :
     (x <> y) -> determinant m (fin_transpose x y) = τ.
   Proof.
     intro neq.
@@ -390,22 +399,20 @@ Section Determinant.
              (e1 e2 : Fin n.+1 <~> Fin n.+1)
              (fixlast_1: e1 (inr tt) = inr tt) :
     transpose_and_restrict (e2 oE e1) ==
-    (transpose_and_restrict e2) oE (equiv_restrict e1 fixlast_1).
+    (transpose_and_restrict e2) oE (transpose_and_restrict e1).
   Proof.
     apply inj_equiv_plus1.
     intro x.
     refine (transpose_and_restrict_eta _ x @ _).
-    unfold swap_last. ev_equiv.
-    transitivity ((fin_transpose (e2 (inr tt)) (inr tt)) (e2 (e1 x))).
-    { apply (ap (fun y => (fin_transpose (e2 y) (inr tt)) (e2 (e1 x)))).
-      exact fixlast_1. }
-    refine ((equiv_restrict_eta (swap_last e2 oE e2) (swap_fix_last e2) (e1 x))^ @ _).
-    unfold transpose_and_restrict.
-    transitivity
-      ((equiv_restrict (swap_last e2 oE e2) (swap_fix_last e2) +E 1)
-         ((equiv_restrict e1 fixlast_1 +E 1) x)).
-    - apply (ap (equiv_restrict (swap_last e2 oE e2) (swap_fix_last e2) +E 1)).
-      apply inverse. apply equiv_restrict_eta.
+    unfold swap_last. ev_equiv. rewrite fixlast_1.
+    transitivity (((transpose_and_restrict e2 +E 1) oE (transpose_and_restrict e1 +E 1)) x).
+    - ev_equiv.
+      apply inverse.
+      refine (transpose_and_restrict_eta e2 _ @ _). ev_equiv.
+      apply (ap (swap_last e2)). apply (ap e2).
+      refine (transpose_and_restrict_eta e1 _ @ _). ev_equiv.
+      unfold swap_last. rewrite fixlast_1.
+      apply (fin_transpose_same_is_id (n := n.+1)).
     - destruct x as [x | []]; reflexivity.
   Qed.
 
@@ -413,16 +420,18 @@ Section Determinant.
              (e1 e2 : Fin n.+1 <~> Fin n.+1)
              (fixlast_2 : e2 (inr tt) = inr tt) :
     transpose_and_restrict (e2 oE e1) ==
-    (equiv_restrict e2 fixlast_2) oE (transpose_and_restrict e1).
+    (transpose_and_restrict e2) oE (transpose_and_restrict e1).
   Proof.
     apply inj_equiv_plus1.
     intro x.    
     refine (transpose_and_restrict_eta _ _ @ _).
     refine (_ @ (functor_sum_compose _ _ idmap idmap x)^).
-    refine (_ @ (equiv_restrict_eta e2 fixlast_2 _)^).
-    refine (_ @ (ap e2 (transpose_and_restrict_eta e1 x)^)).
-    ev_equiv.
-    refine (_ @ (natural_fin_transpose (e1 (inr tt)) (inr tt) e2 (e1 x))^).
+    refine (_ @ (transpose_and_restrict_eta e2 _)^).
+    refine (_ @ (ap ((swap_last e2) o e2) (transpose_and_restrict_eta e1 x)^)).
+    unfold swap_last. ev_equiv. rewrite fixlast_2.
+    refine (_ @ (fin_transpose_same_is_id (n := n.+1) _ _ )^).
+    apply inverse.
+    refine (natural_fin_transpose (e1 (inr tt)) (inr tt) e2  _ @ _).
     rewrite fixlast_2. reflexivity.
   Qed.
 
@@ -540,254 +549,65 @@ Section Determinant.
     rewrite <- (IHn (transpose_and_restrict e1) (transpose_and_restrict e2)).
     (* recall (e1 (inr tt)) as x1 eqn:p1. *)
     (* destruct x1 as [x1 | []]. *)
-    recall (e2 (inr tt)) as x2 eqn:p2.
-    destruct x2 as [x2 | []].
+    recall (e1 (inr tt)) as x1 eqn:p1.
+    destruct x1 as [x1 | []].
     - recall (e2 (e1 (inr tt))) as x12 eqn:p12.
-      destruct x12 as [x12 | []].
-      + rewrite (path_equiv (path_forall _ _
-                        (transpose_and_restrict_nfx e1 e2 x2 x12 p2 p12))).
-        rewrite p12. rewrite p2.
-        rewrite ecompose_ee_e.
-        rewrite (IHn  (transpose_and_restrict e2 oE transpose_and_restrict e1) (fin_transpose x2 x12)).
-        rewrite (mon_assoc).
-        apply (ap (fun g => τ + g)).
-        apply (ap
-                 (fun g => g + determinant n (transpose_and_restrict e2 oE transpose_and_restrict e1))).
-        
-        apply (det_transpose_beta).
-        simpl. 
-              
-
-        change (det_transpose (inl x1))
-               with
-               τ.
-        rewrite (symm_group_2 _ τ).
-        recall (e2 (inr tt)) as x2 eqn:p2.
-        rewrite p2.
-        destruct x2 as [x2 | []].
-        * recall 
-
-          rewrite (tra
-
-          admit.
-        * simpl. rewrite (id_2_is_id).
-          assert (inl_last : {y : Fin n & e2 (e1 (inr tt)) = inl y}).
-          { assert (nfx : e2 (e1 (inr tt)) <> inr tt).
-            { rewrite p. rewrite <- q.
-              intro false.
-              apply (inl_ne_inr x tt).
-              apply (equiv_inj e2). exact false. }
-            recall (e2 (e1 (inr tt))) as y eqn:r.
-            destruct y as [y | []].
-            - exact (y; r).
-            - destruct (nfx r). }
-          destruct inl_last as [y r].
-          rewrite r. simpl.
-          change mult_2 with (mon_mult (M := group_2)).
-          change (twist_2 ?g) with (τ + g).
-          
-          
-              
-
-          
-          recall (e2 (e1 (inr tt))) as y eqn:r.
-          rewrite r.
-          
-          
-
-            
-          refine (id_2_is_id _ @ _).
-          rewrite (path_equiv (path_arrow _ _ (transpose_and_restrict_fixlast (e2 oE e1) q))).
-          
-          
-        
-        
-        admit.
-      + change
-          (det_transpose (inr tt) + determinant n (transpose_and_restrict e1))
-          with
-          (id_2 (determinant n (transpose_and_restrict e1))).
-        rewrite id_2_is_id.
-        rewrite (path_equiv (path_arrow _ _ (transpose_and_restrict_fix_last_1
-                                               e1 e2 p))).
-        rewrite IHn.
-        rewrite mon_assoc.
-        apply
-          (ap
-             (fun x => det_transpose (e2 (inr tt)) +
-                       (determinant n (transpose_and_restrict e2) +
-                        (determinant n x)))).
-        apply path_equiv. apply path_arrow.
-        apply (inj_equiv_plus1). unfold transpose_and_restrict.
-        intro x.
-        refine (equiv_restrict_eta _ _ _ @ _ @ (equiv_restrict_eta _ _ _)^).
-        unfold swap_last. apply inverse. rewrite p. ev_equiv.
-        exact (fin_transpose_same_is_id (n := n.+1) (inr (Fin n) tt) (e1 x)).
-        
-
-        
-      generalize (e1 (inr tt)) as x.
-      unfold transpose_and_restrict. unfold swap_last.
-      recall (e1 (inr tt)) as x eqn:p.
-      
-      + 
-      
-
-      
-      destruct (e1 (inr tt)) as [x | []].
-
-      rewrite (@mon_assoc _
-                          (det_twist (e2 (inr tt)))
-                          (determinant (equiv_restrict e2))
-                          (det_twist (e1 (inr tt)) + determinant (equiv_restrict e1))).
-      rewrite <- (@mon_assoc _
-                             (determinant (equiv_restrict e2))
-                             (det_twist (e1 (inr tt)))
-                             (determinant (equiv_restrict e1))).
-      rewrite (symm_group_2
-                 (determinant (equiv_restrict e2))
-                 (det_twist (e1 (inr tt)))).
-      rewrite (@mon_assoc _
-                          (det_twist (e1 (inr tt)))
-                          (determinant (equiv_restrict e2))
-                          (determinant (equiv_restrict e1))).
-      (* refine (_ @ *)
-      (*           @mon_assoc _ *)
-      (*           (det_twist (e2 (inr tt))) *)
-      (*           (det_twist (e1 (inr tt))) *)
-      (*           (determinant (equiv_restrict e2) + determinant (equiv_restrict e1))). *)
-      (* rewrite <- (IHn (equiv_restrict e1) (equiv_restrict e2)). simpl. *)
-      simpl. change mult_2 with (mon_mult (M := group_2)).
-      recall (e1 (inr tt)) as x eqn:p. 
-      destruct x as [x | []].
-      + recall (e2 (e1 (inr tt))) as y eqn:q.
-        destruct y as [y | []].
-        * admit. (* r(e2 o e1)  = swap (e1 (inr tt), e2 (e1 (inr tt)) o r(e2) o r(e1) *)
-        * rewrite q.
-          refine (id_2_is_id _ @ _).
-          (* ? *) admit.
-      + rewrite p. 
-        apply (ap (fun g => det_twist (e2 (inr tt)) + g)).
-        simpl. refine (_ @ (id_2_is_id _)^).
-        refine (_ @ IHn _ _).
-        apply (ap determinant). (* should work *)
-         
-          
-          
-
-
-      simpl.
-
-      rewrite (@mon_assoc _
-                          (det_twist (e2 (inr tt)))
-                          (determinant (equiv_restrict e2))
-                          (det_twist (e1 (inr tt)) + determinant (equiv_restrict e1))).
-      rewrite <- (@mon_assoc _
-                             (determinant (equiv_restrict e2))
-                             (det_twist (e1 (inr tt)))
-                             (determinant (equiv_restrict e1))).
-      rewrite (symm_group_2
-                 (determinant (equiv_restrict e2))
-                 (det_twist (e1 (inr tt)))).
-      rewrite (@mon_assoc _
-                          (det_twist (e1 (inr tt)))
-                          (determinant (equiv_restrict e2))
-                          (determinant (equiv_restrict e1))).
-      refine (_ @
-                @mon_assoc _
-                           (det_twist (e2 (inr tt)))
-                           (det_twist (e1 (inr tt)))
-                           (determinant (equiv_restrict e2) + determinant (equiv_restrict e1))).
-      recall (e1 (inr tt)) as x eqn:p. rewrite p.
-      destruct x as [x | []].
-      + rewrite <- p.
-        
-                
-      rewrite <- (IHn (equiv_restrict e1) (equiv_restrict e2)).
-      recall (e1 (inr tt)) as x eqn:p. rewrite p.
-      destruct x as [x | []].
-      + rewrite <- p.
-        destruct ( (e1 (inr tt
-
-
-        admit.
-      + apply (ap (fun g => det_twist (e2 (inr tt)) + g)).
-        simpl. refine (_ @ (id_2_is_id _)^).
-        apply (ap determinant).
-        refine (_ @ (path_equiv (path_forall _ _ (equiv_restrict_plus1 (_))))).
-        cut ((equiv_restrict e2 oE equiv_restrict e1 +E (equiv_idmap Unit)) =
-              (equiv_restrict e2 +E 1) oE (equiv_restrict e1 +E 1)).
-        { intro H. rewrite H. 
-          rewrite (equiv_restrict_fixlast e1 p).         
-          apply (ap (equiv_restrict)).
-          apply path_equiv. apply path_arrow. intro x. ev_equiv.
-          refine ((equiv_restrict_plus1 e2 (e1 x))^ @ _).
-
-          
-          rewrite (path_equiv (path_forall _ _ )).
-        
-        
-        
-        
-        
-        
-        unfold equiv_restrict. 
-        apply path_equiv. apply path_arrow. intro x.
-        
-        
-        rewrite <- (equiv_restrict_fixlast e1 p).
-        
-
-      
-      rewrite (symm_group_2
-                 (determinant (equiv_restrict e2 oE equiv_restrict e1))
-                 (determinant (equiv_restrict e1))).
-
-      hnf. simpl.
-      destruct (e1 (inr tt)) as [y | []].
-      + simpl.
-        
-        rewrite (symm_group_2 (twist_2 (det_twist y)) (determinant (equiv_restrict e1))).
-        rewrite (@mon_assoc _
-                            (det_twist (e2 (inr tt)))
-                            (determinant (equiv_restrict e2))
-                            (determinant (equiv_restrict e1) + twist_2 (det_twist y))).
-        rewrite <- (@mon_assoc _
-                               (determinant (equiv_restrict e2))
-                               (determinant (equiv_restrict e1))
-                               (twist_2 (det_twist y))).
-        rewrite <- (IHn (equiv_restrict e1) (equiv_restrict e2)).
-        rewrite (symm_group_2
-                   (determinant (equiv_restrict e2 oE equiv_restrict e1))
-                   (twist_2 (det_twist y))).
-        
-        
-        
-        transitivity
-          (mult_2 (mult_2 (determinant (equiv_restrict e2)) (det_twist (e2 (inr tt))))
-                  (mult_2 (twist_2 (det_twist y)) (determinant (equiv_restrict e1)))).
-        { 
-        
-        
-
-        admit.
-      + simpl. rewrite id_2_is_id.
-        destruct (e2 (inr tt)) as [y | []].
-        * 
-
-  (*     admit. *)
-  (*     Admitted. *)
-    
-    
-
-  (* Lemma fin_sum (m n : nat) : Fin (m + n)%nat <~>  (Fin n) + (Fin m). *)
-  (* Proof. *)
-  (*   induction m; simpl. *)
-  (*   - apply equiv_inverse. apply sum_empty_r. *)
-  (*   - refine (equiv_sum_assoc _ _ _ oE (IHm +E 1)). *)
-  (* Defined. *)
-
-
+         destruct x12 as [x12 | []].
+      +  recall (e2 (inr tt)) as x2 eqn:p2.
+         destruct x2 as [x2 | []].
+         * rewrite (path_equiv (path_forall _ _
+                                            (transpose_and_restrict_nfx e1 e2 x2 x12 p2 p12))).
+           (* rewrite p12. rewrite p2. *)
+           rewrite ecompose_ee_e.
+           rewrite (IHn
+                      (transpose_and_restrict e2 oE transpose_and_restrict e1) (fin_transpose x2 x12)).
+           rewrite (mon_assoc).
+           rewrite p12. rewrite p2.
+           apply (ap (fun g => τ + g)).
+           apply (ap
+                    (fun g => g +
+                              determinant n (transpose_and_restrict e2 oE transpose_and_restrict e1))).
+           rewrite p1.
+           apply (det_beta_transpose).
+           apply (functor_not (ap (fun x => (inl Unit x)))).
+           rewrite <- p12. rewrite <- p2.
+           apply (functor_not (equiv_inj e2)). rewrite p1.
+           apply inr_ne_inl.
+        * (* rewrite p1. refine (_ @ det_id n). *)
+          (* apply (ap (determinant n)). *)
+          (* assert (h : x2 = x12). *)
+          (* { apply (path_sum_inl Unit). *)
+          (*   rewrite <- p2. rewrite <- p12.  rewrite p1.  reflexivity. } *)
+          (* rewrite h. clear h. *)
+          (* apply path_equiv. apply path_arrow. apply fin_transpose_same_is_id. *)
+          rewrite
+            (path_equiv (path_arrow _ _ (transpose_and_restrict_fixlast2 e1 e2 p2))).
+          apply (ap (fun g =>
+                       g + determinant n (transpose_and_restrict e2 oE transpose_and_restrict e1))).
+          rewrite p2. rewrite p1.
+          simpl.
+          apply det_transpose_notlast.
+          rewrite <- p2.
+          apply (functor_not (equiv_inj e2)).
+          apply inl_ne_inr. 
+      + rewrite (path_equiv (path_arrow _ _
+                     (transpose_and_restrict_fixlast12 e1 e2 p12))).
+        apply (ap (fun g =>
+                       g + determinant n (transpose_and_restrict e2 oE transpose_and_restrict e1))).
+        rewrite p12. rewrite p1.
+        apply grp_moveL_gM. simpl.
+        apply inverse.
+        apply det_transpose_notlast.
+        intro false.
+        rewrite p1 in p12. apply (inl_ne_inr  x1 tt).
+        apply (equiv_inj e2).
+        exact (p12 @ false^).
+    - rewrite (path_equiv (path_arrow _ _ (transpose_and_restrict_fixlast1 e1 e2 p1))).
+      apply (ap (fun g =>
+                       g + determinant n (transpose_and_restrict e2 oE transpose_and_restrict e1))).
+      rewrite p1.
+      refine ((mon_rid _)^).
+  Qed.
   
 
 (* I think the following is in finite_lemmas...*)

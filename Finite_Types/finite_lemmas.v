@@ -1070,7 +1070,7 @@ Section Fin_Transpose.
 End Fin_Transpose.
 
 Section Sigma2.
-  Definition sym2_fixlast (σ : Fin 2 <~> Fin 2) :
+  Definition sigma2_fixlast (σ : Fin 2 <~> Fin 2) :
     (σ (inr tt) = inr tt) -> σ == equiv_idmap.
   Proof.
     intro p.
@@ -1085,8 +1085,13 @@ Section Sigma2.
 
   Definition twist2 : Fin 2 <~> Fin 2 :=
     fin_transpose (n := 2) (inl (inr tt)) (inr tt).
-  
-  Definition sym2_notfixlast (σ : Fin 2 <~> Fin 2) :
+
+  Definition twist2_inv : equiv_inverse twist2 = twist2.
+  Proof.
+    apply path_equiv. reflexivity.
+  Qed.
+
+  Definition sigma2_notfixlast (σ : Fin 2 <~> Fin 2) :
     (σ (inr tt) = inl (inr tt)) -> σ == twist2.
   Proof.
     intro p.
@@ -1116,6 +1121,22 @@ Section Sigma2.
   (*   - apply inverse. *)
   (*     apply fin_transpose_invol. *)
   (* Qed. *)
+
+  Definition symm_sigma2 (σ1 σ2 : Fin 2 <~> Fin 2) :
+    σ1 oE σ2 = σ2 oE σ1.
+  Proof.
+    recall (σ1 (inr tt)) as x eqn:p.
+    destruct x as [[[] | []] | []].
+    - rewrite (path_equiv (path_forall _ _ (sigma2_notfixlast σ1 p))).
+      recall (σ2 (inr tt)) as y eqn:q.
+      destruct y as [[[] | []] | []].
+      + rewrite (path_equiv (path_forall _ _ (sigma2_notfixlast σ2 q))).
+        reflexivity.
+      + rewrite (path_equiv (path_forall _ _ (sigma2_fixlast σ2 q))).
+        rewrite ecompose_e1. rewrite ecompose_1e. reflexivity.
+    - rewrite (path_equiv (path_forall _ _ (sigma2_fixlast σ1 p))).
+      rewrite ecompose_e1. rewrite ecompose_1e. reflexivity.
+  Qed.    
 
 End Sigma2.
 

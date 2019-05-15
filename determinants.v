@@ -203,7 +203,32 @@ Section Determinant.
     - destruct (nlast idpath).
   Qed.
  
-
+  Lemma isequiv_det2 : IsEquiv (determinant 2).
+  Proof.
+    srapply @isequiv_adjointify.
+    - intro x.
+      exact (match x with
+             |even => equiv_idmap
+             |odd => twist2
+             end).
+    - intros [ | ]; reflexivity.
+    - intro e.
+      unfold determinant.
+      rewrite (mon_rid (M := group_2)).
+      assert (h : (transpose_and_restrict e) (inr tt) = inr tt).
+      { recall ((transpose_and_restrict e) (inr tt)) as x eqn:p. rewrite p.
+        destruct x as [[] | []]; reflexivity. }
+      rewrite h. clear h.
+      rewrite (mon_rid (M := group_2)).
+      unfold det_transpose.
+      recall (e (inr tt)) as x eqn:p. rewrite p.
+      destruct x as [[[] | []] | []]; simpl; apply inverse; apply path_equiv; apply path_arrow.
+      + apply (sym2_notfixlast e p). 
+      + apply (sym2_fixlast e p).
+  Defined.
+      
+      
+      
   
   (* Definition Decidable_fixlast {n : nat} (e : Fin n.+1 <~> Fin n.+1) : Type:= *)
   (*   (e (inr tt) = inr tt) + {x : Fin n & e (inr tt) = inl x}. *)

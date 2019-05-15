@@ -15,25 +15,25 @@ Definition Embedding (A B : Type) := {f : A -> B & IsEmbedding f}.
 Definition fun_of_emb (A B : Type) : Embedding A B -> (A -> B) := pr1.
 Coercion fun_of_emb : Embedding >-> Funclass.
 
-Definition τ : Fin 2 -> Fin 2.
-Proof.
-  unfold Fin.
-    intros [[[] |[]] | [] ].
-    + apply inr. exact tt.
-    + apply inl. apply inr. exact tt.
-Defined.
+(* Definition twist2 : Fin 2 -> Fin 2. *)
+(* Proof. *)
+(*   unfold Fin. *)
+(*     intros [[[] |[]] | [] ]. *)
+(*     + apply inr. exact tt. *)
+(*     + apply inl. apply inr. exact tt. *)
+(* Defined. *)
 
-Definition τ_squared : τ o τ == idmap.
-Proof.
-  intros [[[] |[]] | [] ]; reflexivity.
-Defined.  
+(* Definition t_squared : τ o τ == idmap. *)
+(* Proof. *)
+(*   intros [[[] |[]] | [] ]; reflexivity. *)
+(* Defined.   *)
 
-Definition isequiv_τ : IsEquiv τ.
-  apply (isequiv_adjointify τ τ); apply τ_squared.
-Defined.
+(* Definition isequiv_τ : IsEquiv τ. *)
+(*   apply (isequiv_adjointify τ τ); apply τ_squared. *)
+(* Defined. *)
 
-Definition equiv_τ : Fin 2 <~> Fin 2 :=
-  BuildEquiv _ _ τ isequiv_τ.
+(* Definition equiv_τ : Fin 2 <~> Fin 2 := *)
+(*   BuildEquiv _ _ τ isequiv_τ. *)
 
 Definition equiv_fin2_bool : Fin 2 <~> Bool.
 Proof.
@@ -1067,9 +1067,57 @@ Section Fin_Transpose.
   Qed.
       
     
-    
-    
 End Fin_Transpose.
+
+Section Sigma2.
+  Definition sym2_fixlast (σ : Fin 2 <~> Fin 2) :
+    (σ (inr tt) = inr tt) -> σ == equiv_idmap.
+  Proof.
+    intro p.
+    intros [[[] | []] | []]; simpl.
+    - recall (σ ((inl (inr tt)))) as x eqn:q.
+      rewrite q.
+      destruct x as [[[] | []] | []].
+      + reflexivity.
+      + destruct (inr_ne_inl tt (inr tt) (equiv_inj σ (p @ q^))). (* absurd case *)
+    - exact p.
+  Qed.
+
+  Definition twist2 : Fin 2 <~> Fin 2 :=
+    fin_transpose (n := 2) (inl (inr tt)) (inr tt).
+  
+  Definition sym2_notfixlast (σ : Fin 2 <~> Fin 2) :
+    (σ (inr tt) = inl (inr tt)) -> σ == twist2.
+  Proof.
+    intro p.
+    intros [[[] | []] | []]; simpl.
+    - recall (σ ((inl (inr tt)))) as x eqn:q.
+      rewrite q.
+      destruct x as [[[] | []] | []].
+      + destruct (inr_ne_inl tt (inr tt) (equiv_inj σ (p @ q^))). (* absurd case *)
+      + reflexivity.
+    - exact p.
+  Qed.
+
+    
+  (*   intro neq. *)
+  (*   assert (p : σ (inr tt) = (inl (inr tt))). *)
+  (*   { recall (σ (inr tt)) as x eqn:q. rewrite q. *)
+  (*     destruct x as [[[] | []] | []]. *)
+  (*     - reflexivity. *)
+  (*     - destruct (neq q).       (* absurd case *) *)
+  (*   } *)
+  (*   intro x. *)
+  (*   apply (equiv_inj (twist2)). *)
+  (*   transitivity (equiv_idmap _ x). *)
+  (*   - apply (sym2_fixlast (twist2 oE σ)). *)
+  (*     ev_equiv. unfold twist2. rewrite p. *)
+  (*     apply fin_transpose_beta_l. *)
+  (*   - apply inverse. *)
+  (*     apply fin_transpose_invol. *)
+  (* Qed. *)
+
+End Sigma2.
 
 Section Restrict_Equivalence.
   Context {n : nat}

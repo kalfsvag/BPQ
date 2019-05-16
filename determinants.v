@@ -34,6 +34,36 @@ Section Determinant.
   Definition swap_last {n : nat} (e : Fin n.+1 <~> Fin n.+1) := fin_transpose (e (inr tt)) (inr tt).
 
   Arguments equiv_sum_assoc : simpl nomatch.
+
+  Definition blocksum_transpose {m n : nat}
+             (x y : Fin m) :
+    fin_transpose ((fin_resp_sum m n)^-1 (inr x)) ((fin_resp_sum m n)^-1 (inr y)) ==
+    block_sum (fin_transpose x y) equiv_idmap.
+  Proof.
+    unfold block_sum.
+    apply fin_transpose_eta; ev_equiv; try rewrite eisretr; simpl.
+    - rewrite fin_transpose_beta_l. reflexivity.
+    - rewrite fin_transpose_beta_r. reflexivity.
+    - intros i neq_x neq_y.
+      apply (equiv_inj (fin_resp_sum m n)).
+      refine (eisretr (fin_resp_sum m n) _ @ _).
+      recall (fin_resp_sum m n i) as j eqn:p.
+      rewrite p.
+      destruct j as [j | j].
+      + reflexivity.
+      + apply (ap inr).
+        apply fin_transpose_other.
+        { intro false.
+          apply neq_x.
+          apply (equiv_inj (fin_resp_sum m n)).
+          rewrite eisretr.
+          rewrite p. exact (ap inr false). }
+        { intro false.
+          apply neq_y.
+          apply (equiv_inj (fin_resp_sum m n)).
+          rewrite eisretr.
+          rewrite p. exact (ap inr false). }
+  Qed.
   
   Definition swap_last_blocksum {m n : nat}
              (e1 : Fin m.+1 <~> Fin m.+1)
@@ -41,62 +71,8 @@ Section Determinant.
     swap_last (block_sum e1 e2) ==
     block_sum (swap_last e1) equiv_idmap.
   Proof.
-    unfold swap_last.
-    change
-      ((block_sum e1 e2) (inr tt))
-      with
-      ((fin_resp_sum m.+1 n)^-1 (inr (e1 (inr tt)))).
-    apply fin_transpose_eta.
-    - unfold block_sum.
-      ev_equiv.
-      rewrite (eisretr (fin_resp_sum m.+1 n)).
-      change
-        ((1 +E fin_transpose (e1 (inr tt)) (inr tt)) (inr (e1 (inr tt))))
-      with 
-        (inr (Fin n) (fin_transpose (e1 (inr tt)) (inr tt) (e1 (inr tt)))).
-      rewrite (fin_transpose_beta_l).
-      reflexivity.
-    - unfold block_sum. ev_equiv.
-      apply (ap (fin_resp_sum m.+1 n)^-1).
-      change
-        ((fin_resp_sum m.+1 n) (inr tt))
-        with
-        (inr (Fin n) (inr (Fin m) tt)).
-      change
-        ((1 +E fin_transpose (e1 (inr tt)) (inr tt)) (inr (inr tt)))
-        with
-        (inr (Fin n) (fin_transpose (e1 (inr tt)) (inr tt) (inr tt))).
-      apply (ap inr).
-      apply (fin_transpose_beta_r).
-    - intros i neq_x neq_y.
-      unfold block_sum.
-      (* change (inr (Fin (m+n)) tt) *)
-      (*        with *)
-      (*        ((fin_resp_sum m.+1 n)^-1 (inr tt)) in neq_y. *)
-      ev_equiv.
-      apply (equiv_inj (fin_resp_sum m.+1 n)).
-      refine (eisretr (fin_resp_sum m.+1 n) _ @ _).
-      recall ((fin_resp_sum m.+1 n) i) as j eqn:p.
-      rewrite p.
-      destruct j as [j | j].
-      + reflexivity.
-      + apply (ap inr).
-        apply fin_transpose_other.
-        * intro q.
-          apply neq_x.
-          apply (equiv_inj (fin_resp_sum m.+1 n)).
-          refine (_ @ ((eisretr (fin_resp_sum m.+1 n)) _)^).
-          refine (p @ _).
-          exact (ap inr q).
-        * intro q.
-          apply neq_y.
-          apply (equiv_inj (fin_resp_sum m.+1 n)).
-          refine (p @ _). simpl.
-          apply (ap inr q).
-  Qed.
-
-
-  
+    apply (@blocksum_transpose m.+1 n (e1 (inr tt)) ((inr (Fin m) tt))).
+  Qed.  
 
   Lemma swap_fix_last {n : nat} (e : Fin n.+1 <~> Fin n.+1) :
     (swap_last e oE e) (inr tt) = inr tt.

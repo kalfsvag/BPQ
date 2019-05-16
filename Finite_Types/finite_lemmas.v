@@ -120,16 +120,45 @@ Qed.
 (*     exact (functor_sum IHm idmap x). *)
 (* Defined. *)
 
+Definition fin_tosum (m n : nat) : Fin (m + n) -> (Fin n) + (Fin m).
+Proof.
+  induction m.
+  - exact inl.
+  - simpl. intro x.
+    apply (equiv_sum_assoc).
+    exact (functor_sum IHm idmap x).
+Defined.
+
+Definition fin_tosum_inv (m n : nat) :
+  (Fin n) + (Fin m) -> Fin (m + n).
+Proof.
+  induction m.
+  - intros [x | []]. exact x.
+  - intro x. simpl.
+    apply (functor_sum IHm idmap).
+    simpl in x.
+    apply (equiv_sum_assoc _ _ _)^-1. exact x.
+Defined.
 
 Definition fin_resp_sum (m n : nat) : Fin (m + n) <~> (Fin n) + (Fin m).
 Proof.
-  induction m.
-  - (*m is 0*)
-    apply equiv_inverse.
-    apply (sum_empty_r (Fin n)).
-  - simpl.
-    refine (_ oE (equiv_functor_sum_r IHm)).
-    apply equiv_sum_assoc.
+  apply (equiv_adjointify (fin_tosum m n) (fin_tosum_inv m n)).
+  - unfold Sect.
+    induction m.
+    + intros [x | []]. reflexivity.
+    + intros [x | [x | x]]; simpl.
+      * rewrite (IHm (inl x)). reflexivity.
+      * rewrite (IHm (inr x)). reflexivity.
+      * reflexivity.
+  - unfold Sect.
+    induction m.
+    + simpl. reflexivity.
+    + simpl.
+      intros [x | x].
+      * simpl.
+        recall (fin_tosum m n x) as y eqn:p. rewrite p.
+        destruct y as [y | y]; simpl; rewrite <- p; rewrite IHm;  reflexivity.
+      * reflexivity.
 Defined.
 
 Arguments fin_resp_sum !m !n.
@@ -1351,30 +1380,22 @@ End Restrict_Equivalence.
     block_sum (e1 oE g1) (e2 oE g2) ==
     (block_sum e1 e2) oE (block_sum g1 g2).
   Proof.
-    apply block_sum_beta.
-    - intro i. ev_equiv.
-      unfold block_sum. ev_equiv.
-      rewrite (eisretr (fin_resp_sum m n)).
-      rewrite (eisretr (fin_resp_sum m n)).
-      reflexivity.
-    - intro i. unfold block_sum. ev_equiv.
-      rewrite (eisretr (fin_resp_sum m n)).
-      rewrite (eisretr (fin_resp_sum m n)).
-      reflexivity.
-  Qed.
+    unfold block_sum. intro x. ev_equiv.
+    rewrite eisretr.
+    destruct ((fin_resp_sum m n) x) as [y | y]; reflexivity.
+  Defined.
 
   Definition block_sum_plus1 {m n : nat}
              (e1 : Fin m <~> Fin m)
              (e2 : Fin n <~> Fin n) :
     block_sum (m := m.+1) (e1 +E (equiv_idmap Unit)) e2 == (block_sum e1 e2) +E (equiv_idmap Unit).
   Proof.
-    apply block_sum_beta.
-    - intros [i | []].
-      + simpl. rewrite (eisretr (fin_resp_sum m n)). reflexivity.
-      + simpl. reflexivity.
-    - intro i. simpl.
-      rewrite (eisretr (fin_resp_sum m n)). reflexivity.
-  Defined.
+    unfold block_sum. intro x. ev_equiv.
+    destruct x as [x | []].
+    - simpl.
+      destruct (fin_tosum m n x) as [y | y];reflexivity.
+    - reflexivity.
+  Qed.
 
   (* Definition blocksum_last {m n : nat} *)
   (*            (e1 : Fin m.+1 <~> Fin m.+1) *)

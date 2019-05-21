@@ -35,43 +35,56 @@ Section Determinant.
 
   Arguments equiv_sum_assoc : simpl nomatch.
 
-  Definition blocksum_transpose {m n : nat}
-             (x y : Fin m) :
-    fin_transpose ((fin_resp_sum m n)^-1 (inr x)) ((fin_resp_sum m n)^-1 (inr y)) ==
-    block_sum (fin_transpose x y) equiv_idmap.
+  (* move *)
+  Lemma inj_finl {m n : nat} (i j : Fin m) :
+    finl m n i = finl m n j -> i = j.
   Proof.
-    unfold block_sum.
-    apply fin_transpose_eta; ev_equiv; try rewrite eisretr; simpl.
-    - rewrite fin_transpose_beta_l. reflexivity.
-    - rewrite fin_transpose_beta_r. reflexivity.
-    - intros i neq_x neq_y.
-      apply (equiv_inj (fin_resp_sum m n)).
-      refine (eisretr (fin_resp_sum m n) _ @ _).
-      recall (fin_resp_sum m n i) as j eqn:p.
-      rewrite p.
-      destruct j as [j | j].
-      + reflexivity.
-      + apply (ap inr).
-        apply fin_transpose_other.
-        { intro false.
-          apply neq_x.
-          apply (equiv_inj (fin_resp_sum m n)).
-          rewrite eisretr.
-          rewrite p. exact (ap inr false). }
-        { intro false.
-          apply neq_y.
-          apply (equiv_inj (fin_resp_sum m n)).
-          rewrite eisretr.
-          rewrite p. exact (ap inr false). }
+    intro p. apply (path_sum_inl (Fin n)).
+    apply (equiv_inj (finsum m n)).  exact p.
+  Qed.
+  
+  Lemma inj_finr {m n : nat} (i j : Fin n) :
+    finr m n i = finr m n j -> i = j.
+  Proof.
+    intro p. apply (path_sum_inr (Fin m)).
+    apply (equiv_inj (finsum m n)).  exact p.
+  Qed.
+
+
+
+    
+  Definition blocksum_transpose {m n : nat}
+             (x y : Fin n) :
+    fin_transpose (finr _ _ x) (finr _ _ y) ==
+    @block_sum m n equiv_idmap (fin_transpose x y).    
+  Proof.
+    apply fin_transpose_eta.
+    - rewrite block_sum_beta_finr.
+      rewrite fin_transpose_beta_l.  reflexivity.
+    - rewrite block_sum_beta_finr.
+      rewrite fin_transpose_beta_r. reflexivity.
+    - apply (fin_decompose_ind
+               (fun i : Fin (n+m) =>
+               i <> finr m n x -> i <> finr m n y ->
+               (block_sum equiv_idmap (fin_transpose x y)) i = i)).
+      + intros i neqx neqy.
+        apply block_sum_beta_finl.
+      + intros i neqx neqy.
+        refine (block_sum_beta_finr _ _ _ @ _).
+        apply (ap (finr m n)).  apply (fin_transpose_other x y i).
+        { apply (functor_not (ap (finr m n)) neqx). }
+        { apply (functor_not (ap (finr m n)) neqy). }
   Qed.
   
   Definition swap_last_blocksum {m n : nat}
-             (e1 : Fin m.+1 <~> Fin m.+1)
-             (e2 : Fin n <~> Fin n) :
+             (e1 : Fin m <~> Fin m)
+             (e2 : Fin n.+1 <~> Fin n.+1) :
     swap_last (block_sum e1 e2) ==
-    block_sum (swap_last e1) equiv_idmap.
+    block_sum equiv_idmap (swap_last e2) .
   Proof.
-    apply (@blocksum_transpose m.+1 n (e1 (inr tt)) ((inr (Fin m) tt))).
+    unfold swap_last.
+    rewrite (block_sum_beta_finr (n := n.+1) e1 e2 (inr tt)).
+    apply (@blocksum_transpose m n.+1 (e2 (inr tt)) ((inr (Fin n) tt))).
   Qed.  
 
   Lemma swap_fix_last {n : nat} (e : Fin n.+1 <~> Fin n.+1) :

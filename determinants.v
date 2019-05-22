@@ -114,6 +114,13 @@ Section Determinant.
     apply equiv_restrict_eta.
   Defined.
 
+  Definition transpose_and_restrict_id {n : nat} :
+    @transpose_and_restrict n equiv_idmap == equiv_idmap.
+  Proof.
+    intro x. simpl.
+    destruct n; reflexivity.
+  Qed.
+
   Definition transpose_and_restrict_transpose_nfx {n : nat} (x : Fin n.+1) :
     transpose_and_restrict (fin_transpose x (inr tt)) == equiv_idmap.
   Proof.
@@ -144,25 +151,23 @@ Section Determinant.
   Qed.
 
   Definition transpose_and_restrict_block_sum {m n : nat}
-             (e1 : Fin m.+1 <~> Fin m.+1)
-             (e2 : Fin n <~> Fin n) :
-    transpose_and_restrict (block_sum e1 e2) == block_sum (transpose_and_restrict e1) e2.
+             (e1 : Fin m <~> Fin m)
+             (e2 : Fin n.+1 <~> Fin n.+1) :
+    transpose_and_restrict (block_sum e1 e2) == block_sum e1 (transpose_and_restrict e2).
   Proof.
     apply inj_equiv_plus1.
     intro x.
     refine (equiv_restrict_eta _ _ _ @ _).
     refine (swap_last_blocksum e1 e2 _ @ _).
-    refine ((block_sum_compose (swap_last e1) e1 equiv_idmap e2 x)^ @ _).
+    refine ((block_sum_compose equiv_idmap e1 (swap_last e2) e2 x)^ @ _).
     rewrite (ecompose_1e).
     refine (_ @ (block_sum_plus1 _ _ x)).
-    apply (ap (fun g => (block_sum (m := m.+1) g e2) x)).
+    apply (ap (fun g => ((block_sum (n:=n.+1) e1 g) x))).
     apply path_equiv. apply path_arrow.
     intro y.
     apply inverse.
     apply transpose_and_restrict_eta.
-  Defined.
-    
-    
+  Defined.    
 
   (* First determinant of transpositions with the last element *)
   Definition det_transpose {n : nat} (i : Fin n.+1) : (Fin 2 <~> Fin 2).
@@ -191,8 +196,21 @@ Section Determinant.
     - reflexivity.
     - destruct (nlast idpath).
   Qed.
+
+  Definition det_id (m : nat) :
+    determinant m (equiv_idmap) = equiv_idmap.
+  Proof.
+    induction m.
+    - reflexivity.
+    - simpl. refine (_ @ IHm).
+      refine (ecompose_1e _ @ _).
+      apply (ap (determinant m)).
+      apply path_equiv. apply path_arrow.
+      apply transpose_and_restrict_id.
+  Qed.
+
  
-  Lemma det2_is_id : determinant 2 == equiv_idmap.
+  Lemma det2_is_id : determinant 2 == idmap.
   Proof.
     intro e.
     unfold determinant.
@@ -207,6 +225,39 @@ Section Determinant.
     - apply (sigma2_fixlast e p).
   Qed.
       
+  Definition det_beta_transpose (m : nat) (x y : Fin m) :
+    (x <> y) -> determinant m (fin_transpose x y) = twist2.
+  Proof.
+    intro neq.
+    induction m.
+    - destruct x.
+    - change (determinant m.+1 (fin_transpose x y))
+             with
+             (det_transpose (fin_transpose x y (inr tt)) oE
+              determinant m (transpose_and_restrict (fin_transpose x y))).
+      destruct y as [y | []].
+      + destruct x as [x | []].
+        * rewrite
+            (path_equiv (path_arrow _ _ (transpose_and_restrict_transpose_fixlast x y))).
+          simpl. 
+          refine (ecompose_1e _ @ _).
+          apply IHm. revert neq. apply functor_not.
+          apply (ap inl).
+        * rewrite (fin_transpose_beta_l).
+          change (det_transpose (inl y)) with twist2.
+          rewrite (path_equiv (path_arrow _ _
+                      (fin_transpose_sym (n := m.+1) (inr tt) (inl y)))).
+          rewrite (path_equiv (path_arrow _ _
+                      (transpose_and_restrict_transpose_nfx (inl y)))).
+          rewrite det_id. apply ecompose_e1.
+      + rewrite (fin_transpose_beta_r).
+        rewrite (path_equiv (path_arrow _ _
+                      (transpose_and_restrict_transpose_nfx x))).
+        rewrite (det_id). refine (ecompose_e1 _ @ _).
+        destruct x as [x | []].
+        * reflexivity.
+        * destruct (neq idpath).
+  Qed.    
       
   
   (* Definition Decidable_fixlast {n : nat} (e : Fin n.+1 <~> Fin n.+1) : Type:= *)
@@ -284,100 +335,42 @@ Section Determinant.
   (* Defined. *)
 
   Arguments block_sum : simpl never.
-  
-  Definition det_block_sum {m n : nat} (e1 : Fin m <~> Fin m) (e2 : Fin n <~> Fin n) :
-    determinant (m+n) (block_sum e1 e2) = determinant m e1 oE determinant n e2.
-  Proof.
-    induction m.
-    - simpl.
-      (* assert (e1 = equiv_idmap). *)
-      (* { apply path_equiv. apply path_arrow. intros []. } *)
-      (* rewrite X. clear X. *)
-      refine (_ @ (ecompose_1e _)^).
-      apply (ap (determinant n)). 
-      apply path_equiv. reflexivity.
-    - change
-        (determinant ?k.+1 ?e)
-        with
-        (det_transpose (e (inr tt)) oE determinant k (transpose_and_restrict e)).
-      change
-        (determinant (?k.+1 + n) ?e)
-        with
-        (det_transpose (e (inr tt)) oE determinant (k+n) (transpose_and_restrict e)).
-      rewrite (path_equiv (path_forall _ _ (transpose_and_restrict_block_sum e1 e2))).
-      rewrite (IHm (transpose_and_restrict e1)).
-      refine (ecompose_e_ee _ _ _ @ _).
-      apply (ap (fun g => g oE determinant m (transpose_and_restrict e1) oE determinant n e2)).
-      change ((block_sum e1 e2) (inr tt))
-             with
-             ((fin_resp_sum m.+1 n)^-1 (inr (e1 (inr tt)))).
-      destruct (e1 (inr tt)) as [x | []].
-      + reflexivity.
-      + reflexivity.
-  Defined.
 
-  Fixpoint block_sum_lid (m : nat) (n : nat) (e : Fin n <~> Fin n) :
-    Fin (m + n) <~> Fin (m + n).
+  Definition det_block_sum {m n : nat} (e1 : Fin m <~> Fin m) (e2 : Fin n <~> Fin n) :
+    determinant (n+m) (block_sum e1 e2) = determinant n e2 oE determinant m e1.
   Proof.
-    induction m; simpl.
-    - exact e.
-    - exact (equiv_functor_sum' (block_sum_lid m n e) 1).
-  Defined.
+    induction n.
+    - simpl.
+      refine (_ @ (ecompose_1e _)^).
+      apply (ap (determinant m)).
+      apply path_equiv. apply path_arrow. intro.
+      apply (block_sum_beta_finl e1 e2 x).
+    - simpl.
+      change (finsum m n.+1 (functor_sum e1 e2 (_^-1 (inr tt))))
+             with
+             (block_sum e1 e2 (inr tt)).
+      rewrite (block_sum_beta_finr e1 e2 (inr tt)).
+      rewrite (path_equiv (path_forall _ _ (transpose_and_restrict_block_sum e1 e2))).
+      rewrite (IHn (transpose_and_restrict e2)).
+      refine (ecompose_e_ee _ _ _ @ _).
+      apply (ap (fun g =>
+                   g oE determinant n (transpose_and_restrict e2) oE
+                     determinant m e1)).
+      destruct (e2 (inr tt)); reflexivity.
+  Qed.
+  
+  (* Fixpoint block_sum_lid (m : nat) (n : nat) (e : Fin n <~> Fin n) : *)
+  (*   Fin (m + n) <~> Fin (m + n). *)
+  (* Proof. *)
+  (*   induction m; simpl. *)
+  (*   - exact e. *)
+  (*   - exact (equiv_functor_sum' (block_sum_lid m n e) 1). *)
+  (* Defined. *)
 
   (* Definition block_sum_lid_1 (m : nat) {n : nat} (e : Fin n <~> Fin n) : *)
   (*   block_sum_lid m.+1 e = (block_sum_lid m e) +E 1 := idpath.     *)
 
-  Definition det_id (m : nat) :
-    determinant m (equiv_idmap) = equiv_idmap.
-  Proof.
-    induction m.
-    - reflexivity.
-    - simpl. refine (_ @ IHm).
-      refine (ecompose_1e _ @ _).
-      apply (ap (determinant m)).
-      unfold transpose_and_restrict. unfold swap_last. simpl.
-      apply path_equiv.
-      apply path_arrow.
-      apply inj_equiv_plus1.
-      intro x. 
-      refine (transpose_and_restrict_eta _ x @ _).
-      rewrite (fin_transpose_same_is_id (n := m.+1) (inr (Fin m) tt) x).
-      destruct x as  [x | []]; reflexivity.
-  Qed.
 
-  Definition det_beta_transpose (m : nat) (x y : Fin m) :
-    (x <> y) -> determinant m (fin_transpose x y) = twist2.
-  Proof.
-    intro neq.
-    induction m.
-    - destruct x.
-    - change (determinant m.+1 (fin_transpose x y))
-             with
-             (det_transpose (fin_transpose x y (inr tt)) oE
-              determinant m (transpose_and_restrict (fin_transpose x y))).
-      destruct y as [y | []].
-      + destruct x as [x | []].
-        * rewrite
-            (path_equiv (path_arrow _ _ (transpose_and_restrict_transpose_fixlast x y))).
-          simpl. 
-          refine (ecompose_1e _ @ _).
-          apply IHm. revert neq. apply functor_not.
-          apply (ap inl).
-        * rewrite (fin_transpose_beta_l).
-          change (det_transpose (inl y)) with twist2.
-          rewrite (path_equiv (path_arrow _ _
-                      (fin_transpose_sym (n := m.+1) (inr tt) (inl y)))).
-          rewrite (path_equiv (path_arrow _ _
-                      (transpose_and_restrict_transpose_nfx (inl y)))).
-          rewrite det_id. apply ecompose_e1.
-      + rewrite (fin_transpose_beta_r).
-        rewrite (path_equiv (path_arrow _ _
-                      (transpose_and_restrict_transpose_nfx x))).
-        rewrite (det_id). refine (ecompose_e1 _ @ _).
-        destruct x as [x | []].
-        * reflexivity.
-        * destruct (neq idpath).
-  Qed.    
 
   Lemma functor_sum_compose {A1 A2 A3 B1 B2 B3 : Type}
         (f1 : A1 -> A2) (f2 : A2 -> A3)

@@ -246,10 +246,67 @@ Section universal.
         generalize (deloop_rec_beta_x0 X x0 isconn_X Y y0 f ishom_f). intros [].
         simpl. destruct ω. reflexivity.
   Defined.
-      
-      
-  
+    
 End universal.
+
+Section pointed_rec.
+  Context (X : pType) (isconn_X : forall (x : X), merely (point (X) = x)).
+  Record p1Type :=
+    {onetype_of :> 1-Type ;
+     ispointed_1type_of : IsPointed onetype_of}.
+  Global Instance ispointed_1type_of' (Y : p1Type) : IsPointed Y
+    := ispointed_1type_of Y.
+  Definition ptype_of (Y : p1Type) := Build_pType Y _.
+  Coercion ptype_of : p1Type >-> pType.
+  Context (Y : p1Type).
+
+  Definition equiv_deloop_prec :
+    {f : loops X -> loops Y & forall α ω : loops X, f (α @ ω) = f α @ f ω} <~> pMap X Y.
+  Proof.
+    refine (issig_pmap X Y oE _).
+    transitivity
+      {a : {y : Y & {f : loops X -> y = y &
+                                    forall α ω : loops X, f (α @ ω) = f α @ f ω}} & point Y = pr1 a}.
+    - srapply @equiv_adjointify.
+      + intros [f ishom_f].
+        srapply @exist.
+        *  exists (point Y).
+           exists f. exact ishom_f.
+        * reflexivity.
+      + intros [[y [f ishom]] p].
+        simpl in p.  destruct p.
+        exact (f; ishom).
+      + intros [[y [f ishom]] p]. simpl in p. destruct p.
+        reflexivity.
+      + intros [f ishom_f]. reflexivity.
+    - srapply @equiv_functor_sigma'.
+      + exact (BuildEquiv _ _ (deloop_rec_uncurried X (point X) (isconn_X) Y)
+                          (isequiv_deloop_rec_uncurried X (point X) (isconn_X) Y)).
+      + simpl.
+        intros [y [f ishom]].
+        refine (equiv_path_inverse _ _ oE _).
+        apply equiv_concat_r.
+        simpl. apply inverse. unfold deloop_rec_uncurried.
+        apply deloop_rec_beta_x0.
+  Defined.
+
+  Definition deloop_prec (f : loops X -> loops Y)
+             (ishom_f : forall α ω : loops X, f (α @ ω) = f α @ f ω) :
+    pMap X Y.
+  Proof.
+    apply (Build_pMap X Y (deloop_rec X (point X) (isconn_X) Y (point Y) f ishom_f)).
+    apply deloop_rec_beta_x0.
+  Defined.
+
+  Lemma deloop_prec_eq_equiv_dloop_prec (f : loops X -> loops Y)
+             (ishom_f : forall α ω : loops X, f (α @ ω) = f α @ f ω) :
+    deloop_prec f ishom_f = equiv_deloop_prec (f; ishom_f).
+  Proof.
+    simpl. rewrite concat_1p. rewrite inv_V.
+    reflexivity.
+  Qed.
+
+End pointed_rec.
 
 
 Section deloop_double_ind_set.

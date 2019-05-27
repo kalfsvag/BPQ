@@ -1,12 +1,11 @@
 Require Import HoTT.
 
-
 (* Example test ( A : Type) (H : Decidable A) : ~ ~ A -> A. *)
 (* intros. unfold not in X. *)
 (* destruct (dec A). *)
 (* exact a. *)
 (* destruct (X n). *)
-Require Import finite_lemmas.
+From GC Require Import finite_lemmas.
 
 
 

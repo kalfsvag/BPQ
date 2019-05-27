@@ -90,21 +90,20 @@ Section BΣ.
 
   (* Move to finite_types.v when created *)
   Definition sum_finite_types {m n : nat} (A : Finite_Types m) (B : Finite_Types n) :
-    Finite_Types (m + n).
+    Finite_Types (n + m).
   Proof.
     exists (A + B).
     destruct A as [A fA]. destruct B as [B fB]. strip_truncations.
     apply tr. simpl.
     refine (_ oE equiv_functor_sum' fA fB).
-    apply equiv_inverse.
-    apply Fin_resp_sum.
+    apply fin_resp_sum.
   Defined.
     
   
   Definition plus_BΣ : BΣ -> BΣ -> BΣ.
   Proof.
     intros [m A] [n B].
-    exists (m + n)%nat.
+    exists (n + m)%nat.
     exact (sum_finite_types A B).
   Defined.
 
@@ -320,12 +319,6 @@ Require Import delooping.
 (*   (* TODO *) *)
 (* End deloop_BΣ. *)
 
-Add Rec LoadPath "~/groupoids" as GR.
-Require Import cquot.
-Require Import cquot_principles.
-
-
-Definition tr1_group_completion_BΣ := cquot (group_completion_BΣ).
 
 Lemma isconn_finite_types (m : nat) :
   forall x : Finite_Types m,
@@ -336,42 +329,5 @@ Proof.
   exact fA.
 Qed.
 
-Definition grp_compl_BΣ_ind_set
-           (P : tr1_group_completion_BΣ -> hSet)
-           (f : forall (m n : nat), P (ccl group_completion_BΣ ((canon_BΣ m), (canon_BΣ n))))
-           : forall z : tr1_group_completion_BΣ, P z.
-  Proof.
-    srapply @cquot_ind_set. 
-    - simpl.
-      intros [[m x] [n y]]. revert x y.
-      srefine (deloop_double_ind_set
-               (Finite_Types m) (canon m) (isconn_finite_types m)
-               (Finite_Types n) (canon n) (isconn_finite_types n)
-               _
-               (f m n)
-               _ _
-               
-             ).
-      + admit.
-      + admit.
-    - simpl. unfold monoidal_action_morphism.
-      intros [[m a1] [n a2]] b [s p].  destruct p. simpl.
-      revert a2.
-      srefine (deloop_ind_prop
-               (Finite_Types n) (canon n) (isconn_finite_types n)
-               _ _).
-      revert a1.
-      srefine (deloop_ind_prop
-               (Finite_Types m) (canon m) (isconn_finite_types m)
-               _ _).
-      destruct s as [s x]. revert x.
-      srefine (deloop_ind_prop
-               (Finite_Types s) (canon s) (isconn_finite_types s)
-               _ _).
-      simpl.
-      
-      admit.
-    
-    
     
   

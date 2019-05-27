@@ -340,6 +340,19 @@ Section deloop_double_ind_set.
                    (fun x : X1 =>
                       {| trunctype_type := Y x b; istrunc_trunctype_type := trunc_hset |}) y0 _ _).
   Defined.
+
+  Definition deloop_double_ind_set_beta_x0 :
+    deloop_double_ind_set a b = y0.
+  Proof.
+    unfold deloop_double_ind_set. unfold deloop_ind_set.
+    refine (deloop_ind_beta_x0 X2 b isconn_X2
+           (fun x : X2 => {| trunctype_type := Y a x; istrunc_trunctype_type := trunc_hset |})
+           _ _ _ @ _).
+    apply (deloop_ind_beta_x0 X1 a isconn_X1
+          (fun x : X1 => {| trunctype_type := Y x b; istrunc_trunctype_type := trunc_hset |})).
+  Defined.
+    
+    
 End deloop_double_ind_set.
 
     

@@ -44,20 +44,20 @@ Definition ccleq_canon (m n s : nat) :
   (ccleq group_completion_BΣ ((s; canon s); idpath)) @ canon_grpclBΣ_sum s s m n.
 
 (* Auxillary stuff. Move? *)
-(* Definition double_transport {A B : Type} (P : A -> B -> Type) {a1 a2 : A} {b1 b2 : B} : *)
-(*   a1 = a2 -> b1 = b2 -> P a1 b1 -> P a2 b2. *)
-(* Proof. *)
-(*   intros [] []. exact idmap. *)
-(* Defined. *)
+Definition double_transport {A B : Type} (P : A -> B -> Type) {a1 a2 : A} {b1 b2 : B} :
+  a1 = a2 -> b1 = b2 -> P a1 b1 -> P a2 b2.
+Proof.
+  intros [] []. exact idmap.
+Defined.
 
-(* Definition double_apD {A B : Type} (P : A -> B -> Type) *)
-(*            (f : forall (a : A) (b : B), P a b) *)
-(*            {a1 a2 : A} {b1 b2 : B} *)
-(*            (p : a1 = a2) (q : b1 = b2) : *)
-(*   double_transport P p q (f a1 b1) = f a2 b2. *)
-(* Proof. *)
-(*   destruct p. destruct q. reflexivity. *)
-(* Defined. *)
+Definition double_apD {A B : Type} (P : A -> B -> Type)
+           (f : forall (a : A) (b : B), P a b)
+           {a1 a2 : A} {b1 b2 : B}
+           (p : a1 = a2) (q : b1 = b2) :
+  double_transport P p q (f a1 b1) = f a2 b2.
+Proof.
+  destruct p. destruct q. reflexivity.
+Defined.
 
 Definition double_uncurry {A B : Type} (P : A -> B -> Type) :
   (forall (a : A) (b : B), P a b) -> (forall ab : A*B, P (fst ab) (snd ab)).
@@ -66,7 +66,7 @@ Proof.
   intros [a b]. exact (f a b).
 Defined.
 
-
+Local Open Scope nat_scope.
 Definition grp_compl_BΣ_ind_set
            (P : Z -> hSet)
            (f : forall (m n : nat), P (ccl (group_completion_BΣ) ((canon_BΣ m), (canon_BΣ n))))
@@ -80,13 +80,10 @@ Definition grp_compl_BΣ_ind_set
                 transport
                   (fun x : (Finite_Types m) =>
                      P (ccl (group_completion_BΣ) ((m; x), (canon_BΣ n)))) σ (f m n) = (f m n))
+  
            (act_add :
-              forall (m n : nat) (s : nat),
-                transport P
-                          (ccleq_canon m n s)
-                          (f m n) =
-                f (m+s)%nat (n+s)%nat)
-                
+              (forall (m n : nat) (s : nat),
+                transport P (ccleq_canon m n s) (f m n) = f (m+s)%nat (n+s)%nat))
            : forall z : Z, P z.
   Proof.
     srapply @cquot_ind_set.
@@ -143,161 +140,32 @@ Definition grp_compl_BΣ_ind_set
              (g (sum_finite_types (canon s) (canon m), sum_finite_types (canon s) (canon n))).
       rewrite <-
               (apD g (path_prod (_,_) (_,_) (fin_resp_sum_id s m) (fin_resp_sum_id s n))^).
-      unfold g.   simpl. unfold double_uncurry.
+      unfold g. unfold double_uncurry.
       rewrite deloop_double_ind_set_beta_x0. clear g.
       apply path_to_path_over.
-      apply (equiv_inj (equiv_transport (fun x : Z => P x) _ _ (canon_grpclBΣ_sum s s m n))).
-      simpl.
-      refine ((transport_pp P _ _ _)^ @ _).
-      refine (act_add m n s @ _).
-      unfold canon_grpclBΣ_sum. 
-      refine (_ @ transport_compose P (ccl group_completion_BΣ) _ _). simpl.
-      
-      generalize (f (m+s) (n+s))%nat. intro x. 
-      generalize (path_prod (sum_finite_types (canon s) (canon m), sum_finite_types (canon s) (canon n))
-          (canon (m + s), canon (n + s)) (fin_resp_sum_id s m) (fin_resp_sum_id s n)).
-      intro p.
-      
-      
-
-      
-      generalize (sum_finite_types (canon s) (canon m), sum_finite_types (canon s) (canon n)). (canon (m + s), canon (n + s)).
-      
-      
-      unfold BΣ_resp_sum.
-      destruct (fin_resp_sum_id s m)^.
-      destruct (
-      unfold BΣ.
-      refine (_ @ transport_pp _ _ _ _).
-      apply inverse.
-      
-
-      
-      unfold ccleq_canon in act_add.
-      unfold canon_grpclBΣ_sum in act_add. 
-      
-      rewrite deloop_double_ind_set_beta_x0.
-      set (h :=
-             fun k : nat =>
-               path_finite_types_fix _
-                                     (sum_finite_types (canon s) (canon k)) (canon (k+s))
-                                     (fin_resp_sum s k)).
-      rewrite <- (double_apD _
-                  (deloop_double_ind_set
-                     (Finite_Types (m + s))
-                     (canon (m + s))
-                     (isconn_finite_types (m + s))
-                     (Finite_Types (n + s))
-                     (canon (n + s))
-                     (isconn_finite_types (n + s))
-                     (fun (x1 : Finite_Types (m + s)) (x2 : Finite_Types (n + s)) =>
-                        P (ccl group_completion_BΣ ((m + s; x1), (n + s; x2)))) (f (m + s) (n + s))
-                     (fun ω : canon (n + s) = canon (n + s) =>
-                        act_r (m + s) (n + s) ω) (act_l (m + s) (n + s)))%nat
-                  (h m)^ (h n)^).
-      rewrite deloop_double_ind_set_beta_x0.
-      apply path_to_path_over.
-      unfold ccleq_canon in act_add.
-      apply (equiv_inj (equiv_transport (fun x : Z => P x) _ _ (canon_grpclBΣ_sum s s m n))).
-      simpl.
-      refine ((transport_pp P _ _ _)^ @ _).
-      refine (act_add m n s @ _).
-      simpl.
-      
-
-      unfold h. unfold canon_grpclBΣ_sum.
-      unfold path_finite_types. 
-      destruct (canon_grpclBΣ_sum s s m n). simpl.
-      rewrite concat_p1.
-      unfold h. 
-      
-      
-      assert ((deloop_double_ind_set (Finite_Types (m + s)) (canon (m + s)) (isconn_finite_types (m + s))
-       (Finite_Types (n + s)) (canon (n + s)) (isconn_finite_types (n + s))
-       (fun (x1 : Finite_Types (m + s)) (x2 : Finite_Types (n + s)) =>
-        P (ccl group_completion_BΣ ((m + s; x1), (n + s; x2)))) (f (m + s) (n + s))
-       (fun ω : canon (n + s) = canon (n + s) => act_r (m + s) (n + s) ω) (act_l (m + s) (n + s))
-       (sum_finite_types (canon s) (canon m)) (sum_finite_types (canon s) (canon n))) =
-              transport (fun x : ) (path_prod (_,_) (_,_) h h)^
-
-      
-      set (h := path_finite_types_fix _
-                                      (sum_finite_types (canon s) (canon m)) (canon (m+s))
-                                      (fin_resp_sum s m)).
-      apply path_to_path_over.
-      unfold ccleq_canon in act_add. 
-      Check
-        (transport_pp P (ccleq group_completion_BΣ ((s; canon s); idpath))
-                      (canon_grpclBΣ_sum s s m n)
-                            (f m n) )^ @ (act_add m n s).
-      apply (equiv_inj (equiv_transport (fun x : Z => P x) _ _ (canon_grpclBΣ_sum s s m n))).
-      simpl.
-      refine ((transport_pp P (ccleq group_completion_BΣ ((s; canon s); idpath))
-                      (canon_grpclBΣ_sum s s m n)
-                            (f m n) )^ @ _).
-      refine (act_add m n s @ _).
-      apply inverse.
-      refine (_ @deloop_double_ind_set_beta_x0
-                (Finite_Types (m + s)) (canon (m + s)) (isconn_finite_types (m + s))
-                (Finite_Types (n + s)) (canon (n + s)) (isconn_finite_types (n + s))
-                (fun (x1 : Finite_Types (m + s))
-                     (x2 : Finite_Types (n + s)) =>
-                   P (ccl group_completion_BΣ ((m + s; x1), (n + s; x2)))) (f (m + s) (n + s))
-                (fun ω : canon (n + s) = canon (n + s) =>
-                   act_r (m + s) (n + s) ω) (act_l (m + s) (n + s)))%nat.
-      unfold canon_grpclBΣ_sum.
-      refine ((transport_compose P (ccl group_completion_BΣ) _ _)^ @ _).
-      refine (transport_path_prod _ _ _ _ @ _). simpl.
-      tr
-      
-      simpl.  
-      generalize
-      
-      transitivity (deloop_do
-      
-
-        
-      rewrite (transport_pp P (ccleq group_completion_BΣ ((s; canon s); idpath))
-                            (ap (ccl group_completion_BΣ)
-                                (path_prod (functor_prod
-                                              (plus_BΣ (s; canon s)) (plus_BΣ (s; canon s))
-                                              (canon_BΣ m, canon_BΣ n))
-                                           (canon_BΣ (m + s), canon_BΣ (n + s))
-                                           ((path_finite_types
-                                               (plus_BΣ (s; canon s) (canon_BΣ m)) (canon_BΣ (m + s)))
-                                              (fin_resp_sum s m))
-                                           ((path_finite_types
-                                               (plus_BΣ (s; canon s) (canon_BΣ n)) (canon_BΣ (n + s)))
-                                              (fin_resp_sum s n))))
-                            (f m n)
-
-              ) in act_add.
-      assert (h : sum_finite_types (canon s) (canon m) = canon (m + s)).
-      { apply path_finite_types_fix.
-        simpl. apply fin_resp_sum. }
+      rewrite <- act_add.
       refine (_ @
-                apD011
-                (deloop_double_ind_set (Finite_Types (m + s)) (canon (m + s))
-                                       (isconn_finite_types (m + s))
-                                       (Finite_Types (n + s)) (canon (n + s))
-                                       (isconn_finite_types (n + s))
-                                       (fun (x1 : Finite_Types (m + s))
-                                            (x2 : Finite_Types (n + s)) =>
-                                          P (ccl group_completion_BΣ
-                                                 ((m + s; x1), (n + s; x2)))) (f (m + s) (n + s))
-                                       (fun ω : canon (n + s) = canon (n + s) =>
-                                          act_r (m + s) (n + s) ω) (act_l (m + s) (n + s)))%nat
-                h h).
-      assert (sum_finite_types (canon s) (canon m) = canon (m + s)).
-      { apply path_finite_types_fix.
-        simpl. apply fin_resp_sum. }
-      rewrite X.
-        apply path_sigma_hprop. simpl.
-        apply path_universe_un.
-      rewrite deloop_double_ind_set_beta_x0.
-      unfold deloop_double_ind_set. simpl.
-      admit.
-    
+                (transport_compose
+                   P (fun ab : Finite_Types (m + s) * Finite_Types (n + s) =>
+                        (ccl group_completion_BΣ ((m + s; fst ab), (n + s; snd ab))))
+                   ((path_prod
+                      (sum_finite_types (canon s) (canon m), sum_finite_types (canon s) (canon n))
+                      (canon (m + s), canon (n + s)) (fin_resp_sum_id s m) (fin_resp_sum_id s n))^)
+                   (transport (fun x : Z => P x) (ccleq_canon m n s) (f m n)))^).
+      change (cquot group_completion_BΣ) with Z.
+      refine (_ @ transport_pp P _ _ _).
+      apply (ap (fun p => transport P p (f m n))). simpl.
+      unfold ccleq_canon. unfold canon_grpclBΣ_sum.
+      refine (_ @ concat_p_pp _ _ _).
+      refine ((concat_p1 _)^ @ _).
+      apply whiskerL. apply moveL_pM.
+      refine (concat_1p _ @ _).
+      refine ((ap inverse (ap_V _ _ )@ _)).
+      refine (inv_V _ @ _).
+      refine ((ap_compose _ _ _)).
+  Defined.
+
+  
     
 
 

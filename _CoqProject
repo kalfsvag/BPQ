@@ -10,6 +10,7 @@ basics/set_quotient.v
 basics/nat_lemmas.v
 basics/delooping.v
 Finite_Types/finite_lemmas.v
+determinants.v
 Monoid/monoids_and_groups.v
 Monoid/group_completion_quotient.v
 Monoidal_1Type/monoidal_1type.v

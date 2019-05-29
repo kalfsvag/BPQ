@@ -1,20 +1,20 @@
 Require Import HoTT.
 Require Import finite_lemmas.
 
-Require Import group_complete_1type.
+Require Import group_complete_1type. (* not necessary? *)
 Require Import trunc_lemmas.
 
 (*Defining the monoidal 1-type of finite sets and isomorphisms*)
-Section BΣ.
+Section BSigma.
     
   (*This type corresponds to the category of finite sets and isomorphisms*)
-  Definition BΣ :=
+  Definition BSigma :=
     {m : nat & Finite_Types m}.
     (* { S : Type & Finite S}. *)
-  Definition type_of_fin : BΣ -> Type := (fun A => A.2.1).
-  Coercion type_of_fin : BΣ  >-> Sortclass.
+  Definition type_of_fin : BSigma -> Type := (fun A => A.2.1).
+  Coercion type_of_fin : BSigma  >-> Sortclass.
 
-  Global Instance istrunc_BΣ : IsTrunc 1 BΣ.
+  Global Instance istrunc_BSigma : IsTrunc 1 BSigma.
   Proof.
     apply (trunc_equiv' {S : Type & Finite S}).
     - apply equiv_inverse. apply sum_finite.
@@ -25,8 +25,8 @@ Section BΣ.
          apply isset_Finite. exact B.2.
   Defined.
 
-  (*Canonical objects in BΣ*)
-  Definition canon_BΣ (n : nat) : BΣ := (n; canon n).
+  (*Canonical objects in BSigma*)
+  Definition canon_BSigma (n : nat) : BSigma := (n; canon n).
 
   Lemma finite_types_eqcard {m n : nat} (A : Finite_Types m) (B : Finite_Types n) :
     A <~> B -> m = n.
@@ -38,8 +38,8 @@ Section BΣ.
   Qed.
 
   (* in finite_lemmas: *)
-  (* (* Describing the path type of BΣ *) *)
-  Definition path_BΣ {A B : BΣ} : A <~> B <~> A = B
+  (* (* Describing the path type of BSigma *) *)
+  Definition path_BSigma {A B : BSigma} : A <~> B <~> A = B
        := path_finite_types A B.
   (* Proof. *)
   (*   destruct A as [m A]. destruct B as [n B]. simpl. *)
@@ -52,33 +52,33 @@ Section BΣ.
     
  
 
-  (* Definition isequiv_path_BΣ {A B : BΣ} : IsEquiv (@path_BΣ A B). *)
+  (* Definition isequiv_path_BSigma {A B : BSigma} : IsEquiv (@path_BSigma A B). *)
   (* Proof. *)
   (*   srapply @isequiv_adjointify. *)
   (*   - intros []. exact equiv_idmap. *)
   (*   - intros []. *)
-  (*     unfold path_BΣ. *)
+  (*     unfold path_BSigma. *)
   (*     assert (H : (finite_types_eqcard (pr2 A) (pr2 A) equiv_idmap) = idpath). *)
   (*     { apply hset_nat. } destruct H. *)
   (*     destruct . *)
 
-  (* (* path_BΣ respects composition *) *)
+  (* (* path_BSigma respects composition *) *)
   (* shorter proof than in finite_lemmas *)
-  Definition path_BΣ_compose {A B C : BΣ} (e1 : A <~> B) (e2 : B <~> C) :
-    path_BΣ (e2 oE e1) = path_BΣ e1 @ path_BΣ e2.
+  Definition path_BSigma_compose {A B C : BSigma} (e1 : A <~> B) (e2 : B <~> C) :
+    path_BSigma (e2 oE e1) = path_BSigma e1 @ path_BSigma e2.
   Proof.
-    (* path_BΣ e2 @ path_BΣ e1 = path_BΣ (e1 oE e2). *)
+    (* path_BSigma e2 @ path_BSigma e1 = path_BSigma (e1 oE e2). *)
   Proof.
     refine
-      (ap011 (fun g1 g2 => path_BΣ (g2 oE g1))
-             (eissect (@path_BΣ A B) e1)^ (eissect (@path_BΣ B C) e2)^ @ _).
-    generalize (path_BΣ e2). intros []. 
-    generalize (path_BΣ e1). intros []. simpl.
+      (ap011 (fun g1 g2 => path_BSigma (g2 oE g1))
+             (eissect (@path_BSigma A B) e1)^ (eissect (@path_BSigma B C) e2)^ @ _).
+    generalize (path_BSigma e2). intros []. 
+    generalize (path_BSigma e1). intros []. simpl.
     refine (path_finite_types_1 A).
   Qed.
   (* Proof. *)
-  (*   apply (equiv_inj path_BΣ^-1). *)
-  (*   refine (_ @ (eissect (path_BΣ) (e1 oE e2))^). *)
+  (*   apply (equiv_inj path_BSigma^-1). *)
+  (*   refine (_ @ (eissect (path_BSigma) (e1 oE e2))^). *)
   (*   apply path_equiv. simpl. *)
   (*   unfold pr1_path. *)
   (*   rewrite ap_pp. *)
@@ -100,67 +100,67 @@ Section BΣ.
   Defined.
     
   
-  Definition plus_BΣ : BΣ -> BΣ -> BΣ.
+  Definition plus_BSigma : BSigma -> BSigma -> BSigma.
   Proof.
     intros [m A] [n B].
     exists (n + m)%nat.
     exact (sum_finite_types A B).
   Defined.
 
-  Definition BΣ_id : BΣ := canon_BΣ 0.
+  Definition BSigma_id : BSigma := canon_BSigma 0.
 
-  Local Notation "S1 ⊕ S2" := (plus_BΣ S1 S2) (at level 50, no associativity).  
+  Local Notation "S1 ⊕ S2" := (plus_BSigma S1 S2) (at level 50, no associativity).  
 
-  (* path_BΣ behaves well with respect to sum *)
-  Definition natural_path_BΣ_l {S1 S2 S3: BΣ} (e : S1 <~> S2) :
-    ap (fun x : BΣ => x ⊕ S3) (path_BΣ e) = path_BΣ (A := S1 ⊕ S3) (B := S2 ⊕ S3) (equiv_functor_sum_r (B := S3) e).
+  (* path_BSigma behaves well with respect to sum *)
+  Definition natural_path_BSigma_l {S1 S2 S3: BSigma} (e : S1 <~> S2) :
+    ap (fun x : BSigma => x ⊕ S3) (path_BSigma e) = path_BSigma (A := S1 ⊕ S3) (B := S2 ⊕ S3) (equiv_functor_sum_r (B := S3) e).
   Proof.
     
-    refine (_ @ ap (fun e' => @path_BΣ (S1⊕ S3) (S2 ⊕ S3) (equiv_functor_sum_r e'))
-              (eissect (@path_BΣ S1 S2) e)).
-    generalize (path_BΣ e). intros [].
-    simpl. unfold path_BΣ. apply inverse.
+    refine (_ @ ap (fun e' => @path_BSigma (S1⊕ S3) (S2 ⊕ S3) (equiv_functor_sum_r e'))
+              (eissect (@path_BSigma S1 S2) e)).
+    generalize (path_BSigma e). intros [].
+    simpl. unfold path_BSigma. apply inverse.
     refine (_ @ path_finite_types_1 (S1 ⊕ S3)).
     apply (ap (path_finite_types (S1 ⊕ S3) (S1 ⊕ S3))).
     apply path_equiv. apply path_arrow. intros [s1 | s3]; reflexivity.
   Qed.
 
-  Definition natural_path_BΣ_r {S1 S2 S3: BΣ} (e : S2 <~> S3) :
-    ap (fun x : BΣ => S1 ⊕ x) (path_BΣ e) = path_BΣ (A := S1 ⊕ S2) (B := S1 ⊕ S3) (equiv_functor_sum_l (A := S1) e).
+  Definition natural_path_BSigma_r {S1 S2 S3: BSigma} (e : S2 <~> S3) :
+    ap (fun x : BSigma => S1 ⊕ x) (path_BSigma e) = path_BSigma (A := S1 ⊕ S2) (B := S1 ⊕ S3) (equiv_functor_sum_l (A := S1) e).
   Proof.
-    refine (_ @ ap (fun e' => @path_BΣ (S1 ⊕ S2) (S1 ⊕ S3) (equiv_functor_sum_l e'))
-              (eissect (@path_BΣ S2 S3) e)).
-    generalize (path_BΣ e). intros [].
-    simpl. unfold path_BΣ. apply inverse.
+    refine (_ @ ap (fun e' => @path_BSigma (S1 ⊕ S2) (S1 ⊕ S3) (equiv_functor_sum_l e'))
+              (eissect (@path_BSigma S2 S3) e)).
+    generalize (path_BSigma e). intros [].
+    simpl. unfold path_BSigma. apply inverse.
     refine (_ @ path_finite_types_1 (S1 ⊕ S2)).
     apply (ap (path_finite_types (S1 ⊕ S2) (S1 ⊕ S2))).
     apply path_equiv. apply path_arrow. intros [s1 | s2]; reflexivity.
   Qed.
   
-  (*The monoidal structure on BΣ*)
+  (*The monoidal structure on BSigma*)
   
-  Definition BΣ_assoc : associative plus_BΣ.
+  Definition BSigma_assoc : associative plus_BSigma.
   Proof.
     intros S1 S2 S3.
-    apply path_BΣ.
+    apply path_BSigma.
     apply equiv_sum_assoc. 
   Defined.
 
-  Definition BΣ_lid : left_identity_mult plus_BΣ (canon_BΣ 0).
+  Definition BSigma_lid : left_identity_mult plus_BSigma (canon_BSigma 0).
   Proof.
-    intro S. apply path_BΣ.
+    intro S. apply path_BSigma.
     apply sum_empty_l.
   Defined.
   
-  Definition BΣ_rid : right_identity_mult plus_BΣ (canon_BΣ 0).
+  Definition BSigma_rid : right_identity_mult plus_BSigma (canon_BSigma 0).
   Proof.
-    intro S. apply path_BΣ.
+    intro S. apply path_BSigma.
     apply sum_empty_r.
   Defined.
 
-  Definition BΣ_symmetric : symmetric plus_BΣ. 
+  Definition BSigma_symmetric : symmetric plus_BSigma. 
   Proof.
-    intros S1 S2. apply path_BΣ. apply equiv_sum_symm.
+    intros S1 S2. apply path_BSigma. apply equiv_sum_symm.
   Defined.
 
 
@@ -168,40 +168,40 @@ Section BΣ.
   
   
   (*TODO: How [cardinal] respects associativity and identity proofs *)
-  Definition BΣ_triangle1 : coherence_triangle1 BΣ_assoc BΣ_lid.
+  Definition BSigma_triangle1 : coherence_triangle1 BSigma_assoc BSigma_lid.
   Proof.
     intros S1 S2.
-    unfold BΣ_lid.
-    refine (natural_path_BΣ_l _ @ _).
-    unfold BΣ_assoc.
-    refine (_ @ (path_BΣ_compose _ _)).
-    apply (ap path_BΣ).
+    unfold BSigma_lid.
+    refine (natural_path_BSigma_l _ @ _).
+    unfold BSigma_assoc.
+    refine (_ @ (path_BSigma_compose _ _)).
+    apply (ap path_BSigma).
     apply path_equiv. apply path_arrow.
     intros [[[] | s1] | s2]; reflexivity.
   Qed.
 
-  Definition BΣ_triangle2 : coherence_triangle2 BΣ_assoc BΣ_lid BΣ_rid.
+  Definition BSigma_triangle2 : coherence_triangle2 BSigma_assoc BSigma_lid BSigma_rid.
   Proof.
-    intros S1 S2. unfold BΣ_rid. unfold BΣ_assoc. unfold BΣ_lid. simpl.
-    refine (natural_path_BΣ_l _ @ _).
-    refine (_ @ whiskerL _ (natural_path_BΣ_r _)^).
-    refine (_ @ (path_BΣ_compose  _ _)).
-    apply (ap path_BΣ).
+    intros S1 S2. unfold BSigma_rid. unfold BSigma_assoc. unfold BSigma_lid. simpl.
+    refine (natural_path_BSigma_l _ @ _).
+    refine (_ @ whiskerL _ (natural_path_BSigma_r _)^).
+    refine (_ @ (path_BSigma_compose  _ _)).
+    apply (ap path_BSigma).
     apply path_equiv. apply path_arrow.
     intros [[s1 | []] | s2]; reflexivity.
   Qed.
   
-  Definition BΣ_pentagon : coherence_pentagon BΣ_assoc.
+  Definition BSigma_pentagon : coherence_pentagon BSigma_assoc.
   Proof.
     intros S1 S2 S3 S4.
-    refine (natural_path_BΣ_l _  @ _).
+    refine (natural_path_BSigma_l _  @ _).
     apply moveL_pV.
-    refine ((path_BΣ_compose _ _)^ @ _).
+    refine ((path_BSigma_compose _ _)^ @ _).
     apply moveL_pV.
-    refine (whiskerL _ (natural_path_BΣ_r _) @ _).
-    refine ((path_BΣ_compose _ _)^ @ _).
-    refine (_ @ (path_BΣ_compose _ _)).
-    apply (ap path_BΣ).
+    refine (whiskerL _ (natural_path_BSigma_r _) @ _).
+    refine ((path_BSigma_compose _ _)^ @ _).
+    refine (_ @ (path_BSigma_compose _ _)).
+    apply (ap path_BSigma).
     apply path_equiv. apply path_arrow.
     intros [[[s1 | s2]| s3] | s4]; reflexivity.
   Defined.
@@ -229,24 +229,24 @@ Section BΣ.
     apply (path_equiv^-1 p).
   Defined.    
   
-  Definition BΣ_lcancel (S1 S2 : BΣ) (p q : S1 = S2) (T : BΣ) :
+  Definition BSigma_lcancel (S1 S2 : BSigma) (p q : S1 = S2) (T : BSigma) :
     ap (fun x => x ⊕ T) p = ap (fun x => x ⊕ T) q -> p = q.
   Proof.
     intro h.
-    apply (equiv_inj (@path_BΣ S1 S2)^-1).
-    apply (isinj_equiv_functor_sum_r (B:=T) (path_BΣ^-1 p) (path_BΣ^-1 q)) .
-    apply (equiv_inj (@path_BΣ (S1 ⊕ T) (S2 ⊕ T))).
-    refine ((natural_path_BΣ_l _)^ @ _ @ natural_path_BΣ_l _).
+    apply (equiv_inj (@path_BSigma S1 S2)^-1).
+    apply (isinj_equiv_functor_sum_r (B:=T) (path_BSigma^-1 p) (path_BSigma^-1 q)) .
+    apply (equiv_inj (@path_BSigma (S1 ⊕ T) (S2 ⊕ T))).
+    refine ((natural_path_BSigma_l _)^ @ _ @ natural_path_BSigma_l _).
     refine (_ @ h @ _);
-      apply (ap (ap (fun x : BΣ => x ⊕ T))).
+      apply (ap (ap (fun x : BSigma => x ⊕ T))).
       - apply eisretr.
       - apply inverse. apply eisretr.
   Defined.
 
-  Definition BΣ_moncat : Monoidal_1Type :=
-    Build_Monoidal_1Type (BuildTruncType 1 BΣ) plus_BΣ (canon_BΣ 0) BΣ_assoc BΣ_lid BΣ_rid BΣ_triangle1 BΣ_triangle2 BΣ_pentagon.
+  Definition BSigma_moncat : Monoidal_1Type :=
+    Build_Monoidal_1Type (BuildTruncType 1 BSigma) plus_BSigma (canon_BSigma 0) BSigma_assoc BSigma_lid BSigma_rid BSigma_triangle1 BSigma_triangle2 BSigma_pentagon.
 
-  Definition group_completion_BΣ := group_completion BΣ_moncat BΣ_lcancel .
+  Definition group_completion_BSigma := group_completion BSigma_moncat BSigma_lcancel .
 
 
   (* Lemma equiv_toempty (A : Type) : *)
@@ -264,18 +264,18 @@ Section BΣ.
     apply (BuildEquiv A Empty (fun a => e (inl a)) ). apply all_to_empty_isequiv.
   Defined.    
 
-  Definition univalent_group_completion_BΣ :
-    Categories.IsCategory group_completion_BΣ.
+  Definition univalent_group_completion_BSigma :
+    Categories.IsCategory group_completion_BSigma.
   Proof.
     apply univalent_monactcat; simpl.
     - intros A B.
       intro p.
-      apply path_BΣ. simpl.
+      apply path_BSigma. simpl.
       apply (sum_empty_is_empty A B).
-      apply ((path_BΣ)^-1 p).
+      apply ((path_BSigma)^-1 p).
     - intro A.
       apply (trunc_equiv' (Empty <~> A)).
-      + apply (path_BΣ (A := (canon_BΣ 0))).
+      + apply (path_BSigma (A := (canon_BSigma 0))).
       + apply (trunc_equiv' (A <~> Empty)).
         * apply equiv_equiv_inverse.
         * exact _.
@@ -288,46 +288,101 @@ Section BΣ.
   
     
   
-End BΣ.
+End BSigma.
 
 Require Import delooping.
-(* Section deloop_BΣ. *)
-(*   Definition finite_types_ind_1type (m : nat) *)
-(*              (P : Finite_Types m -> 1-Type) *)
-(*              (p0 : P (canon m)) *)
-(*              (f : forall (e : canon m <~> canon m), *)
-(*                  transport P (path_finite_types_fix m _ _ e) p0 = p0) *)
-(*              (* (ishom_f : *) *)
-(*              (*    forall (e g : canon m <~> canon m), *) *)
-(*              (*      f (g oE e) = transport_pp P *) *)
-(*              (*                                (path_finite_types_fix m _ _ e) *) *)
-(*              (*                                (path_finite_types_fix m _ _ g) *) *)
-(*   : forall x : Finite_Types m, P x. *)
-(*   Proof. *)
-(*     srefine (deloop_ind (Finite_Types m) (canon m) _ P p0 _ _).  *)
-(*     - intros [A fA]. strip_truncations. *)
-(*       apply tr. apply inverse. *)
-(*       apply path_finite_types_fix. exact fA. *)
-(*     - intro ω. *)
-(*       refine (_ @ f ((path_finite_types_fix m (canon m) (canon m))^-1 ω)). *)
-(*       apply (ap (fun x => *)
-(*                transport P x p0)). *)
-(*       apply inverse. apply eisretr. *)
-(*     - intros. hnf. *)
-(*       repeat rewrite concat_1p. *)
+Section deloop_BSigma.
+  Lemma isconn_finite_types (m : nat) :
+    forall x : Finite_Types m,
+      merely (canon m = x).
+  Proof.
+    intros [A fA]. strip_truncations.
+    apply tr. apply inverse. apply path_finite_types_fix.
+    exact fA.
+  Qed.
+
   
-(*   (* TODO *) *)
-(* End deloop_BΣ. *)
+  Definition deloop_BSigma_rec (m : nat)
+             (Y : 1-Type)
+             (y0 : Y)
+             (f : (canon m <~> canon m) -> y0 = y0)
+             (ishom_f :
+                forall (e g : canon m <~> canon m),
+                  f (g oE e) = f e @ f g) :
+    Finite_Types m -> Y.
+  Proof.
+    srefine (deloop_rec (Finite_Types m) (canon m) _ Y y0 _ _).
+    - apply isconn_finite_types.
+    - intro p.
+      apply f. apply ((path_finite_types_fix m (canon m) (canon m))^-1 p).
+    - simpl. intros.
+      refine (_ @ ishom_f _ _).
+      apply (ap f).
+      revert α ω.
+      
+      cut (forall (x y: Finite_Types m) (p : canon m = x) (q : x = y),
+              equiv_path (Fin m) y (p @ q) ..1 =
+              equiv_path x y  q ..1 oE equiv_path (Fin m) x p ..1).
+      { intro H. apply H.  }
+      intros x y p []. destruct p. reflexivity.
+  Defined.
+                  
+                  
+      
 
+    
 
-Lemma isconn_finite_types (m : nat) :
-  forall x : Finite_Types m,
-    merely (canon m = x).
+             (* (ishom_f : *)
+             (*    forall (e g : canon m <~> canon m), *)
+             (*      f (g oE e) = transport_pp P *)
+             (*                                (path_finite_types_fix m _ _ e) *)
+             (*                                (path_finite_types_fix m _ _ g) *)
+  (* : forall x : Finite_Types m, P x. *)
+  (* Proof. *)
+  (*   srefine (deloop_ind (Finite_Types m) (canon m) _ P p0 _ _). *)
+  (*   - intros [A fA]. strip_truncations. *)
+  (*     apply tr. apply inverse. *)
+  (*     apply path_finite_types_fix. exact fA. *)
+  (*   - intro ω. *)
+  (*     refine (_ @ f ((path_finite_types_fix m (canon m) (canon m))^-1 ω)). *)
+  (*     apply (ap (fun x => *)
+  (*              transport P x p0)). *)
+  (*     apply inverse. apply eisretr. *)
+  (*   - intros. hnf. *)
+  (*     repeat rewrite concat_1p. *)
+  
+  (* TODO *)
+End deloop_BSigma.
+
+(* move to BSigma.v *)
+Definition BDet (m : nat) : Finite_Types m -> Finite_Types 2.
 Proof.
-  intros [A fA]. strip_truncations.
-  apply tr. apply inverse. apply path_finite_types_fix.
-  exact fA.
-Qed.
+  srapply (deloop_rec (Finite_Types m) (canon m) (isconn_finite_types m)).
+  - exact (canon 2).
+  - refine (path_finite_types_fix 2 _ _ o _ o (path_finite_types_fix m _ _)^-1).
+    exact (determinant m).
+  - intros .
+    refine (_ @ path_finite_types_fix_compose 2 _ _ _ _ _).
+    apply (ap (path_finite_types_fix 2 (canon 2) (canon 2))).
+    refine (_ @ det_compose m _ _).
+    apply (ap (determinant m)).
+    apply moveR_equiv_V.
+    refine (_ @ (path_finite_types_fix_compose m _ _ _ _ _)^).
+    apply inverse.
+    apply concat2; apply eisretr.
+Defined.
+
+Definition isretr_BDet (m : nat) :
+  forall x : Finite_Types 2,
+    BDet m.+2 (sum_finite_types (canon m) x) = x.
+Proof.
+  srapply (deloop_ind_set (Finite_Types 2) (canon 2) (isconn_finite_types 2)).
+  - simpl.
+    refine (ap (BDet m.+2) (fin_resp_sum_id m 2) @ _).
+    apply deloop_rec_beta_x0.
+  - 
+
+
 
     
   

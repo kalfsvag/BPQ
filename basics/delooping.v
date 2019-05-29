@@ -308,6 +308,7 @@ Section pointed_rec.
 
 End pointed_rec.
 
+
 Require Import monoids_and_groups.
 
 
@@ -364,10 +365,7 @@ Require Import monoids_and_groups.
 (*           generalize (ap (deloop_rec X2 b isconn_X2 Y y0 fr ishom_fr) ω ). *)
 (*           repeat rewrite concat_p_pp. *)
 (*           destruct ((ap (deloop_rec X2 b isconn_X2 Y y0 fr ishom_fr) ω)). *)
-          
-        
-        
-      
+
 (*       intros x1. *)
       
 

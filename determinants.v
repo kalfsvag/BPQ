@@ -602,7 +602,8 @@ Section Determinant.
       rewrite p1. simpl.
       refine (ecompose_e1 _)^.
   Qed.
-  
+
+End Determinant.
 
 (* I think the following is in finite_lemmas...*)
 

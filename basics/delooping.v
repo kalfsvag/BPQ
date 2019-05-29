@@ -308,6 +308,77 @@ Section pointed_rec.
 
 End pointed_rec.
 
+Require Import monoids_and_groups.
+
+
+
+(* Section deloop_double_rec. *)
+(*     Context (X1 : Type) (a : X1)  *)
+(*           (isconn_X1 : forall (x : X1), merely (a = x)). *)
+(*     Context (X2 : Type) (b : X2)  *)
+(*             (isconn_X2 : forall (x : X2), merely (b = x)). *)
+(*     Context (Y : 1-Type) *)
+(*             (y0 : Y) *)
+(*             (fl : a = a -> y0 = y0) *)
+(*             (ishom_fl : forall (α ω : a = a), *)
+(*                 fl (α @ ω) = fl α @ fl ω) *)
+(*             (fr : b = b -> y0 = y0) *)
+(*             (ishom_fr : forall (α ω : b = b), *)
+(*                 fr (α @ ω) = fr α @ fr ω) *)
+(*             (natl_flr : forall (α : a = a) (ω : b = b), *)
+(*                 fl α @ fr ω = fr ω @ fl α). *)
+    
+(*     Definition deloop_double_rec : X1 -> X2 -> Y. *)
+(*     Proof. *)
+(*       srefine (deloop_rec X1 a isconn_X1 _ _ _ _). *)
+(*       - simpl. *)
+(*         exact (deloop_rec X2 b isconn_X2 Y y0 fr ishom_fr). *)
+(*       - intro α. apply path_arrow. intro x2. revert x2. *)
+(*         srefine (deloop_ind_set X2 b isconn_X2 _ _ _ ). *)
+(*         + simpl. *)
+(*           refine *)
+(*             (deloop_rec_beta_x0 X2 b isconn_X2 Y y0 fr ishom_fr @ _ @ *)
+(*                                 (deloop_rec_beta_x0 _ _ _ _ _ _ _ )^). *)
+(*           exact (fl α). *)
+(*         + intro. simpl.  *)
+(*           refine (transport_paths_FlFr  _ _ @ _). *)
+(*           rewrite *)
+(*             (moveL_Mp _ _ _ (moveL_pV _ _ _ (deloop_rec_beta_f X2 b isconn_X2 Y y0 fr ishom_fr ω))). *)
+(*           generalize ((deloop_rec_beta_x0 X2 b isconn_X2 Y y0 fr ishom_fr)). *)
+(*           intro p. *)
+(*           rewrite inv_pp. rewrite inv_pp. rewrite inv_V. *)
+(*           repeat rewrite concat_p_pp. *)
+(*           apply whiskerR. apply moveR_pM. *)
+(*           repeat rewrite concat_pp_p. apply whiskerL. *)
+(*           apply moveR_Vp. *)
+(*           rewrite concat_Vp. rewrite concat_p1. *)
+(*           rewrite concat_V_pp. *)
+(*           rewrite concat_p_pp. apply moveL_pV. apply natl_flr. *)
+(*       - simpl. intros. *)
+(*         apply (ap (path_arrow (deloop_rec X2 b isconn_X2 Y y0 fr ishom_fr) (deloop_rec X2 b isconn_X2 Y y0 fr ishom_fr))). *)
+(*         apply (istrunc_trunctype_type Y). *)
+          
+(*           generalize *)
+(*             ((deloop_rec_beta_x0 X2 b isconn_X2 Y y0 fr ishom_fr @ fl α) *)
+(*                @ (deloop_rec_beta_x0 X2 b isconn_X2 Y y0 fr ishom_fr)^). *)
+(*           generalize (ap (deloop_rec X2 b isconn_X2 Y y0 fr ishom_fr) ω ). *)
+(*           repeat rewrite concat_p_pp. *)
+(*           destruct ((ap (deloop_rec X2 b isconn_X2 Y y0 fr ishom_fr) ω)). *)
+          
+        
+        
+      
+(*       intros x1. *)
+      
+
+
+(*           (y0 : Y) *)
+(*           (f : (x0 = x0) -> (y0 = y0)) *)
+(*           (ishom_f : forall (α ω : x0 = x0), *)
+(*               f (α @ ω) = f α @ f ω). *)
+
+(* End deloop_double_rec. *)
+
 
 Section deloop_double_ind_set.
   Context (X1 : Type) (a : X1) 

@@ -138,7 +138,7 @@ Notation "'grp_rid'" := (@mon_rid (grp_mon _)) (at level 0) : monoid_scope.
 
 
 
-Section Loop_is_group.
+Section Examples.
   Definition loopGroup (A : pType) {istrunc_A : IsTrunc 1 A} : Group.
     srapply Build_Group.
     - exact (Build_Monoid (BuildhSet (loops A)) concat idpath concat_pp_p concat_1p concat_p1). 
@@ -146,7 +146,16 @@ Section Loop_is_group.
     - exact concat_Vp.
     - exact concat_pV.
   Defined.
-End Loop_is_group.
+
+  Definition AutGroup (A : hSet) : Group :=
+    Build_Group
+      (Build_Monoid (BuildhSet (A <~> A)) (fun f g => equiv_compose' g f) equiv_idmap
+                    ecompose_e_ee ecompose_e1 ecompose_1e)
+      equiv_inverse
+      ecompose_eV
+      ecompose_Ve.
+    
+End Examples.
 
 Section Group_2.
   Inductive grp_2_set : Type :=
@@ -507,6 +516,20 @@ Section Homomorphism.
       exact (preserve_mult g ).
   Defined.
 
+  Definition Build_GrpHom {G H : Group}
+             (hom_map : G -> H)
+             (preserve_mult : forall g1 g2 : G,
+                 hom_map (g1 + g2) = hom_map g1 + hom_map g2) :
+    Homomorphism G H.
+  Proof.
+    srefine (Build_Homomorphism G H hom_map _ preserve_mult).
+    apply (grp_cancelL (hom_map (grp_id G))).
+    refine ((preserve_mult _ _)^ @ _).
+    refine (ap hom_map (mon_lid (grp_id G)) @ _).
+    apply grp_moveL_Mg.
+    refine (grp_linv _ ).
+  Defined.    
+
   (*A homomorphism of groups preserve inverses*)
   Definition preserve_inv {G H : Group} (f : Homomorphism G H) (a : G) :
     f (- a) = - (f a).
@@ -521,6 +544,88 @@ End Homomorphism.
 Notation "'Hom'" := Homomorphism : monoid_scope.
 Infix "oH" := compose_hom (at level 40, left associativity).
 
+Section Isomorphism.
+  Class Isomorphism (M N : Monoid) :=
+    {iso_hom : Homomorphism M N; iso_isequiv : IsEquiv iso_hom}.
+
+  Arguments iso_hom {M} {N}.
+  Arguments iso_isequiv {M} {N}.
+
+  Definition iso_fun {M N : Monoid} (f : Isomorphism M N) : (M -> N) :=
+    hom_map (iso_hom f).
+
+  Coercion iso_hom : Isomorphism >-> Homomorphism.  
+
+  Global Instance isequiv_iso (M N : Monoid) (f : Isomorphism M N) : IsEquiv f := iso_isequiv f.
+
+  Definition issig_isomorphism (M N : Monoid) :
+    {f : Homomorphism M N & IsEquiv f} <~> Isomorphism M N.
+  Proof.
+    issig (Build_Isomorphism M N) (@iso_hom M N) (@iso_isequiv M N).
+  Defined.
+
+  Definition path_isomorphism (M N : Monoid) (f g : Isomorphism M N) :
+    iso_hom f = iso_hom g <~> f = g.
+  Proof.
+    refine ((equiv_ap (issig_isomorphism M N)^-1 f g )^-1 oE _).        
+    refine (equiv_path_sigma_hprop ((issig_isomorphism M N)^-1 f) ((issig_isomorphism M N)^-1 g)).
+  Defined.
+
+  Definition iso_inv {M N : Monoid} (f : Isomorphism M N) :
+    Isomorphism N M.
+  Proof.
+    srapply @Build_Isomorphism.
+    - srapply @Build_Homomorphism.
+      + exact (f^-1).
+      + apply moveR_equiv_V.
+        exact (preserve_id f)^.
+      + intros.
+        apply moveR_equiv_V. apply inverse.
+        refine (preserve_mult f  @ _).
+        apply (ap011 mon_mult); apply eisretr.
+    - exact _.
+  Defined.
+
+  Definition iso_compose {L M N : Monoid} (f : Isomorphism M N) (g : Isomorphism L M) :
+    Isomorphism L N.
+  Proof.
+    srapply @Build_Isomorphism.
+    - exact (f oH g).
+    - simpl. apply isequiv_compose.
+  Defined.    
+End Isomorphism.
+
+Section HomFunctor.
+  Open Scope monoid_scope.
+  Definition functor_hom {X1 X2 Y1 Y2 : Monoid}
+             (f1 : Hom Y1 X1) (f2 : Hom X2 Y2)
+  : Hom X1 X2 -> Hom Y1 Y2 :=
+    fun g => f2 oH g oH f1.
+
+  Lemma isequiv_functor_hom {X1 X2 Y1 Y2 : Monoid}
+             (f1 : Isomorphism Y1 X1) (f2 : Isomorphism X2 Y2)  :
+    IsEquiv (functor_hom f1 f2).
+  Proof.
+    srapply @isequiv_adjointify.
+    - exact (functor_hom (iso_inv f1) (iso_inv f2)).
+    - intro f. apply path_hom.
+      simpl. apply path_arrow. intro x.
+      rewrite eisretr. rewrite eissect. reflexivity.
+    - intro f. apply path_hom. simpl. apply path_arrow. intro x.
+      rewrite eisretr. rewrite eissect. reflexivity.
+  Qed.
+
+  Lemma functor_hom_compose {X1 X2 Y1 Y2 Z1 Z2}
+        (f1 : Hom Y1 X1) (f2 : Hom X2 Y2)
+        (g1 : Hom Z1 Y1) (g2 : Hom Y2 Z2) :
+    functor_hom (f1 oH g1) (g2 oH f2) ==
+    functor_hom g1 g2 o functor_hom f1 f2 .
+  Proof.
+    intro h.
+    apply path_hom. reflexivity.
+  Defined.  
+
+End HomFunctor.
 
 (* The rest here is important, don't forget it! *)
 

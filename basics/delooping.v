@@ -251,14 +251,16 @@ End universal.
 
 Section pointed_rec.
   Context (X : pType) (isconn_X : forall (x : X), merely (point (X) = x)).
-  Record p1Type :=
-    {onetype_of :> 1-Type ;
-     ispointed_1type_of : IsPointed onetype_of}.
-  Global Instance ispointed_1type_of' (Y : p1Type) : IsPointed Y
-    := ispointed_1type_of Y.
-  Definition ptype_of (Y : p1Type) := Build_pType Y _.
-  Coercion ptype_of : p1Type >-> pType.
-  Context (Y : p1Type).
+  Context (Y : pType) {istrunc_y : IsTrunc 1 Y}.
+  
+  (* Record p1Type := *)
+  (*   {onetype_of :> 1-Type ; *)
+  (*    ispointed_1type_of : IsPointed onetype_of}. *)
+  (* Global Instance ispointed_1type_of' (Y : p1Type) : IsPointed Y *)
+  (*   := ispointed_1type_of Y. *)
+  (* Definition ptype_of (Y : p1Type) := Build_pType Y _. *)
+  (* Coercion ptype_of : p1Type >-> pType. *)
+  (* Context (Y : p1Type). *)
 
   Definition equiv_deloop_prec :
     {f : loops X -> loops Y & forall α ω : loops X, f (α @ ω) = f α @ f ω} <~> pMap X Y.
@@ -280,8 +282,8 @@ Section pointed_rec.
         reflexivity.
       + intros [f ishom_f]. reflexivity.
     - srapply @equiv_functor_sigma'.
-      + exact (BuildEquiv _ _ (deloop_rec_uncurried X (point X) (isconn_X) Y)
-                          (isequiv_deloop_rec_uncurried X (point X) (isconn_X) Y)).
+      + exact (BuildEquiv _ _ (deloop_rec_uncurried X (point X) (isconn_X) (BuildTruncType 1 Y))
+                          (isequiv_deloop_rec_uncurried X (point X) (isconn_X) (BuildTruncType 1 Y))).
       + simpl.
         intros [y [f ishom]].
         refine (equiv_path_inverse _ _ oE _).
@@ -294,7 +296,7 @@ Section pointed_rec.
              (ishom_f : forall α ω : loops X, f (α @ ω) = f α @ f ω) :
     pMap X Y.
   Proof.
-    apply (Build_pMap X Y (deloop_rec X (point X) (isconn_X) Y (point Y) f ishom_f)).
+    apply (Build_pMap X Y (deloop_rec X (point X) (isconn_X) (BuildTruncType 1 Y) (point Y) f ishom_f)).
     apply deloop_rec_beta_x0.
   Defined.
 
@@ -310,6 +312,77 @@ End pointed_rec.
 
 
 Require Import monoids_and_groups.
+Section functor_deloop.
+  Context (X : pType) `{istrunc_X : IsTrunc 1 X} `{isconn_X : forall (x : X), merely (point (X) = x)}.
+  Context (Y : pType) `{istrunc_Y : IsTrunc 1 Y} `{isconn_Y : forall (y : Y), merely (point (Y) = y)}.
+
+  Definition functor_deloop : Homomorphism (loopGroup X) (loopGroup Y) <~> pMap X Y.
+  Proof.
+    refine (equiv_deloop_prec X isconn_X Y oE _).
+    srapply @equiv_adjointify.
+    - intros [f f_id f_mult]. exact (f; f_mult).
+    - intros [f f_mult].
+      apply (@Build_GrpHom (loopGroup X) (loopGroup Y) f f_mult).
+    - intro f.
+      apply path_sigma_hprop. reflexivity.
+    - intro f. apply path_hom. reflexivity.
+  Defined.
+
+End functor_deloop.
+
+Section functor_deloop_id.
+  Context (X : pType) `{istrunc_X : IsTrunc 1 X} `{isconn_X : forall (x : X), merely (point (X) = x)}.
+  Definition functor_deloop_id :
+    pHomotopy (functor_deloop (isconn_X := isconn_X) X X idhom) (pmap_idmap X).
+  Proof.
+    srapply @Build_pHomotopy.
+    - intro x. revert x.
+      srapply (deloop_ind_set X (point X) (isconn_X)).
+      + simpl. apply (deloop_rec_beta_x0 X (point X) isconn_X).
+      + intro p. simpl.
+        refine (transport_paths_FlFr p _ @ _).
+        simpl. 
+
+End functor_deloop_id.
+
+Section functor_deloop_compose.
+  Context (X : pType) `{istrunc_X : IsTrunc 1 X} `{isconn_X : forall (x : X), merely (point (X) = x)}.
+  Context (Y : pType) `{istrunc_Y : IsTrunc 1 Y} `{isconn_Y : forall (y : Y), merely (point (Y) = y)}.
+  Context (Z : pType) `{istrunc_Z : IsTrunc 1 Z} `{isconn_Z : forall (z : Z), merely (point (Z) = z)}.
+
+  Open Scope monoid_scope.
+  Definition functor_deloop_compose
+             (f : Homomorphism (loopGroup X) (loopGroup Y))
+             (g : Homomorphism (loopGroup Y) (loopGroup Z)) :
+    pHomotopy (functor_deloop X Z (isconn_X := isconn_X) (g oH f))
+              (pmap_compose
+                 (functor_deloop (isconn_X := isconn_Y) Y Z g)
+                 (functor_deloop (isconn_X := isconn_X) X Y f)
+                 ).
+    srapply @Build_pHomotopy.
+    - intro x. revert x.
+      srapply (deloop_ind_set X (point X) (isconn_X)).
+      + simpl. unfold deloop_rec_uncurried.
+        refine (deloop_rec_beta_x0 X (point X) (isconn_X) _ _ _ _ @ _).
+        apply inverse.
+        refine (ap (deloop_rec Y (point Y) isconn_Y
+                               {| trunctype_type := Z; istrunc_trunctype_type := istrunc_Z |}
+                               (point Z) g (@preserve_mult _ _ g))
+                   (deloop_rec_beta_x0 X (point X) (isconn_X) _ _ _ _) @ _).
+        apply deloop_rec_beta_x0.
+      + simpl. unfold deloop_rec_uncurried. intro p.
+        refine (transport_paths_FlFr p _ @ _).
+        rewrite (deloop_rec_beta_f). (* change this so that ap is alone on left hand side *)
+
+        
+        
+        refine (
+               (deloop_rec_beta_x0 Y (point Y) (isconn_Y) _ _ _ _)^).
+      + exac
+      
+
+
+End functor_deloop_compose.
 
 
 

@@ -193,6 +193,16 @@ Section deloop_rec.
     generalize (deloop_rec_beta_x0). intros []. simpl.
     destruct ω. reflexivity.
   Qed.
+
+  Definition deloop_rec_beta_f' (ω : x0 = x0) :
+    ap deloop_rec ω = deloop_rec_beta_x0 @ f ω @ deloop_rec_beta_x0^.
+  Proof.
+    apply moveL_pV. apply moveL_Mp.
+    refine (concat_p_pp _ _ _ @ _).
+    apply deloop_rec_beta_f.
+  Qed.
+
+
 End deloop_rec.
 
 Section universal.
@@ -246,6 +256,31 @@ Section universal.
         generalize (deloop_rec_beta_x0 X x0 isconn_X Y y0 f ishom_f). intros [].
         simpl. destruct ω. reflexivity.
   Defined.
+
+  Definition path_deloop
+             (f g : X -> Y)
+             (p : f x0 = g x0)
+             (eq_ap : forall w : x0 = x0, ap f w = p @ ap g w @ p^)
+    : f == g.
+  Proof.
+    intro x. revert x.
+    srapply (deloop_ind_set X x0 isconn_X).
+    - simpl. exact p.
+    - intro. simpl.
+      refine (transport_paths_FlFr _ p @ _).
+      rewrite eq_ap.
+      rewrite inv_pp. rewrite inv_V.
+      rewrite inv_pp. rewrite concat_p_pp.
+      rewrite concat_pV_p. rewrite concat_pV_p. reflexivity.
+  Defined.
+
+  Definition path_deloop_id (f : X -> Y) (x : X) : 
+    path_deloop f f idpath (fun w => inverse (concat_p1 _ @ concat_1p (ap f w))) x = idpath.
+  Proof.
+    revert x.
+    apply (deloop_ind_prop X x0 isconn_X). simpl.
+    refine (deloop_ind_beta_x0 X x0 isconn_X _ _ _ _ ).
+  Qed.    
     
 End universal.
 
@@ -316,7 +351,7 @@ Section functor_deloop.
   Context (X : pType) `{istrunc_X : IsTrunc 1 X} `{isconn_X : forall (x : X), merely (point (X) = x)}.
   Context (Y : pType) `{istrunc_Y : IsTrunc 1 Y} `{isconn_Y : forall (y : Y), merely (point (Y) = y)}.
 
-  Definition functor_deloop : Homomorphism (loopGroup X) (loopGroup Y) <~> pMap X Y.
+  Definition equiv_functor_deloop' : Homomorphism (loopGroup X) (loopGroup Y) <~> pMap X Y.
   Proof.
     refine (equiv_deloop_prec X isconn_X Y oE _).
     srapply @equiv_adjointify.
@@ -328,20 +363,61 @@ Section functor_deloop.
     - intro f. apply path_hom. reflexivity.
   Defined.
 
+  Definition functor_deloop : Homomorphism (loopGroup X) (loopGroup Y) -> pMap X Y.
+  Proof.
+    intros [f f_1 f_mult]. simpl in f_mult.
+    srapply @Build_pMap.
+    - apply (deloop_rec X (point X) isconn_X _ (point Y) f f_mult).
+    - apply deloop_rec_beta_x0.
+  Defined.      
+
+  Definition functor_loop : pMap X Y -> Homomorphism (loopGroup X) (loopGroup Y).
+  Proof.
+    intro f.
+    srapply @Build_GrpHom.
+    - apply (loops_functor f).
+    - simpl. destruct (point_eq f).
+      intros. destruct g2. destruct g1. reflexivity.
+  Defined.
+
+  Global Instance isequiv_functor_loop : IsEquiv functor_loop.
+  Proof.
+    apply (isequiv_adjointify functor_loop functor_deloop).
+    - intro f. apply path_hom. apply path_arrow.
+      intro w. simpl in w. destruct f as [f f_1 f_mult]. simpl.
+      rewrite deloop_rec_beta_f'. hott_simpl.
+    - intro f. apply path_pmap.
+          
+      srapply @Build_pHomotopy.
+      + srapply (path_deloop X (point X) isconn_X).
+        { refine (deloop_rec_beta_x0 X (point X) (isconn_X) _ _ _ _@ (point_eq f)^). }
+
+        intro w.
+        refine (deloop_rec_beta_f' X (point X) (isconn_X) _ (point Y) _ _ w @ _).
+        pointed_reduce.
+        apply concat2.
+        * apply whiskerR. reflexivity.
+        * reflexivity.
+      + apply moveR_pM.
+        refine (deloop_ind_beta_x0 X (point X) isconn_X _ _ _ _ @ _).
+        apply whiskerR.
+        reflexivity.
+  Defined.
+  
 End functor_deloop.
 
 Section functor_deloop_id.
   Context (X : pType) `{istrunc_X : IsTrunc 1 X} `{isconn_X : forall (x : X), merely (point (X) = x)}.
   Definition functor_deloop_id :
-    pHomotopy (functor_deloop (isconn_X := isconn_X) X X idhom) (pmap_idmap X).
+    (functor_deloop (isconn_X := isconn_X) X X idhom) = pmap_idmap X.
   Proof.
-    srapply @Build_pHomotopy.
-    - intro x. revert x.
-      srapply (deloop_ind_set X (point X) (isconn_X)).
-      + simpl. apply (deloop_rec_beta_x0 X (point X) isconn_X).
-      + intro p. simpl.
-        refine (transport_paths_FlFr p _ @ _).
-        simpl. 
+    apply (equiv_inj (functor_loop X (isconn_X := isconn_X) X (isconn_Y := isconn_X))).
+    refine (eisretr (functor_loop X X) idhom @ _).
+    apply inverse.
+    apply path_hom. apply path_arrow. intro w. simpl.
+    refine ((concat_1p _) @ (concat_p1 _) @ _).
+    apply ap_idmap.
+  Defined.
 
 End functor_deloop_id.
 
@@ -354,33 +430,30 @@ Section functor_deloop_compose.
   Definition functor_deloop_compose
              (f : Homomorphism (loopGroup X) (loopGroup Y))
              (g : Homomorphism (loopGroup Y) (loopGroup Z)) :
-    pHomotopy (functor_deloop X Z (isconn_X := isconn_X) (g oH f))
-              (pmap_compose
-                 (functor_deloop (isconn_X := isconn_Y) Y Z g)
-                 (functor_deloop (isconn_X := isconn_X) X Y f)
-                 ).
-    srapply @Build_pHomotopy.
-    - intro x. revert x.
-      srapply (deloop_ind_set X (point X) (isconn_X)).
-      + simpl. unfold deloop_rec_uncurried.
-        refine (deloop_rec_beta_x0 X (point X) (isconn_X) _ _ _ _ @ _).
-        apply inverse.
-        refine (ap (deloop_rec Y (point Y) isconn_Y
-                               {| trunctype_type := Z; istrunc_trunctype_type := istrunc_Z |}
-                               (point Z) g (@preserve_mult _ _ g))
-                   (deloop_rec_beta_x0 X (point X) (isconn_X) _ _ _ _) @ _).
-        apply deloop_rec_beta_x0.
-      + simpl. unfold deloop_rec_uncurried. intro p.
-        refine (transport_paths_FlFr p _ @ _).
-        rewrite (deloop_rec_beta_f). (* change this so that ap is alone on left hand side *)
-
-        
-        
-        refine (
-               (deloop_rec_beta_x0 Y (point Y) (isconn_Y) _ _ _ _)^).
-      + exac
-      
-
+    (functor_deloop X Z (isconn_X := isconn_X) (g oH f)) =
+    (pmap_compose
+       (functor_deloop (isconn_X := isconn_Y) Y Z g)
+       (functor_deloop (isconn_X := isconn_X) X Y f)
+    ).
+  Proof.
+    apply (equiv_inj (functor_loop X (isconn_X := isconn_X) Z (isconn_Y := isconn_Z))).
+    refine (eisretr (functor_loop X Z) (g oH f) @ _).
+    apply inverse.
+    apply path_hom. apply path_arrow. intro x.
+    transitivity (((functor_loop Y (isconn_X := isconn_Y) Z (isconn_Y := isconn_Z)
+                                 (functor_deloop Y (isconn_X := isconn_Y) Z  g))
+                     oH
+                     (functor_loop X (isconn_X := isconn_X) Y (isconn_Y := isconn_Y)
+                                 (functor_deloop X (isconn_X := isconn_X) Y  f))) x).
+    - generalize (functor_deloop Y (isconn_X := isconn_Y) Z  g). clear g. intro g.
+      generalize (functor_deloop X (isconn_X := isconn_X) Y  f). clear f. intro f.
+      simpl. destruct (point_eq g). destruct (point_eq f). simpl.
+      repeat rewrite concat_1p. repeat rewrite concat_p1.
+      apply ap_compose.
+    - apply (ap011 (fun a b => (a oH b) x)). 
+      + refine (eisretr (functor_loop Y Z) g).
+      + refine (eisretr (functor_loop X Y) f).
+  Qed.
 
 End functor_deloop_compose.
 

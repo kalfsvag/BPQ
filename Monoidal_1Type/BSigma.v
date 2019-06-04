@@ -290,17 +290,34 @@ Section BSigma.
   
 End BSigma.
 
-Require Import delooping.
-Section deloop_BSigma.
-  Lemma isconn_finite_types (m : nat) :
-    forall x : Finite_Types m,
-      merely (canon m = x).
-  Proof.
-    intros [A fA]. strip_truncations.
-    apply tr. apply inverse. apply path_finite_types_fix.
-    exact fA.
-  Qed.
 
+(* move *)
+Global Instance istrunc_finite_types {m : nat} : IsTrunc 1 (Finite_Types m).
+Proof.
+  intros x y.
+  change (IsTrunc_internal 0) with IsHSet.
+  apply (trunc_equiv' (x <~> y)).
+  - apply path_finite_types_fix.
+  - apply istrunc_equiv.
+Qed.
+
+Global Instance ispointed_finite_types {m : nat} : IsPointed (Finite_Types m) := canon m.
+
+Lemma isconn_finite_types (m : nat) :
+  forall x : Finite_Types m,
+    merely (canon m = x).
+Proof.
+  intros [A fA]. strip_truncations.
+  apply tr. apply inverse. apply path_finite_types_fix.
+  exact fA.
+Qed.
+
+Require Import delooping.
+Require Import monoids_and_groups.
+Section deloop_BSigma.
+
+  (* Definition pMap_BSigma (m n : nat) : *)
+  (*   Homomorphism (AutGroup (Fin m) (Fin n)) <~> pMap (Finite_Types m) (Finite_Types n).  *)
   
   Definition deloop_BSigma_rec (m : nat)
              (Y : 1-Type)
@@ -326,6 +343,87 @@ Section deloop_BSigma.
       { intro H. apply H.  }
       intros x y p []. destruct p. reflexivity.
   Defined.
+
+  Definition functor_BSigma (m n : nat) 
+    (f : (canon m <~> canon m) -> (canon n <~> canon n))
+    (ishom_f : 
+      forall (e g : canon m <~> canon m),
+        f (g oE e) = f g oE f e)
+    : Finite_Types m -> Finite_Types n.
+  Proof.
+    srefine (deloop_BSigma_rec m _ (canon n) _ _).
+    - exact ((path_finite_types_fix n (canon n) (canon n)) o f).      
+    - intros.
+      refine (_ @ path_finite_types_fix_compose n _ _ _ (f e) (f g)).
+      apply (ap (path_finite_types_fix n (canon n) (canon n))).
+      apply ishom_f.
+  Defined.
+
+  (* Definition functor_BSigma_of {m n : nat} (g : Finite_Types m -> Finite_Types n) *)
+  (*   (ispointed_g : g (canon m) = canon n) : *)
+  (*   Finite_Types m -> Finite_Types n. *)
+  (* Proof. *)
+  (*   srefine (functor_BSigma m n _ _). *)
+  (*   - refine ( *)
+  (*         (path_finite_types_fix n (canon n) (canon n))^-1 *)
+  (*                  o _ o *)
+  (*                  (path_finite_types_fix m (canon m) (canon m))). *)
+  (*     intro p. *)
+  (*     refine (_ @ ap g p @ _). + exact ispointed_g^. + exact ispointed_g. *)
+  (*   - simpl. intros. *)
+      
+  (*     exact  *)
+  (* := *)
+  (*   rec_of _ (canon m) (isconn_finite_types m) _ g. *)
+
+  (* Definition functor_BSigma_eta (m n : nat) (g : Finite_Types m -> Finite_Types n) : *)
+  (*   functor_BSigma_of g == g. *)
+  (* Proof. *)
+  (*   apply is_rec. *)
+  (* Defined. *)
+
+
+  (* Definition functor_BSigma_of {m n : nat} (g : Finite_Types m -> Finite_Types n): *)
+  (*   Finite_Types m -> Finite_Types n := *)
+  (*   rec_of _ (canon m) (isconn_finite_types m) _ g. *)
+
+  (* Definition functor_BSigma_eta (m n : nat) (g : Finite_Types m -> Finite_Types n) : *)
+  (*   functor_BSigma_of g == g. *)
+  (* Proof. *)
+  (*   apply is_rec. *)
+  (* Defined. *)
+
+  Definition ishom_compose {l m n : nat}
+             (f1 : canon m <~> canon m -> canon n <~> canon n)
+             (ishom_f1 : forall (e g : canon m <~> canon m),
+                 f1 (g oE e) = f1 g oE f1 e)
+             (f2 : canon l <~> canon l -> canon m <~> canon m)
+             (ishom_f2 : forall (e g : canon l <~> canon l),
+                 f2 (g oE e) = f2 g oE f2 e) :
+    forall (e g : canon l <~> canon l),
+      f1 (f2 (g oE e)) = f1 (f2 g) oE f1 (f2 e).
+  Proof.
+    intros.
+    refine (_ @ ishom_f1 _ _). apply (ap f1). apply ishom_f2.
+  Defined.
+
+  Definition functor_BSigma_compose (l m n : nat)
+             (f1 : canon m <~> canon m -> canon n <~> canon n)
+             (ishom_f1 : forall (e g : canon m <~> canon m),
+                 f1 (g oE e) = f1 g oE f1 e)
+             (f2 : canon l <~> canon l -> canon m <~> canon m)
+             (ishom_f2 : forall (e g : canon l <~> canon l),
+                 f2 (g oE e) = f2 g oE f2 e) :
+    functor_BSigma m n f1 ishom_f1 o functor_BSigma l m f2 ishom_f2 ==
+    functor_BSigma l n(f1 o f2) (ishom_compose f1 ishom_f1 f2 ishom_f2).
+  Proof.
+    intro x. revert x.
+    srapply @
+    refine (_ @ functor_BSigma_eta _ _ _ _ ).
+    unfold 
+             
+      
+
                   
                   
       
@@ -354,9 +452,14 @@ Section deloop_BSigma.
   (* TODO *)
 End deloop_BSigma.
 
-(* move to BSigma.v *)
+Require Import determinants.
+
 Definition BDet (m : nat) : Finite_Types m -> Finite_Types 2.
 Proof.
+  srapply (deloop_BSigma_rec m _ (canon 2)).
+  - exact (determinant m).
+
+    
   srapply (deloop_rec (Finite_Types m) (canon m) (isconn_finite_types m)).
   - exact (canon 2).
   - refine (path_finite_types_fix 2 _ _ o _ o (path_finite_types_fix m _ _)^-1).

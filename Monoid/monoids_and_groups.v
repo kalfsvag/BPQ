@@ -147,7 +147,7 @@ Section Examples.
     - exact concat_pV.
   Defined.
 
-  Definition AutGroup (A : hSet) : Group :=
+  Definition AutGroup (A : Type) `{isset_A : IsHSet A} : Group :=
     Build_Group
       (Build_Monoid (BuildhSet (A <~> A)) (fun f g => equiv_compose' g f) equiv_idmap
                     ecompose_e_ee ecompose_e1 ecompose_1e)
@@ -571,6 +571,22 @@ Section Isomorphism.
     refine (equiv_path_sigma_hprop ((issig_isomorphism M N)^-1 f) ((issig_isomorphism M N)^-1 g)).
   Defined.
 
+  Definition Build_Isomorphism' (M N : Monoid)
+             (f : M <~> N)
+             (preserve_id : f (mon_id) = mon_id)
+             (preserve_mult : forall (a b : M), f (mon_mult a b) = mon_mult (f a) (f b))
+    : Isomorphism M N :=
+    (Build_Isomorphism M N (Build_Homomorphism M N f preserve_id preserve_mult) _).
+
+  Definition Build_Grp_Iso' (G F : Group)
+             (f : G <~> F)
+             (preserve_mult : forall (a b : G), f (mon_mult a b) = mon_mult (f a) (f b))
+    : Isomorphism G F :=
+    (Build_Isomorphism G F (Build_GrpHom f preserve_mult) _).
+
+  Definition iso_id (M : Monoid) : Isomorphism M M :=
+    Build_Isomorphism M M idhom _.    
+
   Definition iso_inv {M N : Monoid} (f : Isomorphism M N) :
     Isomorphism N M.
   Proof.
@@ -595,6 +611,7 @@ Section Isomorphism.
   Defined.    
 End Isomorphism.
 
+
 Section HomFunctor.
   Open Scope monoid_scope.
   Definition functor_hom {X1 X2 Y1 Y2 : Monoid}
@@ -615,6 +632,11 @@ Section HomFunctor.
       rewrite eisretr. rewrite eissect. reflexivity.
   Qed.
 
+  Definition equiv_functor_hom {X1 X2 Y1 Y2 : Monoid}
+             (f1 : Isomorphism Y1 X1) (f2 : Isomorphism X2 Y2) :
+    Hom X1 X2 <~> Hom Y1 Y2 :=
+    BuildEquiv _ _ (functor_hom f1 f2) (isequiv_functor_hom f1 f2).
+
   Lemma functor_hom_compose {X1 X2 Y1 Y2 Z1 Z2}
         (f1 : Hom Y1 X1) (f2 : Hom X2 Y2)
         (g1 : Hom Z1 Y1) (g2 : Hom Y2 Z2) :
@@ -626,6 +648,41 @@ Section HomFunctor.
   Defined.  
 
 End HomFunctor.
+
+Section Iso_Loop_Aut.
+  Context (X : hSet).
+  Definition B_Aut : pType.
+  Proof.
+    apply (Build_pType {A : Type & merely (A <~> X)}).
+    unfold IsPointed. exists X. apply tr. exact equiv_idmap.
+  Defined.
+  
+  Global Instance istrunc_BAut : IsTrunc 1 B_Aut.
+  Proof.
+    intros x y. change (IsTrunc_internal 0) with IsHSet.
+    apply (trunc_equiv' (x.1 <~> y.1)).
+    - refine (_ oE equiv_path_universe _ _ ).
+      apply equiv_path_sigma_hprop.
+    - srapply @istrunc_equiv.
+      destruct y as [y e]. strip_truncations. simpl.
+      apply (trunc_equiv' X (equiv_inverse e)).
+  Qed.
+  
+  Definition iso_loop_aut :
+    Isomorphism  (AutGroup X) (loopGroup B_Aut).
+  Proof.
+    srapply @Build_Isomorphism.
+    - srapply @Build_GrpHom.
+      + simpl. unfold point.
+        refine (_ oE equiv_path_universe X X).
+        refine (equiv_path_sigma_hprop (_;_) (_;_)). 
+      + simpl. intros.
+        refine (_ @ path_sigma_hprop_pp _ _ _ _ _).
+        apply (ap (path_sigma_hprop (_; _) (_; _)) (path_universe_compose_uncurried g1 g2)).
+    - exact _.
+  Defined.
+End Iso_Loop_Aut.
+
 
 (* The rest here is important, don't forget it! *)
 

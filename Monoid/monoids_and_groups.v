@@ -649,27 +649,24 @@ Section HomFunctor.
 
 End HomFunctor.
 
+Require Import B_Aut.
 Section Iso_Loop_Aut.
-  Context (X : hSet).
-  Definition B_Aut : pType.
-  Proof.
-    apply (Build_pType {A : Type & merely (A <~> X)}).
-    unfold IsPointed. exists X. apply tr. exact equiv_idmap.
-  Defined.
+  Context (X : Type) `{IsHSet X}.
   
-  Global Instance istrunc_BAut : IsTrunc 1 B_Aut.
-  Proof.
-    intros x y. change (IsTrunc_internal 0) with IsHSet.
-    apply (trunc_equiv' (x.1 <~> y.1)).
-    - refine (_ oE equiv_path_universe _ _ ).
-      apply equiv_path_sigma_hprop.
-    - srapply @istrunc_equiv.
-      destruct y as [y e]. strip_truncations. simpl.
-      apply (trunc_equiv' X (equiv_inverse e)).
-  Qed.
+  
+  (* Global Instance istrunc_BAut : IsTrunc 1 B_Aut. *)
+  (* Proof. *)
+  (*   intros x y. change (IsTrunc_internal 0) with IsHSet. *)
+  (*   apply (trunc_equiv' (x.1 <~> y.1)). *)
+  (*   - refine (_ oE equiv_path_universe _ _ ). *)
+  (*     apply equiv_path_sigma_hprop. *)
+  (*   - srapply @istrunc_equiv. *)
+  (*     destruct y as [y e]. strip_truncations. simpl. *)
+  (*     apply (trunc_equiv' X (equiv_inverse e)). *)
+  (* Qed. *)
   
   Definition iso_loop_aut :
-    Isomorphism  (AutGroup X) (loopGroup B_Aut).
+    Isomorphism  (AutGroup X) (loopGroup (B_Aut X)).
   Proof.
     srapply @Build_Isomorphism.
     - srapply @Build_GrpHom.

@@ -165,9 +165,11 @@ Definition fin_resp_sum (m n : nat) : (Fin m) + (Fin n) <~> Fin (n + m) :=
 Definition fin_resp_sum_last (m n : nat) :
   fin_resp_sum m n.+1 (inr (inr tt)) = (inr tt) := idpath.
 
+Require Import B_Aut.
 Section Finite_Types.
   Definition Finite_Types  (n : nat) :=
-    {A : Type & merely (A <~> Fin n) }.
+    B_Aut (Fin n).
+
 
   Definition type_of {n : nat} (A : Finite_Types n) := pr1 A.
   Global Coercion type_of : Finite_Types >-> Sortclass.

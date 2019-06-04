@@ -173,10 +173,10 @@ Section Finite_Types.
 
   Definition type_of {n : nat} (A : Finite_Types n) := pr1 A.
   Global Coercion type_of : Finite_Types >-> Sortclass.
-  Global Instance finite_finite_type {n : nat} (A : Finite_Types n) : Finite A :=
+  Global Instance finite_finite_type {n : nat} (A : Finite_Types n) : Finite A := 
     Build_Finite A.1 n A.2.
 
-  Definition sum_finite :
+  Definition fin_decompose :
     {n : nat & Finite_Types n} <~> {A : Type & Finite A}.
   Proof.
     srapply @equiv_adjointify.
@@ -190,7 +190,7 @@ Section Finite_Types.
   
 
   (* Canonical finite types *)
-  Definition canon (n : nat) : Finite_Types n := (Fin n; (tr 1%equiv)).    
+  Definition canon (n : nat) : Finite_Types n := point _.    
 
   (* A detachable subset of a finite set has smaller cardinal *)
   Definition leq_card_subset {n : nat} (A : Finite_Types n) (P : A -> Type)
@@ -229,7 +229,7 @@ Section Finite_Types.
   Definition path_finite_types (s t : {n : nat & Finite_Types n}) :
     (s.2 <~> t.2) <~> s = t.
   Proof.  
-    refine ((equiv_ap sum_finite s t)^-1 oE _).
+    refine ((equiv_ap fin_decompose s t)^-1 oE _).
     destruct s as [m [A eA]]. destruct t as [n [B eB]]. simpl.
     exact (path_finite_types_sum (A; finite_finite_type (A; eA)) (B; finite_finite_type (B; eB))).
   Defined.
@@ -287,38 +287,38 @@ Section Finite_Types.
     unfold pr1.
 
     change
-      (((equiv_ap sum_finite (?x; (?a; ?fa)) (?y; (?b; ?fb)))^-1
+      (((equiv_ap fin_decompose (?x; (?a; ?fa)) (?y; (?b; ?fb)))^-1
        oE (equiv_path_sigma_hprop (?a; finite_finite_type (?a; ?fa)) (?b; finite_finite_type (?b; ?fb))
        oE equiv_path_universe ?a ?b)) ?e)
     with
-    ((equiv_ap sum_finite (x; (a; fa)) (y; (b; fb)))^-1
+    ((equiv_ap fin_decompose (x; (a; fa)) (y; (b; fb)))^-1
       (path_sigma_hprop (a; finite_finite_type (a; fa)) (b; finite_finite_type (b; fb))
       (path_universe e))).
-    refine (ap ( (equiv_ap sum_finite (l; (A; fA)) (n; (C; fC)))^-1               
+    refine (ap ( (equiv_ap fin_decompose (l; (A; fA)) (n; (C; fC)))^-1               
                  o (path_sigma_hprop (A; finite_finite_type (A; fA)) (C; finite_finite_type (C; fC))))
                (path_universe_compose e1 e2) @ _).
-    refine (ap (equiv_ap sum_finite (l; (A; fA)) (n; (C; fC)))^-1
+    refine (ap (equiv_ap fin_decompose (l; (A; fA)) (n; (C; fC)))^-1
                (path_sigma_hprop_compose
                   (A; finite_finite_type (A; fA))
                   (B; finite_finite_type (B; fB))
                   (C; finite_finite_type (C; fC))
                   (path_universe e1) (path_universe e2)) @ _).
     cut (forall (a b c: {n : nat & Finite_Types n})
-                (p : sum_finite a = sum_finite b) (q : sum_finite b = sum_finite c),
-            (equiv_ap sum_finite a c)^-1 (p @ q) =
-            ((equiv_ap sum_finite a b)^-1 p) @ ((equiv_ap sum_finite b c)^-1 q)).
+                (p : fin_decompose a = fin_decompose b) (q : fin_decompose b = fin_decompose c),
+            (equiv_ap fin_decompose a c)^-1 (p @ q) =
+            ((equiv_ap fin_decompose a b)^-1 p) @ ((equiv_ap fin_decompose b c)^-1 q)).
     { intro H. apply H. }
     clear l A fA m B fB n C fC e1 e2.
     intros A B C p q.
     (* unfold equiv_ap. *)
-    change ((equiv_ap sum_finite ?x ?y)^-1)
+    change ((equiv_ap fin_decompose ?x ?y)^-1)
            with
-           (fun q : sum_finite x = sum_finite y =>
-              ((eissect sum_finite x)^ @ ap sum_finite^-1 q) @ eissect sum_finite y).
+           (fun q : fin_decompose x = fin_decompose y =>
+              ((eissect fin_decompose x)^ @ ap fin_decompose^-1 q) @ eissect fin_decompose y).
     hnf.
-    destruct (eissect sum_finite C).
-    destruct (eissect sum_finite A).
-    destruct (eissect sum_finite B). hott_simpl.
+    destruct (eissect fin_decompose C).
+    destruct (eissect fin_decompose A).
+    destruct (eissect fin_decompose B). hott_simpl.
     apply ap_pp.
   Qed.
 
@@ -330,25 +330,25 @@ Section Finite_Types.
     unfold path_finite_types_sum.
     unfold pr1.
     change
-      (((equiv_ap sum_finite (n; (A; fA)) (n; (A; fA)))^-1
+      (((equiv_ap fin_decompose (n; (A; fA)) (n; (A; fA)))^-1
         oE (equiv_path_sigma_hprop (A; finite_finite_type (A; fA)) (A; finite_finite_type (A; fA))
         oE equiv_path_universe A A))
          equiv_idmap)
       with
-      ((equiv_ap sum_finite (n; (A; fA)) (n; (A; fA)))^-1
+      ((equiv_ap fin_decompose (n; (A; fA)) (n; (A; fA)))^-1
           (path_sigma_hprop (A; finite_finite_type (A; fA)) (A; finite_finite_type (A; fA))
              (@path_universe _ A A equiv_idmap _))).
-    refine (ap ((equiv_ap sum_finite (n; (A; fA)) (n; (A; fA)))^-1 o
+    refine (ap ((equiv_ap fin_decompose (n; (A; fA)) (n; (A; fA)))^-1 o
                (path_sigma_hprop (A; finite_finite_type (A; fA)) (A; finite_finite_type (A; fA))))
                (path_universe_1) @ _).
-    refine (ap ((equiv_ap sum_finite (n; (A; fA)) (n; (A; fA)))^-1)
+    refine (ap ((equiv_ap fin_decompose (n; (A; fA)) (n; (A; fA)))^-1)
                (path_sigma_hprop_1 _) @ _).
-    change ((equiv_ap sum_finite ?x ?y)^-1)
+    change ((equiv_ap fin_decompose ?x ?y)^-1)
            with
-           (fun q : sum_finite x = sum_finite y =>
-              ((eissect sum_finite x)^ @ ap sum_finite^-1 q) @ eissect sum_finite y).
+           (fun q : fin_decompose x = fin_decompose y =>
+              ((eissect fin_decompose x)^ @ ap fin_decompose^-1 q) @ eissect fin_decompose y).
     hnf.
-    destruct (eissect sum_finite (n; (A; fA))). reflexivity.
+    destruct (eissect fin_decompose (n; (A; fA))). reflexivity.
   Qed.     
  
 

@@ -17,7 +17,7 @@ Section BSigma.
   Global Instance istrunc_BSigma : IsTrunc 1 BSigma.
   Proof.
     apply (trunc_equiv' {S : Type & Finite S}).
-    - apply equiv_inverse. apply sum_finite.
+    - apply equiv_inverse. apply fin_decompose.
     - apply trunc_sigma'.
       +  intro A. exact _.
       +  intros A B.
@@ -214,11 +214,9 @@ Section BSigma.
     set (p' := ap10 p).
     apply pair.
     - apply path_arrow. intro a.
-      refine ((path_sum (inl (f1 a)) (inl (f1' a)))^-1 (p' (inl a))).
-      apply (@isequiv_path_sum B1 B2 (inl (f1 a)) (inl (f1' a))).
+      apply (path_sum_inl B2). exact (p' (inl a)).
     - apply path_arrow. intro a.
-      refine ((path_sum (inr (f2 a)) (inr (f2' a)))^-1 (p' (inr a))).
-      apply (@isequiv_path_sum B1 B2 (inr (f2 a)) (inr (f2' a))).
+      apply (path_sum_inr B1). exact (p' (inr a)).
   Defined.
 
   Definition isinj_equiv_functor_sum_r {A1 A2 B : Type} (e1 e2 : A1 <~> A2) :
@@ -313,11 +311,31 @@ Proof.
 Qed.
 
 Require Import delooping.
-Require Import monoids_and_groups.
+Require Import monoids_and_groups B_Aut.
 Section deloop_BSigma.
 
-  (* Definition pMap_BSigma (m n : nat) : *)
-  (*   Homomorphism (AutGroup (Fin m) (Fin n)) <~> pMap (Finite_Types m) (Finite_Types n).  *)
+  Definition pMap_BSigma (m n : nat) :
+    Homomorphism (AutGroup (Fin m)) (AutGroup (Fin n)) <~>
+                 pMap (Build_pType (Finite_Types m) _) (Build_pType (Finite_Types n) _).
+  Proof.
+    transitivity (Homomorphism (loopGroup (Build_pType (Finite_Types m) _))
+                               (loopGroup (Build_pType (Finite_Types n) _))).
+    - apply equiv_functor_hom.
+      + 
+        admit.
+      + unfold Finite_Types. unfold ispointed_finite_types.
+        change (canon n) with (ispointed_BAut (Fin n)).
+        refine (iso_compose _ (iso_loop_aut (Fin n))). simpl.
+        apply iso_id.
+         Bsrapply @Build_Isomorphism.
+        apply (iso_id (loopGroup
+                         {| pointed_type := B_Aut.B_Aut (Fin n); ispointed_type := B_Aut.ispointed_BAut (Fin n) |})).
+        unfold B_Aut. unfold Finite_Types. simpl.
+        
+        
+
+      srefine (BuildEquiv _ _ (functor_hom _ _) _).
+      + 
   
   Definition deloop_BSigma_rec (m : nat)
              (Y : 1-Type)

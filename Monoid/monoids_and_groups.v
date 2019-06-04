@@ -666,7 +666,7 @@ Section Iso_Loop_Aut.
   (* Qed. *)
   
   Definition iso_loop_aut :
-    Isomorphism  (AutGroup X) (loopGroup (B_Aut X)).
+    Isomorphism  (AutGroup X) (loopGroup (Build_pType (B_Aut X) _)).
   Proof.
     srapply @Build_Isomorphism.
     - srapply @Build_GrpHom.

@@ -3,10 +3,10 @@ Require Import FunextAxiom.
 
 (* Making an induction principle for pointed connected 1-types, based on notes by Thierry Coquand *)
 
-Record Conn_pType := {X :> pType ; isconn : forall (x : X), merely (point X = x)}.
+(* Record Conn_pType := {X :> pType ; isconn : forall (x : X), merely (point X = x)}. *)
 
 Section deloop_induction.
-  Context (X : Conn_pType).
+  Context (X : pType) (isconn_X : forall (x : X), merely ((point X) = x)).
   (* Context (X : Type) (x0 : X) (* (istrunc_X : IsTrunc 1 X) *) *)
   (*         `{isconn_X : forall (x : X), merely (x0 = x)}. *)
 
@@ -77,7 +77,7 @@ Section deloop_induction.
     forall (x : X), Contr {y : Y x & C x y}.
   Proof.
     intro x. 
-    generalize (isconn X x).
+    generalize (isconn_X x).
     (* Being contractible is a proposition, so we can assume that X is a single point *)
     apply Trunc_rec. intros [].
     apply (contr_equiv' {y : Y (point X) & y0 = y}).
@@ -128,14 +128,15 @@ Section deloop_induction.
 End deloop_induction.
 
 Section deloop_ind_prop.
-  Context (X : Conn_pType).
+  Context (X : pType)
+  (isconn_X : forall (x : X), merely ((point X) = x)).
   Context (Y : X -> hProp)
           (y0 : Y ((point X))).
 
   Definition deloop_ind_prop : forall x : X, Y x.
   Proof.
     intro x.
-    generalize (isconn X x).
+    generalize (isconn_X x).
     apply Trunc_ind.
     { exact _. }
     intros []. exact y0.
@@ -144,7 +145,8 @@ End deloop_ind_prop.
     
 
 Section deloop_ind_set.
-  Context (X : Conn_pType).
+  Context (X : pType)
+  (isconn_X : forall (x : X), merely ((point X) = x)).
 
   Context (Y : X -> Type)
           `{isset_y : forall x : X, IsHSet (Y x)}
@@ -153,14 +155,15 @@ Section deloop_ind_set.
 
   Definition deloop_ind_set : forall x : X, Y x.
   Proof.
-    apply (deloop_ind X Y y0 f).
+    apply (deloop_ind X isconn_X Y y0 f).
     intros.
     apply isset_y.
   Defined.
 End deloop_ind_set.
 
 Section deloop_rec.
-  Context (X : Conn_pType).
+  Context (X : pType)
+          (isconn_X : forall (x : X), merely ((point X) = x)).
 
   Context (Y : Type)
           `{istrunc_y : IsTrunc 1 Y}
@@ -181,21 +184,22 @@ Section deloop_rec.
   Qed.
 
   Definition deloop_rec : X -> Y :=
-    deloop_ind X (fun _ => Y) y0 (fun ω => transport_const ω y0 @ f ω) rec_help.
+    deloop_ind X isconn_X (fun _ => Y) y0 (fun ω => transport_const ω y0 @ f ω) rec_help.
 
   Definition deloop_rec_beta_pt : deloop_rec (point X) = y0 :=
-    deloop_ind_beta_pt X _ _ _ _ .
+    deloop_ind_beta_pt X isconn_X _ _ _ _ .
 
   Definition deloop_rec_beta_loop (ω : (point X) = (point X)) :
     deloop_rec_beta_pt^ @ ap deloop_rec ω @ deloop_rec_beta_pt = f ω.
   Proof.
     apply (cancelL (transport_const ω y0)).
-    refine (_ @ deloop_ind_beta_loop X (fun _ => Y) y0
+    refine (_ @ deloop_ind_beta_loop X isconn_X (fun _ => Y) y0
               (fun ω => transport_const _ _ @ f ω) rec_help ω).
-    change (deloop_ind X (fun _ => Y) y0 (fun ω => transport_const ω y0 @ f ω) rec_help)
+    change (deloop_ind X isconn_X (fun _ => Y) y0 (fun ω => transport_const ω y0 @ f ω) rec_help)
     with deloop_rec.
-    change (deloop_ind_beta_pt X (fun _ : X => Y) y0
-                                 (fun ω0 : (point X) = (point X) => transport_const ω0 y0 @ f ω0) rec_help)
+    change (deloop_ind_beta_pt X isconn_X
+                               (fun _ : X => Y) y0
+                               (fun ω0 : (point X) = (point X) => transport_const ω0 y0 @ f ω0) rec_help)
     with deloop_rec_beta_pt.
     generalize (deloop_rec_beta_pt). intros []. simpl.
     revert ω.
@@ -217,12 +221,13 @@ Section deloop_rec.
 End deloop_rec.
 
 Section universal.
-  Context (X : Conn_pType).
+  Context (X : pType)
+          (isconn_X : forall (x : X), merely ((point X) = x)).
   Context (Y : Type) `{istrunc_y : IsTrunc 1 Y}.
 
   Definition rec_of (g : X -> Y) : X -> Y.
   Proof.
-    apply (deloop_rec X Y (g (point X)) (fun ω => ap g ω)).
+    apply (deloop_rec X isconn_X Y (g (point X)) (fun ω => ap g ω)).
     intros. apply ap_pp.
   Defined.
 
@@ -230,7 +235,7 @@ Section universal.
     rec_of g == g.
   Proof.
     intro x. revert x.
-    srapply (deloop_ind_set X); simpl.
+    srapply (deloop_ind_set X isconn_X); simpl.
     - simpl. apply deloop_rec_beta_pt.
     - simpl. intros.
       refine (transport_paths_FlFr ω _ @ _).
@@ -238,8 +243,9 @@ Section universal.
       apply moveR_Vp.
       apply moveR_Mp. apply inverse.
       refine (concat_p_pp _ _ _ @ _).
-      refine (deloop_rec_beta_loop X Y (g (point X)) (fun ω0 : (point X) = (point X) => ap g ω0)
-                                 (fun α ω0 : (point X) = (point X) => ap_pp g α ω0) ω).
+      refine (deloop_rec_beta_loop X isconn_X Y (g (point X))
+                                   (fun ω0 : (point X) = (point X) => ap g ω0)
+                                   (fun α ω0 : (point X) = (point X) => ap_pp g α ω0) ω).
   Defined.
 
   Definition deloop_rec_uncurried :
@@ -247,7 +253,7 @@ Section universal.
           {f : ((point X) = (point X)) -> (y0 = y0) &
                 forall (α ω : (point X) = (point X)), f (α @ ω) = f α @ f ω}} -> X -> Y.
   Proof.
-    intros [y0 [f ishom_f]]. exact (deloop_rec X Y y0 f ishom_f).
+    intros [y0 [f ishom_f]]. exact (deloop_rec X isconn_X Y y0 f ishom_f).
   Defined.
 
   Definition isequiv_deloop_rec_uncurried : IsEquiv deloop_rec_uncurried.
@@ -262,9 +268,10 @@ Section universal.
       + simpl. apply deloop_rec_beta_pt.
       + simpl. srapply @path_sigma_hprop. simpl.
         apply path_forall. intro ω.
-        refine (_ @ deloop_rec_beta_loop X Y y0 f ishom_f ω).
-        generalize (deloop_rec_beta_pt X Y y0 f ishom_f). intros [].
-        simpl. destruct ω. reflexivity.
+        refine (_ @ deloop_rec_beta_loop X isconn_X Y y0 f ishom_f ω).
+        generalize (deloop_rec_beta_pt X isconn_X Y y0 f ishom_f). intros [].
+        simpl.
+        rewrite concat_1p. rewrite concat_p1. reflexivity.
   Defined.
 
   Definition path_deloop
@@ -274,7 +281,7 @@ Section universal.
     : f == g.
   Proof.
     intro x. revert x.
-    srapply (deloop_ind_set X).
+    srapply (deloop_ind_set X isconn_X).
     - simpl. exact p.
     - intro. simpl.
       refine (transport_paths_FlFr _ p @ _).
@@ -288,14 +295,16 @@ Section universal.
     path_deloop f f idpath (fun w => inverse (concat_p1 _ @ concat_1p (ap f w))) x = idpath.
   Proof.
     revert x.
-    apply (deloop_ind_prop X ). simpl.
-    refine (deloop_ind_beta_pt X  _ _ _ _ ).
+    apply (deloop_ind_prop X isconn_X). simpl.
+    refine (deloop_ind_beta_pt X isconn_X _ _ _ _ ).
   Qed.    
     
 End universal.
 
 Section pointed_rec.
-  Context (X : Conn_pType).
+  Context (X : pType)
+          (isconn_X : forall (x : X), merely ((point X) = x)).
+  
   Context (Y : pType) {istrunc_y : IsTrunc 1 Y}.
   
   (* Record p1Type := *)
@@ -327,8 +336,8 @@ Section pointed_rec.
         reflexivity.
       + intros [f ishom_f]. reflexivity.
     - srapply @equiv_functor_sigma'.
-      + exact (BuildEquiv _ _ (deloop_rec_uncurried X Y)
-                          (isequiv_deloop_rec_uncurried X Y)).
+      + exact (BuildEquiv _ _ (deloop_rec_uncurried X isconn_X Y)
+                          (isequiv_deloop_rec_uncurried X isconn_X Y)).
       + simpl.
         intros [y [f ishom]].
         refine (equiv_path_inverse _ _ oE _).
@@ -341,7 +350,7 @@ Section pointed_rec.
              (ishom_f : forall α ω : loops X, f (α @ ω) = f α @ f ω) :
     pMap X Y.
   Proof.
-    apply (Build_pMap X Y (deloop_rec X Y (point Y) f ishom_f)).
+    apply (Build_pMap X Y (deloop_rec X isconn_X Y (point Y) f ishom_f)).
     apply deloop_rec_beta_pt.
   Defined.
 
@@ -358,12 +367,12 @@ End pointed_rec.
 
 Require Import monoids_and_groups.
 Section functor_deloop.
-  Context (X : Conn_pType) `{istrunc_X : IsTrunc 1 X}.
+  Context (X : pType) (isconn_X : forall (x : X), merely ((point X) = x)) `{istrunc_X : IsTrunc 1 X}.
   Context (Y : pType) `{istrunc_Y : IsTrunc 1 Y}.
 
   Definition equiv_functor_deloop' : Homomorphism (loopGroup X) (loopGroup Y) <~> pMap X Y.
   Proof.
-    refine (equiv_deloop_prec X Y oE _).
+    refine (equiv_deloop_prec X isconn_X Y oE _).
     srapply @equiv_adjointify.
     - intros [f f_id f_mult]. exact (f; f_mult).
     - intros [f f_mult].
@@ -377,7 +386,7 @@ Section functor_deloop.
   Proof.
     intros [f f_1 f_mult]. simpl in f_mult.
     srapply @Build_pMap.
-    - apply (deloop_rec X Y (point Y) f f_mult).
+    - apply (deloop_rec X isconn_X Y (point Y) f f_mult).
     - apply deloop_rec_beta_pt.
   Defined.      
 
@@ -398,46 +407,48 @@ Section functor_deloop.
       rewrite deloop_rec_beta_loop'. hott_simpl.
     - intro f. apply path_pmap.          
       srapply @Build_pHomotopy.
-      + srapply (path_deloop X).
-        { refine (deloop_rec_beta_pt X _ _ _ _@ (point_eq f)^). }
+      + srapply (path_deloop X isconn_X ).
+        { refine (deloop_rec_beta_pt X isconn_X _ _ _ _@ (point_eq f)^). }
         intro w.
-        refine (deloop_rec_beta_loop' X Y (point Y) _ _ w @ _).
+        refine (deloop_rec_beta_loop' X isconn_X Y (point Y) _ _ w @ _).
         pointed_reduce.
         reflexivity.
       + apply moveR_pM.
-        refine (deloop_ind_beta_pt X  _ _ _ _ ). 
+        refine (deloop_ind_beta_pt X isconn_X  _ _ _ _ ). 
   Defined.
 
 
 End functor_deloop.
 
-  Lemma functor_loop_id (X : Conn_pType) `{istrunc_X : IsTrunc 1 X} :
-    functor_loop X X (pmap_idmap X) == idhom.
+  Lemma functor_loop_id (X : pType) (isconn_X : forall (x : X), merely ((point X) = x))
+        `{istrunc_X : IsTrunc 1 X} :
+    functor_loop X isconn_X X (pmap_idmap X) == idhom.
   Proof.
     unfold functor_loop. simpl. intros []. reflexivity.
   Defined.
 
 
   Lemma functor_loop_compose
-        (X : Conn_pType) `{istrunc_X : IsTrunc 1 X}
-        (Y : Conn_pType) `{istrunc_Y : IsTrunc 1 Y}
+        (X : pType) (isconn_X : forall (x : X), merely ((point X) = x)) `{istrunc_X : IsTrunc 1 X}
+        (Y : pType) (isconn_Y : forall (y : Y), merely ((point Y) = y))`{istrunc_Y : IsTrunc 1 Y}
         (Z : pType) `{istrunc_Z : IsTrunc 1 Z}
         (f : pMap X Y) (g : pMap Y Z)
-    : functor_loop Y Z g oH functor_loop X Y f == functor_loop X Z (pmap_compose g f).
+    : functor_loop Y isconn_Y Z g oH functor_loop X isconn_X Y f ==
+      functor_loop X isconn_X Z (pmap_compose g f).
   Proof.
     unfold functor_loop. simpl. intro p.
     pointed_reduce.
     apply inverse. apply ap_compose.
-  Defined.
+  Qed.
 
 
 Section functor_deloop_id.
-  Context (X : Conn_pType) `{istrunc_X : IsTrunc 1 X}.
+  Context (X : pType) (isconn_X : forall (x : X), merely ((point X) = x)) `{istrunc_X : IsTrunc 1 X}.
   Definition functor_deloop_id :
-    (functor_deloop X X idhom) = pmap_idmap X.
+    (functor_deloop X isconn_X X idhom) = pmap_idmap X.
   Proof.
-    apply (equiv_inj (functor_loop X X)).
-    refine (eisretr (functor_loop X X) idhom @ _).
+    apply (equiv_inj (functor_loop X isconn_X X)).
+    refine (eisretr (functor_loop X isconn_X X) idhom @ _).
     apply inverse. 
     apply path_hom. apply path_arrow.
     apply functor_loop_id.
@@ -445,26 +456,26 @@ Section functor_deloop_id.
 End functor_deloop_id.
 
 Section functor_deloop_compose.
-  Context (X : Conn_pType) `{istrunc_X : IsTrunc 1 X}.
-  Context (Y : Conn_pType) `{istrunc_Y : IsTrunc 1 Y}.
+  Context (X : pType) (isconn_X : forall (x : X), merely ((point X) = x)) `{istrunc_X : IsTrunc 1 X}.
+  Context (Y : pType) (isconn_Y : forall (y : Y), merely ((point Y) = y))`{istrunc_Y : IsTrunc 1 Y}.
   Context (Z : pType) `{istrunc_Z : IsTrunc 1 Z}.
 
   Open Scope monoid_scope.
   Definition functor_deloop_compose
              (f : Homomorphism (loopGroup X) (loopGroup Y))
              (g : Homomorphism (loopGroup Y) (loopGroup Z)) :
-    (functor_deloop X Z (g oH f)) =
-    (pmap_compose (functor_deloop Y Z g)
-                  (functor_deloop X Y f)).
+    (functor_deloop X isconn_X Z (g oH f)) =
+    (pmap_compose (functor_deloop Y isconn_Y Z g)
+                  (functor_deloop X isconn_X Y f)).
   Proof.
-    apply (equiv_inj (functor_loop X Z)).
-    refine (eisretr (functor_loop X Z) (g oH f) @ _).
+    apply (equiv_inj (functor_loop X isconn_X Z)).
+    refine (eisretr (functor_loop X isconn_X Z) (g oH f) @ _).
     apply path_hom. apply path_arrow. intro x.
-    refine (_ @ functor_loop_compose _ _ _ _ _ _).
+    refine (_ @ functor_loop_compose _ _ _ _ _ _ _ _).
     apply inverse.
     apply (ap011 (fun a b => (a oH b) x)).
-    - refine (eisretr (functor_loop Y Z) g).
-    - refine (eisretr (functor_loop X Y) f).
+    - refine (eisretr (functor_loop Y _ Z) g).
+    - refine (eisretr (functor_loop X _ Y) f).
   Qed.
 End functor_deloop_compose.
 
@@ -536,8 +547,8 @@ End functor_deloop_compose.
 
 
 Section deloop_double_ind_set.
-  Context (X1 : Conn_pType).
-  Context (X2 : Conn_pType).
+  Context (X1 : pType) (isconn_X1 : forall (x : X1), merely ((point X1) = x)).
+  Context (X2 : pType) (isconn_X2 : forall (x : X2), merely ((point X2) = x)).
 
   Context (Y : X1 -> X2 -> 0-Type)
           (y0 : Y (point X1) (point X2))
@@ -547,19 +558,19 @@ Section deloop_double_ind_set.
   Definition deloop_double_ind_set : forall (x1 : X1) (x2 : X2), Y x1 x2.
   Proof.
     intros x1.
-    simple refine (deloop_ind_set X2 (fun x2 => Y x1 x2) _ _).
-    - exact (deloop_ind_set X1 (fun x1 => Y x1 (point X2)) y0 fl x1).
+    simple refine (deloop_ind_set X2 isconn_X2 (fun x2 => Y x1 x2) _ _).
+    - exact (deloop_ind_set X1 isconn_X1 (fun x1 => Y x1 (point X2)) y0 fl x1).
     - simpl. intro.
       revert x1.
-      apply (deloop_ind_prop X1). simpl.
+      apply (deloop_ind_prop X1 isconn_X1). simpl.
       refine (_ @ fr ω @ _).
       + apply (ap (transport (fun x : X2 => Y (point X1) x) ω)).
         unfold deloop_ind_set.
-        exact (deloop_ind_beta_pt X1
+        exact (deloop_ind_beta_pt X1 isconn_X1
                    (fun x : X1 => Y x (point X2)) y0 _ _ ) .
       + apply inverse.
         unfold deloop_ind_set.
-        exact (deloop_ind_beta_pt X1 
+        exact (deloop_ind_beta_pt X1 isconn_X1
                    (fun x : X1 => Y x (point X2)) y0 _ _).
   Defined.
 
@@ -567,8 +578,8 @@ Section deloop_double_ind_set.
     deloop_double_ind_set (point X1) (point X2) = y0.
   Proof.
     unfold deloop_double_ind_set. unfold deloop_ind_set.
-    refine (deloop_ind_beta_pt X2 _ _ _ _ @ _).
-    apply (deloop_ind_beta_pt X1 (fun x : X1 => Y x (point X2))).
+    refine (deloop_ind_beta_pt X2 isconn_X2 _ _ _ _ @ _).
+    apply (deloop_ind_beta_pt X1 isconn_X1 (fun x : X1 => Y x (point X2))).
   Defined.    
     
 End deloop_double_ind_set.

@@ -406,8 +406,30 @@ Section functor_deloop.
         reflexivity.
       + apply moveR_pM.
         refine (deloop_ind_beta_pt X  _ _ _ _ ). 
-  Defined.  
+  Defined.
+
+
 End functor_deloop.
+
+  Lemma functor_loop_id (X : Conn_pType) `{istrunc_X : IsTrunc 1 X} :
+    functor_loop X X (pmap_idmap X) == idhom.
+  Proof.
+    unfold functor_loop. simpl. intros []. reflexivity.
+  Defined.
+
+
+  Lemma functor_loop_compose
+        (X : Conn_pType) `{istrunc_X : IsTrunc 1 X}
+        (Y : Conn_pType) `{istrunc_Y : IsTrunc 1 Y}
+        (Z : pType) `{istrunc_Z : IsTrunc 1 Z}
+        (f : pMap X Y) (g : pMap Y Z)
+    : functor_loop Y Z g oH functor_loop X Y f == functor_loop X Z (pmap_compose g f).
+  Proof.
+    unfold functor_loop. simpl. intro p.
+    pointed_reduce.
+    apply inverse. apply ap_compose.
+  Defined.
+
 
 Section functor_deloop_id.
   Context (X : Conn_pType) `{istrunc_X : IsTrunc 1 X}.
@@ -416,10 +438,9 @@ Section functor_deloop_id.
   Proof.
     apply (equiv_inj (functor_loop X X)).
     refine (eisretr (functor_loop X X) idhom @ _).
-    apply inverse.
-    apply path_hom. apply path_arrow. intro w. simpl.
-    refine ((concat_1p _) @ (concat_p1 _) @ _).
-    apply ap_idmap.
+    apply inverse. 
+    apply path_hom. apply path_arrow.
+    apply functor_loop_id.
   Defined.
 End functor_deloop_id.
 
@@ -438,16 +459,12 @@ Section functor_deloop_compose.
   Proof.
     apply (equiv_inj (functor_loop X Z)).
     refine (eisretr (functor_loop X Z) (g oH f) @ _).
-    apply inverse.
     apply path_hom. apply path_arrow. intro x.
-    transitivity (((functor_loop Y Z (functor_deloop Y Z  g))
-                     oH (functor_loop X Y (functor_deloop X Y f))) x).
-    - generalize (functor_deloop Y Z g). clear g. intro g.
-      generalize (functor_deloop X Y f). clear f. intro f.
-      pointed_reduce. apply ap_compose.
-    - apply (ap011 (fun a b => (a oH b) x)).
-      + refine (eisretr (functor_loop Y Z) g).
-      + refine (eisretr (functor_loop X Y) f).
+    refine (_ @ functor_loop_compose _ _ _ _ _ _).
+    apply inverse.
+    apply (ap011 (fun a b => (a oH b) x)).
+    - refine (eisretr (functor_loop Y Z) g).
+    - refine (eisretr (functor_loop X Y) f).
   Qed.
 End functor_deloop_compose.
 

@@ -645,7 +645,17 @@ Section HomFunctor.
   Proof.
     intro h.
     apply path_hom. reflexivity.
-  Defined.  
+  Defined.
+
+    Definition functor_hom_id (X Y : Monoid)
+             (f : Isomorphism X Y) :
+    functor_hom (iso_inv f) f idhom == idhom.
+  Proof.
+    unfold functor_hom. simpl.
+    intro x. apply eisretr.
+  Qed.
+
+
 
 End HomFunctor.
 

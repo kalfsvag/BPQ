@@ -318,64 +318,112 @@ Section deloop_BSigma.
     Homomorphism (AutGroup (Fin m)) (AutGroup (Fin n)) <~>
                  pMap (Build_pType (Finite_Types m) _) (Build_pType (Finite_Types n) _).
   Proof.
-    transitivity (Homomorphism (loopGroup (Build_pType (Finite_Types m) _))
-                               (loopGroup (Build_pType (Finite_Types n) _))).
-    - apply equiv_functor_hom.
-      + 
-        admit.
-      + unfold Finite_Types. unfold ispointed_finite_types.
-        change (canon n) with (ispointed_BAut (Fin n)).
-        refine (iso_compose _ (iso_loop_aut (Fin n))). simpl.
-        apply iso_id.
-         Bsrapply @Build_Isomorphism.
-        apply (iso_id (loopGroup
-                         {| pointed_type := B_Aut.B_Aut (Fin n); ispointed_type := B_Aut.ispointed_BAut (Fin n) |})).
-        unfold B_Aut. unfold Finite_Types. simpl.
-        
-        
+    refine (_ oE (equiv_functor_hom (iso_inv (iso_loop_aut (Fin m))) (iso_loop_aut (Fin n)))).
+    apply equiv_inverse.
+    srapply @BuildEquiv.
+    - apply (functor_loop
+               (Build_Conn_pType (Build_pType (Finite_Types m) _) (isconn_finite_types m))  
+               (Build_pType (Finite_Types n) _) ).
+    - apply (isequiv_functor_loop
+               (Build_Conn_pType (Build_pType (Finite_Types m) _) (isconn_finite_types m))  
+               (Build_pType (Finite_Types n) _)).
+  Defined.
 
-      srefine (BuildEquiv _ _ (functor_hom _ _) _).
-      + 
+  (* end move *)
   
-  Definition deloop_BSigma_rec (m : nat)
-             (Y : 1-Type)
-             (y0 : Y)
-             (f : (canon m <~> canon m) -> y0 = y0)
-             (ishom_f :
-                forall (e g : canon m <~> canon m),
-                  f (g oE e) = f e @ f g) :
-    Finite_Types m -> Y.
+  
+  
+  Definition pMap_BSigma_1 (m : nat) :
+    (pMap_BSigma m m idhom) = (pmap_idmap _).
   Proof.
-    srefine (deloop_rec (Finite_Types m) (canon m) _ Y y0 _ _).
-    - apply isconn_finite_types.
-    - intro p.
-      apply f. apply ((path_finite_types_fix m (canon m) (canon m))^-1 p).
-    - simpl. intros.
-      refine (_ @ ishom_f _ _).
-      apply (ap f).
-      revert α ω.
-      
-      cut (forall (x y: Finite_Types m) (p : canon m = x) (q : x = y),
-              equiv_path (Fin m) y (p @ q) ..1 =
-              equiv_path x y  q ..1 oE equiv_path (Fin m) x p ..1).
-      { intro H. apply H.  }
-      intros x y p []. destruct p. reflexivity.
-  Defined.
+    unfold pMap_BSigma. ev_equiv.
+    apply moveR_equiv_V. 
+    refine (path_hom _ _ (path_arrow _ _ (functor_hom_id _ _ (iso_loop_aut (Fin m)))) @ _).
+    apply inverse.
+    apply path_hom. apply path_arrow. 
+    apply (functor_loop_id (Build_Conn_pType (Build_pType (Finite_Types m) _) (isconn_finite_types m))).
+  Qed.
 
-  Definition functor_BSigma (m n : nat) 
-    (f : (canon m <~> canon m) -> (canon n <~> canon n))
-    (ishom_f : 
-      forall (e g : canon m <~> canon m),
-        f (g oE e) = f g oE f e)
-    : Finite_Types m -> Finite_Types n.
+  Open Scope monoid_scope.
+  Definition pMap_BSigma_compose (l m n : nat)
+    (f : Hom (AutGroup (Fin l)) (AutGroup (Fin m)))
+    (g : Hom (AutGroup (Fin m)) (AutGroup (Fin n))) :
+    pmap_compose (pMap_BSigma m n g) (pMap_BSigma l m f) = pMap_BSigma l n (g oH f).
   Proof.
-    srefine (deloop_BSigma_rec m _ (canon n) _ _).
-    - exact ((path_finite_types_fix n (canon n) (canon n)) o f).      
-    - intros.
-      refine (_ @ path_finite_types_fix_compose n _ _ _ (f e) (f g)).
-      apply (ap (path_finite_types_fix n (canon n) (canon n))).
-      apply ishom_f.
-  Defined.
+    unfold pMap_BSigma. ev_equiv.
+    apply inverse.
+    refine (_ @
+              functor_deloop_compose
+              (Build_Conn_pType (Build_pType (Finite_Types l) _)
+                                                          (isconn_finite_types l))
+              (Build_Conn_pType (Build_pType (Finite_Types m) _)
+                                                          (isconn_finite_types m))
+              _
+              ((equiv_functor_hom (iso_inv (iso_loop_aut (Fin l))) (iso_loop_aut (Fin m))) f)
+              ((equiv_functor_hom (iso_inv (iso_loop_aut (Fin m))) (iso_loop_aut (Fin n))) g)).
+    transitivity
+      ((functor_deloop
+                 {|
+                   X := {| pointed_type := Finite_Types l; ispointed_type := canon l |};
+                   isconn := isconn_finite_types l |}
+                 {| pointed_type := B_Aut (Fin n); ispointed_type := ispointed_BAut (Fin n) |})
+         ((equiv_functor_hom (iso_inv (iso_loop_aut (Fin l))) (iso_loop_aut (Fin n))) (g oH f))).
+    { reflexivity. }            (* stupid trick. . . *)
+    
+    apply (ap
+             (functor_deloop
+                 {|
+                   X := {| pointed_type := Finite_Types l; ispointed_type := canon l |};
+                   isconn := isconn_finite_types l |}
+                 {| pointed_type := B_Aut (Fin n); ispointed_type := ispointed_BAut (Fin n) |})).
+    apply path_hom. apply path_arrow. unfold equiv_functor_hom.
+    unfold functor_hom. intro x.
+    change ((BuildEquiv _ _ ?f _) ?x) with (f x).
+    hnf. apply (ap (iso_loop_aut (Fin n))). apply (ap g).
+    refine ((eissect (iso_loop_aut (Fin m)) _)^).
+  Qed.
+  
+  
+  
+  (* Definition deloop_BSigma_rec (m : nat) *)
+  (*            (Y : 1-Type) *)
+  (*            (y0 : Y) *)
+  (*            (f : (canon m <~> canon m) -> y0 = y0) *)
+  (*            (ishom_f : *)
+  (*               forall (e g : canon m <~> canon m), *)
+  (*                 f (g oE e) = f e @ f g) : *)
+  (*   Finite_Types m -> Y. *)
+  (* Proof. *)
+  (*   srefine (deloop_rec (Finite_Types m) (canon m) _ Y y0 _ _). *)
+  (*   - apply isconn_finite_types. *)
+  (*   - intro p. *)
+  (*     apply f. apply ((path_finite_types_fix m (canon m) (canon m))^-1 p). *)
+  (*   - simpl. intros. *)
+  (*     refine (_ @ ishom_f _ _). *)
+  (*     apply (ap f). *)
+  (*     revert α ω. *)
+      
+  (*     cut (forall (x y: Finite_Types m) (p : canon m = x) (q : x = y), *)
+  (*             equiv_path (Fin m) y (p @ q) ..1 = *)
+  (*             equiv_path x y  q ..1 oE equiv_path (Fin m) x p ..1). *)
+  (*     { intro H. apply H.  } *)
+  (*     intros x y p []. destruct p. reflexivity. *)
+  (* Defined. *)
+
+  (* Definition functor_BSigma (m n : nat)  *)
+  (*   (f : (canon m <~> canon m) -> (canon n <~> canon n)) *)
+  (*   (ishom_f :  *)
+  (*     forall (e g : canon m <~> canon m), *)
+  (*       f (g oE e) = f g oE f e) *)
+  (*   : Finite_Types m -> Finite_Types n. *)
+  (* Proof. *)
+  (*   srefine (deloop_BSigma_rec m _ (canon n) _ _). *)
+  (*   - exact ((path_finite_types_fix n (canon n) (canon n)) o f).       *)
+  (*   - intros. *)
+  (*     refine (_ @ path_finite_types_fix_compose n _ _ _ (f e) (f g)). *)
+  (*     apply (ap (path_finite_types_fix n (canon n) (canon n))). *)
+  (*     apply ishom_f. *)
+  (* Defined. *)
 
   (* Definition functor_BSigma_of {m n : nat} (g : Finite_Types m -> Finite_Types n) *)
   (*   (ispointed_g : g (canon m) = canon n) : *)
@@ -411,34 +459,34 @@ Section deloop_BSigma.
   (*   apply is_rec. *)
   (* Defined. *)
 
-  Definition ishom_compose {l m n : nat}
-             (f1 : canon m <~> canon m -> canon n <~> canon n)
-             (ishom_f1 : forall (e g : canon m <~> canon m),
-                 f1 (g oE e) = f1 g oE f1 e)
-             (f2 : canon l <~> canon l -> canon m <~> canon m)
-             (ishom_f2 : forall (e g : canon l <~> canon l),
-                 f2 (g oE e) = f2 g oE f2 e) :
-    forall (e g : canon l <~> canon l),
-      f1 (f2 (g oE e)) = f1 (f2 g) oE f1 (f2 e).
-  Proof.
-    intros.
-    refine (_ @ ishom_f1 _ _). apply (ap f1). apply ishom_f2.
-  Defined.
+  (* Definition ishom_compose {l m n : nat} *)
+  (*            (f1 : canon m <~> canon m -> canon n <~> canon n) *)
+  (*            (ishom_f1 : forall (e g : canon m <~> canon m), *)
+  (*                f1 (g oE e) = f1 g oE f1 e) *)
+  (*            (f2 : canon l <~> canon l -> canon m <~> canon m) *)
+  (*            (ishom_f2 : forall (e g : canon l <~> canon l), *)
+  (*                f2 (g oE e) = f2 g oE f2 e) : *)
+  (*   forall (e g : canon l <~> canon l), *)
+  (*     f1 (f2 (g oE e)) = f1 (f2 g) oE f1 (f2 e). *)
+  (* Proof. *)
+  (*   intros. *)
+  (*   refine (_ @ ishom_f1 _ _). apply (ap f1). apply ishom_f2. *)
+  (* Defined. *)
 
-  Definition functor_BSigma_compose (l m n : nat)
-             (f1 : canon m <~> canon m -> canon n <~> canon n)
-             (ishom_f1 : forall (e g : canon m <~> canon m),
-                 f1 (g oE e) = f1 g oE f1 e)
-             (f2 : canon l <~> canon l -> canon m <~> canon m)
-             (ishom_f2 : forall (e g : canon l <~> canon l),
-                 f2 (g oE e) = f2 g oE f2 e) :
-    functor_BSigma m n f1 ishom_f1 o functor_BSigma l m f2 ishom_f2 ==
-    functor_BSigma l n(f1 o f2) (ishom_compose f1 ishom_f1 f2 ishom_f2).
-  Proof.
-    intro x. revert x.
-    srapply @
-    refine (_ @ functor_BSigma_eta _ _ _ _ ).
-    unfold 
+  (* Definition functor_BSigma_compose (l m n : nat) *)
+  (*            (f1 : canon m <~> canon m -> canon n <~> canon n) *)
+  (*            (ishom_f1 : forall (e g : canon m <~> canon m), *)
+  (*                f1 (g oE e) = f1 g oE f1 e) *)
+  (*            (f2 : canon l <~> canon l -> canon m <~> canon m) *)
+  (*            (ishom_f2 : forall (e g : canon l <~> canon l), *)
+  (*                f2 (g oE e) = f2 g oE f2 e) : *)
+  (*   functor_BSigma m n f1 ishom_f1 o functor_BSigma l m f2 ishom_f2 == *)
+  (*   functor_BSigma l n(f1 o f2) (ishom_compose f1 ishom_f1 f2 ishom_f2). *)
+  (* Proof. *)
+  (*   intro x. revert x. *)
+  (*   srapply @ *)
+  (*   refine (_ @ functor_BSigma_eta _ _ _ _ ). *)
+  (*   unfold  *)
              
       
 
@@ -471,8 +519,8 @@ Section deloop_BSigma.
 End deloop_BSigma.
 
 Require Import determinants.
-
-Definition BDet (m : nat) : Finite_Types m -> Finite_Types 2.
+(* Endre Finite_Types til å leve i pType? *)
+Definition BDet (m : nat) : pMap (Finite_Types m) (Finite_Types 2).
 Proof.
   srapply (deloop_BSigma_rec m _ (canon 2)).
   - exact (determinant m).

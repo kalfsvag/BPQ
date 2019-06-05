@@ -6,15 +6,6 @@ Print LoadPath.
 From GR Require Import cquot cquot_principles.
 From GC Require Import finite_lemmas group_complete_1type BSigma delooping determinants.
 
-(* move *)
-Global Instance istrunc_finite_types {m : nat} : IsTrunc 1 (Finite_Types m).
-Proof.
-  intros x y.
-  change (IsTrunc_internal 0) with IsHSet.
-  apply (trunc_equiv' (x <~> y)).
-  - apply path_finite_types_fix.
-  - apply istrunc_equiv.
-Qed.
 
 Local Definition Z := cquot (group_completion_BSigma).
 
@@ -167,28 +158,9 @@ Definition grp_compl_BSigma_ind_set
 
 End BSigma_set_ind.
 
-Definition BDet (m : nat) : Finite_Types m -> Finite_Types 2.
-Proof.
-  srapply (deloop_rec (Finite_Types m) (canon m) (isconn_finite_types m)).
-  - exact (canon 2).
-  - refine (path_finite_types_fix 2 _ _ o _ o (path_finite_types_fix m _ _)^-1).
-    exact (determinant m).
-  - intros .
-    refine (_ @ path_finite_types_fix_compose 2 _ _ _ _ _).
-    apply (ap (path_finite_types_fix 2 (canon 2) (canon 2))).
-    refine (_ @ det_compose m _ _).
-    apply (ap (determinant m)).
-    apply moveR_equiv_V.
-    refine (_ @ (path_finite_types_fix_compose m _ _ _ _ _)^).
-    apply inverse.
-    apply concat2; apply eisretr.
-Defined.
-
-Definition BBlockSum {m n : nat} :
-  (Finite_Types m) -> (Finite_Types n) -> (Finite_Types (n+m)).
-Proof.
-  srapply deloop_double_rec
-
+  
+  
+  
   
     
 

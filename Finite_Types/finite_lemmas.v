@@ -1425,6 +1425,7 @@ End Restrict_Equivalence.
              (e2 : Fin n <~> Fin n) :
     block_sum (n := n.+1) e1 (e2 +E (equiv_idmap Unit)) == (block_sum e1 e2) +E (equiv_idmap Unit).
   Proof.
+    
     apply block_sum_eta.
     - simpl.
       intro i. apply (ap inl).

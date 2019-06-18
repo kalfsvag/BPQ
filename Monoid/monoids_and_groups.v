@@ -659,6 +659,55 @@ Section HomFunctor.
 
 End HomFunctor.
 
+Section Product.
+  Open Scope monoid_scope.
+  Definition mon_prod (M N : Monoid) : Monoid.
+  Proof.
+    srapply @Build_Monoid.
+    - exact (BuildTruncType 0 (M * N)).
+    - simpl.
+      intros [m1 n1] [m2 n2].
+      exact (m1 + m2, n1 + n2).
+    - exact (mon_id, mon_id).
+    - simpl. unfold associative.
+      intros [m1 n1] [m2 n2] [m3 n3].
+      apply path_prod;
+        apply mon_assoc.
+    - unfold left_identity. simpl.
+      intros [m n]. apply path_prod; apply mon_lid.
+    - intros [m n]. apply path_prod; apply mon_rid.
+  Defined.
+
+  Definition grp_prod (G H : Group) : Group.
+  Proof.
+    srapply @Build_Group.
+    - exact (mon_prod G H).
+    - simpl.
+      intros [g h]. exact (grp_inv g, grp_inv h).
+    - unfold left_inverse. simpl.
+      intros [g h].
+      apply path_prod; apply grp_linv.
+    - intros [g h].
+      apply path_prod; apply grp_rinv.
+  Defined.
+
+  (* If a group is abelian, then the multiplication G*G -> G is a homomorphism *)
+  Definition mult_hom (G : Group) (abelian_G : symmetric (@mon_mult G))
+    : Hom (grp_prod G G) G.
+  Proof.
+    srapply @Build_GrpHom.
+    - intros [g h].
+      exact (g + h).
+    - simpl. intros [g1 h1] [g2 h2].
+      refine (mon_assoc @ _ @ mon_assoc^).
+      apply (ap (mon_mult g1)).
+      refine (mon_assoc^ @ _ @ mon_assoc).
+      apply (ap (fun x => x + h2)).
+      apply abelian_G.
+  Defined.
+
+End Product.
+
 Require Import B_Aut.
 Section Iso_Loop_Aut.
   Context (X : Type) `{IsHSet X}.
@@ -690,6 +739,22 @@ Section Iso_Loop_Aut.
   Defined.
 End Iso_Loop_Aut.
 
+
+  Definition prod_loopGroup (A1 A2 : pType)
+             {istrunc_A1 : IsTrunc 1 A1}
+             {istrunc_A2 : IsTrunc 1 A2} :
+    Isomorphism (loopGroup (Build_pType (A1*A2) (point _,point _))) (grp_prod (loopGroup A1) (loopGroup A2))
+                 .
+  Proof.
+    srapply Build_Grp_Iso'.
+    - simpl. apply equiv_inverse.
+      apply (equiv_path_prod (_,_)(_,_)).
+    - simpl. intros p q. revert p q.
+      cut (forall (a b: A1*A2) (p : point (A1 * A2) = a) (q : a = b),
+              (ap fst (p @ q), ap snd (p @ q)) = (ap fst p @ ap fst q, ap snd p @ ap snd q)).
+      { intro H. apply H. }
+      intros a b p []. destruct p. reflexivity.
+  Defined.
 
 (* The rest here is important, don't forget it! *)
 

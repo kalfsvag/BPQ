@@ -15,25 +15,6 @@ Definition Embedding (A B : Type) := {f : A -> B & IsEmbedding f}.
 Definition fun_of_emb (A B : Type) : Embedding A B -> (A -> B) := pr1.
 Coercion fun_of_emb : Embedding >-> Funclass.
 
-(* Definition twist2 : Fin 2 -> Fin 2. *)
-(* Proof. *)
-(*   unfold Fin. *)
-(*     intros [[[] |[]] | [] ]. *)
-(*     + apply inr. exact tt. *)
-(*     + apply inl. apply inr. exact tt. *)
-(* Defined. *)
-
-(* Definition t_squared : τ o τ == idmap. *)
-(* Proof. *)
-(*   intros [[[] |[]] | [] ]; reflexivity. *)
-(* Defined.   *)
-
-(* Definition isequiv_τ : IsEquiv τ. *)
-(*   apply (isequiv_adjointify τ τ); apply τ_squared. *)
-(* Defined. *)
-
-(* Definition equiv_τ : Fin 2 <~> Fin 2 := *)
-(*   BuildEquiv _ _ τ isequiv_τ. *)
 
 Definition equiv_fin2_bool : Fin 2 <~> Bool.
 Proof.
@@ -48,35 +29,6 @@ Proof.
   - intros [[[] | []] | []]; reflexivity.
 Defined.
 
-(* Definition equiv_bool_autFin2 : *)
-(*   Bool <~> (Fin 2 <~> Fin 2). *)
-(* Proof. *)
-(*   srapply @equiv_adjointify. *)
-(*   - intros [ | ]. *)
-(*     + exact equiv_idmap. *)
-(*     + exact equiv_τ. *)
-(*   - intro e. recall (e (inr tt)) as x eqn:p. *)
-(*     destruct x as [[[] | []] |[] ]. *)
-(*     + exact false. *)
-(*     + exact true. *)
-(*   - intro e.  *)
-(*     destruct (e (inr tt)) as [[[] | []] |[] ]; simpl. *)
-    
-    
-
-
-(* Definition equiv_Fin2_τ_or_id (e : Fin 2 <~> Fin 2) : *)
-(*   (e = equiv_τ) + (e = 1%equiv). *)
-(* Proof. *)
-(*   recall (e (inr tt)) as x eqn:p. *)
-(*   destruct x as [x | []]. *)
-(*   - apply inl. *)
-    
-(*     equiv_bool_aut_bool *)
-
-(* Definition comm_equiv_Fin2 (e1 e2 : Fin 2 <~> Fin 2) : *)
-
-
 
 (* The type of decidable propositions is finite *)
 Global Instance finite_dprop : Finite DProp.
@@ -86,7 +38,7 @@ Proof.
   apply equiv_inverse. apply equiv_dprop_to_bool.
 Qed.
 
-(* This is also in monoidal_1type.v *)
+
 (*Finite types are sets *)
 Definition isset_Fin (n : nat) : IsHSet (Fin n).
 Proof.
@@ -110,60 +62,53 @@ Proof.
   exact (eB^-1 oE eA).
 Qed.
 
-(* Definition fin_sum_to_sum_fin (m n : nat) : Fin (m + n) -> (Fin n) + (Fin m). *)
-(* Proof. *)
-(*   induction m. *)
-(*   - apply inl. *)
-(*   - simpl. *)
-(*     intro x. *)
-(*     apply equiv_sum_assoc. *)
-(*     exact (functor_sum IHm idmap x). *)
-(* Defined. *)
+Section Sum_Finite.
+  Definition finl (m n : nat) : Fin m -> Fin (n + m).
+  Proof.
+    induction n.
+    - exact idmap.
+    - simpl.
+      exact (inl o IHn).
+  Defined.
 
-Definition finl (m n : nat) : Fin m -> Fin (n + m).
-Proof.
-  induction n.
-  - exact idmap.
-  - simpl.
-    exact (inl o IHn).
-Defined.
+  Definition finr (m n : nat) : Fin n -> Fin (n + m).
+  Proof.
+    induction n.
+    - apply Empty_rec.
+    - simpl.
+      exact (functor_sum IHn idmap).
+  Defined.
 
-Definition finr (m n : nat) : Fin n -> Fin (n + m).
-Proof.
-  induction n.
-  - apply Empty_rec.
-  - simpl.
-    exact (functor_sum IHn idmap).
-Defined.
+  Definition finsum (m n : nat) : Fin m + Fin n -> Fin (n+m).
+  Proof.
+    intros [i | j].
+    - exact (finl _ _ i).
+    - exact (finr _ _ j).
+  Defined.
 
-Definition finsum (m n : nat) : Fin m + Fin n -> Fin (n+m).
-Proof.
-  intros [i | j].
-  - exact (finl _ _ i).
-  - exact (finr _ _ j).
-Defined.
+  Global Instance isequiv_finsum {m n : nat} : IsEquiv (finsum m n).
+  Proof.
+    induction n.
+    - simpl.
+      assert (h : finsum m 0 = (sum_empty_r (Fin m))).
+      { apply path_arrow.
+        intros [x | []]; reflexivity. }
+      rewrite h.  exact _.
+    - assert (h : finsum m n.+1 =
+                  (functor_sum (finsum m n) idmap) o (equiv_sum_assoc (Fin m) (Fin n) Unit)^-1).
+      { apply path_arrow.
+        intros [i | [i | []]]; reflexivity. }
+      rewrite h.
+      apply (isequiv_compose (g := (functor_sum (B := Unit) (finsum m n) (idmap)))).
+  Qed.
 
-Global Instance isequiv_finsum {m n : nat} : IsEquiv (finsum m n).
-Proof.
-  induction n.
-  - simpl.
-    assert (h : finsum m 0 = (sum_empty_r (Fin m))).
-    { apply path_arrow.
-      intros [x | []]; reflexivity. }
-    rewrite h.  exact _.
-  - assert (h : finsum m n.+1 =
-            (functor_sum (finsum m n) idmap) o (equiv_sum_assoc (Fin m) (Fin n) Unit)^-1).
-    { apply path_arrow.
-      intros [i | [i | []]]; reflexivity. }
-    rewrite h.
-    apply (isequiv_compose (g := (functor_sum (B := Unit) (finsum m n) (idmap)))).
-Qed.
+  (* TODO: rename to equiv_finsum *)
+  Definition fin_resp_sum (m n : nat) : (Fin m) + (Fin n) <~> Fin (n + m) :=
+    BuildEquiv _ _ (finsum m n) isequiv_finsum.
 
-Definition fin_resp_sum (m n : nat) : (Fin m) + (Fin n) <~> Fin (n + m) :=
-  BuildEquiv _ _ (finsum m n) isequiv_finsum.
-
-Definition fin_resp_sum_last (m n : nat) :
-  fin_resp_sum m n.+1 (inr (inr tt)) = (inr tt) := idpath.
+  (* Definition fin_resp_sum_last (m n : nat) : *)
+  (*   fin_resp_sum m n.+1 (inr (inr tt)) = (inr tt) := idpath. *)
+End Sum_Finite.
 
 Require Import B_Aut.
 Section Finite_Types.
@@ -350,24 +295,6 @@ Section Finite_Types.
   Qed.     
  
 
-  (* Definition transport_exp_finite {X : Type} {A B : {n : nat & Finite_Types n}} (e : A.2 <~> B.2) (x : A.2 -> X) : *)
-  (*   transport (fun I : {n : nat & Finite_Types n} => I.2 -> X) (path_finite_types A B e) x = x o e^-1. *)
-  (* Proof.     *)
-
-  (*   destruct A as [m [A eA]]. destruct B as [n [B eB]]. simpl in e. simpl in x. *)
-  (*   refine (_ @ transport_exp_finite_sum (A := (A; Build_Finite A m eA)) (B := (B; Build_Finite B n eB)) e x). *)
-  (*   refine (_ @ (transport_compose (fun I : {n0 : nat & Finite_Types n0} => I.2 -> X) *)
-  (*                             (sum_finite )^-1 *)
-  (*                             (path_finite_types_sum (A; finite_finite_type (A; eA)) (B; finite_finite_type (B; eB)) e) x)^ ). *)
-  (*   unfold path_finite_types. *)
-  (*   apply (ap (fun f : sum_finite (m; (A; eA)) = sum_finite (n; (B; eB)) -> (m; (A; eA)) = (n; (B; eB)) => *)
-  (*                transport (fun I : {n0 : nat & Finite_Types n0} => I.2 -> X) *)
-  (*                          (f ((path_finite_types_sum (A; finite_finite_type (A; eA)) (B; finite_finite_type (B; eB))) e)) x)). *)
-  (*   transitivity  *)
-  (*   (fun q : sum_finite (m; (A; eA)) = sum_finite (n; (B; eB)) => *)
-  (*                      ((eissect sum_finite (m; (A; eA)))^ @ ap sum_finite^-1 q) @ eissect sum_finite (n; (B; eB))). reflexivity. *)
-  (*   Abort. *)
-
   (* This should more or less follow from baut_ind_hset (except that is only for P: Type -> Type*)
   Definition BSigma_ind_hSet (P : forall n : nat, Finite_Types n -> Type)
              {isset_P : forall (n : nat) (s : Finite_Types n), IsHSet (P n s)}
@@ -397,128 +324,7 @@ Section Finite_Types.
   Defined.
 
 
-  (* Definition BSigma_rec_1Type (n : nat) (X : Type) (istrunc_P : IsTrunc 1 X) *)
-  (*            (x0 : X) *)
-  (*            (wd : (Fin n <~> Fin n) -> x0 = x0) *)
-  (*            (wd_comp : forall (e1 e2 : Fin n <~> Fin n), *)
-  (*                wd e1 @ wd e2 = wd (e2 oE e1)) : *)
-  (*   Finite_Types n -> X. *)
-  (* Proof. *)
-  (*   intro s. *)
-    
-  (*   apply (@pr1 X (fun x : X => {wd' : (forall e :Fin n <~> s, x = x0) & *)
-  (*                            forall (e1 e2 : Fin n <~> Fin n), wd' e1 @ wd' e2 = wd' (e2 oE e1)})). *)
-  (*   assert (isprop_goal : IsHProp *)
-  (*                           {x : X & *)
-  (*                                {wd' : Fin n <~> Fin n -> x = x & *)
-  (*                                      forall e1 e2 : Fin n <~> Fin n, *)
-  (*                                        wd' e1 @ wd' e2 = wd' (e2 oE e1)}}). *)
-  (*   { unfold IsHProp. simpl. *)
-  (*     intros x y. *)
-  (*     refine (contr_equiv' _ (equiv_path_sigma _ x y)^-1). *)
-  (*     destruct x as [x1 x2]. destruct y as [y1 y2]. simpl. *)
-      
-    
-
-    
-
 End Finite_Types.
-
-
-
-(* Section FinCat. *)
-(*   Definition fin_1type : 1-Type. *)
-(*     srapply (@BuildTruncType 1 {n : nat & Finite_Types n}). *)
-(*     red. *)
-(*     intros A B. *)
-(*     apply (trunc_equiv' (A.2 <~> B.2) (path_finite_types A B)). *)
-(*   Defined. *)
-
-(*   (* Check (fundamental_pregroupoid_category fin_1type). *) *)
-(*   (* Definition fincat : PreCategory. *) *)
-(*   (* Proof. *) *)
-(*   (*   srapply (Build_PreCategory (fun m n : nat => Fin m = Fin n)); simpl. *) *)
-(*   (*   - intro m. reflexivity. *) *)
-(*   (*   - intros l m n. *) *)
-(*   (*     intros p q. exact (q @ p). *) *)
-(*   (*   - intros. simpl. *) *)
-(*   (*     apply concat_p_pp. *) *)
-(*   (*   - simpl. intros. *) *)
-(*   (*     apply concat_p1. *) *)
-(*   (*   - simpl. intros. *) *)
-(*   (*     apply concat_1p. *) *)
-(*   (* Defined. *) *)
-
-(*   Definition fincat : PreCategory. *)
-(*   Proof. *)
-(*     srapply (Build_PreCategory (fun m n : nat => Fin m <~> Fin n)); simpl. *)
-(*     - intro m. apply equiv_idmap. *)
-(*     - intros l m n. *)
-(*       apply equiv_compose'. *)
-(*     - intros. simpl. *)
-(*       apply path_equiv. reflexivity. *)
-(*     - simpl. intros. *)
-(*       apply path_equiv. reflexivity. *)
-(*     - simpl. intros. apply path_equiv. reflexivity. *)
-(*   Defined. *)
-
-    
-  
-(*   (* Trying to show that these are equivalent *) *)
-(*   Definition F : Functor fincat (Type_to_Cat (fin_1type)). *)
-(*   Proof. *)
-(*     srapply @Build_Functor; simpl. *)
-(*     - intro m. exact (m; canon m). *)
-(*     - intros m n e. simpl.  *)
-(*       apply path_finite_types. *)
-(*       apply e. *)
-(*     - intros a b c e1 e2. *)
-(*       hnf.  *)
-(*       apply (path_finite_types_compose (a; canon a) (b; canon b) (c; canon c)). *)
-(*     - hnf. *)
-(*       intro n. *)
-(*       apply path_finite_types_1. *)
-(*   Defined. *)
-
-(*   Definition G : Functor (Type_to_Cat (fin_1type)) fincat. *)
-(*   Proof. *)
-(*     srapply @Build_Functor; simpl. *)
-(*     - apply pr1. *)
-(*     - intros A B []. exact equiv_idmap. *)
-(*     - intros a b c [] []. simpl. *)
-(*       apply path_equiv. reflexivity. *)
-(*     - reflexivity. *)
-(*   Defined. *)
-    
-(*   (* F is a weak equivalence (def 9.4.6) *) *)
-(*   Arguments path_finite_types : simpl never. *)
-  
-(*   Definition fullyfaithful_F : *)
-(*     forall (a b : _), IsEquiv (@morphism_of _ _ F a b).   *)
-(*   Proof. *)
-(*     intros a b. simpl in a, b. *)
-(*     unfold F. cbn. *)
-(*     apply equiv_isequiv. *)
-(*   Defined. *)
-
-(*   Definition essentially_surj_F : *)
-(*     Attributes.IsEssentiallySurjective F. *)
-(*   Proof. *)
-(*     unfold Attributes.IsEssentiallySurjective. simpl. *)
-(*     intros [m [A fA]]. strip_truncations. *)
-(*     apply tr. *)
-(*     exists m. *)
-(*     srapply @Build_Isomorphic. simpl. *)
-(*     apply path_finite_types. *)
-(*     simpl. apply equiv_inverse. *)
-(*     apply fA. *)
-(*   Defined.  *)
-    
-
-    
-(* End FinCat. *)
-
-
 
 
 Section Factorize_Monomorphism.
@@ -867,50 +673,6 @@ Section Finite_Subsets.
       + simpl. reflexivity.
   Defined.
 
-  (* Definition equiv_compliment {n k : nat} {A : Finite_Types n} : *)
-  (*     IsEquiv (@compliment n k A). *)
-  (* Proof. *)
-  (*   srapply @isequiv_adjointify. *)
-    
-    
-
-
-
-
-  (* (* I want to show that P n A is contractible, but I don't think I need it. . . *) *)
-  (* Definition contr_last_subset {n : nat} (A : Finite_Types n) : *)
-  (*   Contr (Finite_Subsets n A). *)
-  (* Proof. *)
-  (*   srapply @BuildContr. *)
-  (*   - srapply @exist. *)
-  (*     exists A. exact A.2. *)
-  (*     exists idmap. apply equiv_is_embedding. exact _. *)
-  (*   - intro B. srapply @path_finite_subsets. *)
-  (*     + simpl. apply equiv_inverse. *)
-  (*       destruct B as [B [f embf]]. simpl. *)
-  (*       transitivity {ab : A * B & f (snd ab) = fst ab}. *)
-  (*       *  srapply @equiv_adjointify. *)
-  (*          { intro b. exists (f b, b). reflexivity. } *)
-  (*          { exact (snd o pr1). } *)
-  (*          { intros [[a b] p]. simpl in *. admit. } *)
-  (*          { intro b. reflexivity. } *)
-  (*       * srapply @equiv_adjointify. *)
-  (*         { intros [[a b] p]. exact a. } *)
-  (*         { intro a. *)
-        
-  (*       srapply @BuildEquiv. *)
-  (*       exact B.2.1. *)
-  (*       apply isequiv_fcontr. intro a. *)
-  (*       apply contr_inhabited_hprop. apply (B.2.2). *)
-
-        
-        
-    
-
-
-    
-
-    
   
 End Finite_Subsets.
 
@@ -1130,24 +892,6 @@ Section Sigma2.
     - exact p.
   Qed.
 
-    
-  (*   intro neq. *)
-  (*   assert (p : σ (inr tt) = (inl (inr tt))). *)
-  (*   { recall (σ (inr tt)) as x eqn:q. rewrite q. *)
-  (*     destruct x as [[[] | []] | []]. *)
-  (*     - reflexivity. *)
-  (*     - destruct (neq q).       (* absurd case *) *)
-  (*   } *)
-  (*   intro x. *)
-  (*   apply (equiv_inj (twist2)). *)
-  (*   transitivity (equiv_idmap _ x). *)
-  (*   - apply (sym2_fixlast (twist2 oE σ)). *)
-  (*     ev_equiv. unfold twist2. rewrite p. *)
-  (*     apply fin_transpose_beta_l. *)
-  (*   - apply inverse. *)
-  (*     apply fin_transpose_invol. *)
-  (* Qed. *)
-
   Definition symm_sigma2 (σ1 σ2 : Fin 2 <~> Fin 2) :
     σ1 oE σ2 = σ2 oE σ1.
   Proof.
@@ -1209,45 +953,7 @@ Section Restrict_Equivalence.
     unfold swap_last. ev_equiv. apply fin_transpose_last_with_with.
   Qed.
 
-  (* Lemma is_inr_restrict_equiv : *)
-  (*   forall u : Unit, *)
-  (*     is_inr ((swap_last oE e) (inr u)). *)
-  (* Proof. *)
-  (*   exact (fix_last_is_inr (swap_last oE e) swap_fix_last). *)
-  (* Qed.  *)
-
-  (* Lemma is_inl_restrict_equiv : *)
-  (*   forall a : A, *)
-  (*     is_inl ((swap_last oE e) (inl a)). *)
-  (* Proof. *)
-  (*   exact (fix_last_is_inl (swap_last oE e) swap_fix_last). *)
-  (* Qed. *)
-    
-    
-  (*   intro a. unfold swap_last. ev_equiv. *)
-  (*   (* two cases: e (inl a) is the last element, or it isn't *) *)
-  (*   assert (neq : (e (inr tt) <> e (inl a))) *)
-  (*       by exact (fun z => inl_ne_inr _ _ (equiv_inj e (z^))). *)
-  (*   recall (e (inl a)) as y eqn:p. *)
-  (*   destruct y as [y | []]. *)
-  (*   - rewrite p. *)
-  (*     rewrite fin_transpose_last_with_rest. *)
-  (*     { exact tt. } *)
-  (*     destruct p. exact neq. *)
-  (*   - rewrite p. *)
-  (*     rewrite fin_transpose_last_with_last. *)
-  (*     (* two cases: e (inr tt) is inl(z) or inr(tt), the latter wich is absurd *) *)
-  (*     recall (e (inr tt)) as z eqn:q. *)
-  (*     destruct z as [z | []]. *)
-  (*     + rewrite q. exact tt. *)
-  (*     + destruct q^. exact (neq p^). *)
-  (* Qed. *)
-
-  (* Definition equiv_restrict := *)
-  (*   equiv_unfunctor_sum_l (swap_last oE e) *)
-  (*                         is_inl_restrict_equiv *)
-  (*                         is_inr_restrict_equiv. *)
-
+ 
   Definition equiv_restrict_eta :
     equiv_restrict +E equiv_idmap == e.
   Proof.
@@ -1276,78 +982,6 @@ End Restrict_Equivalence.
     apply (path_sum_inl Unit). apply (H (inl x)).
   Qed.
 
-(* Section Restrict_Equivalence_compose. *)
-
-  
-(*   Definition decidable_isplus1 {n : nat} (e : Fin n.+1 <~> Fin n.+1) : *)
-(*     {e' : Fin n <~> Fin n & e = e' +E 1} + {i : Fin n & e (inr tt) = inl i}. *)
-(*   Proof. *)
-(*     recall (e (inr tt)) as x eqn:p. *)
-(*     destruct x as [i | []]. *)
-(*     - apply inr. exists i. exact p. *)
-(*     - apply inl. exists (equiv_restrict e). *)
-(*       apply path_equiv. apply path_arrow. *)
-(*       intro x. *)
-(*       apply inverse. *)
-(*       refine (equiv_restrict_eta e x @ _). *)
-(*       ev_equiv. unfold swap_last. *)
-
-(*   Defined. *)
-  
-(*   Definition equiv_restrict_compose_1 {n : nat} (e1 e2 : Fin n.+1 <~> Fin n.+1) : *)
-(*     (e1 (inr tt) = inr tt) -> *)
-(*     equiv_restrict (e2 oE e1) = equiv_restrict e2 oE equiv_restrict e1. *)
-(*   Proof. *)
-(*     intro p.  *)
-(*     apply path_equiv. apply path_forall. intro i. ev_equiv. *)
-(*     simpl. *)
-(*     intro x. *)
-    
-    
-  
-(* Definition compose_diff_equiv_restrict {n : nat} (e1 e2 : Fin n.+1 <~> Fin n.+1) : *)
-(*   (diff_equiv_restrict e1 e2) oE (swap_last e2) oE e2 oE (swap_last e1) oE e1 == *)
-(*   swap_last (e2 oE e1) oE e2 oE e1. *)
-(* Proof. *)
-(*   unfold diff_equiv_restrict. *)
-(*   destruct (diff_cases e1 e2) as *)
-(*       [p |[[x p] [q | [y q]] ]]. *)
-(*   - simpl. unfold swap_last. ev_equiv. *)
-(*     rewrite p. intro i. apply (ap (fin_transpose (e2 (inr tt)) (inr tt))). apply (ap e2). *)
-(*     apply fin_transpose_same_is_id. *)
-(*   - intro i. simpl. unfold swap_last. ev_equiv. rewrite q. *)
-(*     rewrite fin_transpose_same_is_id. *)
-(*     refine (ap (fin_transpose (e2 (inr tt)) (inr tt)) *)
-(*                (natural_fin_transpose (e1 (inr tt)) (inr tt) e2 (e1 i)) @ _). *)
-(*     rewrite q. *)
-(*     ev_equiv.  *)
-(*     rewrite (fin_transpose_sym (n := n.+1) (inr tt) (e2 (inr tt)) _). *)
-(*     apply (fin_transpose_invol). *)
-(*   - intro i. unfold swap_last. ev_equiv. *)
-(*     refine (ap (fin_transpose (e1 (inr tt)) ((e2 (e1 (inr tt)))) o *)
-(*                               fin_transpose (e2 (inr tt)) (inr tt)) *)
-(*                (natural_fin_transpose (e1 (inr tt)) (inr tt) e2 (e1 i)) @ _). *)
-(*     ev_equiv.  *)
-(*     generalize (e2 (e1 i)). clear i. intro i. *)
-(*     rewrite q. rewrite p. *)
-
-    
-(*     rewrite q. rewrite p. simpl. *)
-    
-(*     destruct i as [i | []]. *)
-(*     + simpl.  *)
-(*     rewrite p.  *)
-
-    
-(* Qed.  *)
-  
-  
-
-(* End Restrict_Equivalence_compose. *)
-
-(* Section Restrict_Equivalence_sum. *)
-
-  (* move *)
   Definition fin_decompose_ind {m n : nat} (P : Fin (n+m) -> Type)
              (Pl : forall i : Fin m, P (finl _ _ i))
              (Pr : forall i : Fin n, P (finr _ _ i))
@@ -1435,183 +1069,6 @@ End Restrict_Equivalence.
       + reflexivity.
   Qed.
   
-  (* Definition blocksum_last {m n : nat} *)
-  (*            (e1 : Fin m.+1 <~> Fin m.+1) *)
-  (*            (e2 : Fin n <~> Fin n) :  *)
-  (*   block_sum e1 e2 (inr tt) = (fin_resp_sum m.+1 n)^-1 (inr (e1 (inr tt))). *)
-  (* Proof. *)
-  (*   reflexivity. *)
-  (*   unfold block_sum. ev_equiv. simpl. *)
-    
-    
-    
-
-  
-
-  (* Definition block_sum_fixlast (m : nat) (n : nat) (e1 : Fin m.+1 <~> Fin m.+1) (e2 : Fin n <~> Fin n) : *)
-  (*   (block_sum e1 e2) (inr tt) = (inr tt) <~> (e1 (inr tt) = inr tt). *)
-  (* Proof. *)
-  (*   apply equiv_iff_hprop_uncurried. *)
-  (*   apply pair. *)
-  (*   - unfold block_sum.  ev_equiv. intro p. *)
-  (*     apply (path_sum_inr (Fin n)). *)
-  (*     apply (equiv_inj (fin_resp_sum m.+1 n)^-1). *)
-  (*     apply p. *)
-  (*   - intro p. unfold block_sum. *)
-  (*     apply (equiv_inj (fin_resp_sum m.+1 n)).  *)
-  (*     refine (_ @ (ap inr p)). *)
-  (*     apply eisretr. *)
-  (* Qed. *)
-
-  (* Definition block_sum_0 (n : nat) (e : Fin n <~> Fin n) : *)
-  (*   block_sum 0 n  *)
-  
-(*   Definition swap_last_block_sum (m n : nat) (e1 : Fin m.+1 <~> Fin m.+1) (e2 : Fin n <~> Fin n) : *)
-(*     swap_last (block_sum m.+1 n e1 e2) = block_sum m.+1 n (swap_last e1) equiv_idmap. *)
-(*   Proof. *)
-(*     unfold swap_last. *)
-(*     change (block_sum m.+1 n e1 e2 (inr tt)) with *)
-(*     ((Fin_resp_sum m.+1 n)^-1 (inl (e1 (inr tt)))). *)
-(*     apply path_equiv. apply path_arrow. *)
-(*     intro x.  *)
-    
-    
-(*     assert (block_sum m.+1 n e1 e2 (inr tt) = ). *)
-(*     { unfold block_sum. ev_equiv.  reflexivity. *)
-(*       apply (ap (Fin_resp_sum m.+1 n)^-1). reflexivity. *)
-(*       simpl.  *)
-      
-(*     apply path_equiv. *)
-(*     apply (equiv_inj (equiv_precompose' (Fin_resp_sum m.+1 n)^-1) *)
-(*           (x := (fin_transpose ((block_sum m.+1 n e1 e2) (inr tt)) (inr tt))) *)
-(*           (y := block_sum m.+1 n (fin_transpose (e1 (inr tt)) (inr tt)) 1)). *)
-(*     apply path_arrow. intro x. simpl in x. *)
-(*     destruct x  as [[x|[]] | x]. *)
-(*     - simpl.  *)
-
-    
-
-(*   Definition equiv_restrict_block_sum {m n : nat} (e1 : Fin m.+1 <~> Fin m.+1) (e2 : Fin n <~> Fin n) : *)
-(*     equiv_restrict (block_sum m.+1 n e1 e2) = *)
-(*     block_sum m n (equiv_restrict e1) e2. *)
-(*   Proof. *)
-    
-
-  
-
-(*   Definition block_sum_plus1 (m n : nat) (e1 : Fin m.+1 <~> Fin m.+1) (e2 : Fin n <~> Fin n) : *)
-(*     block_sum m.+1 n e1 e2 = *)
-(*     swap_last ((block_sum m n (equiv_restrict e1) e2) +E 1) oE *)
-(*               ((block_sum m n (equiv_restrict e1) e2) +E 1). *)
-(*   Proof. *)
-(*     transitivity (block_sum m.+1 n (swap_last e1 oE (equiv_restrict e1 +E 1)) e2). *)
-(*     { apply (ap (fun f => block_sum m.+1 n f e2)). *)
-
-(*       refine (_ @ ap (fun f => (swap_last e1) oE f) *)
-(*                 (path_equiv (path_arrow _ _ (equiv_restrict_eta e1)))^). *)
-(*       transitivity ((swap_last e1 oE swap_last e1) oE e1). *)
-(*       { transitivity (1 oE e1). {apply inverse. apply ecompose_1e. } *)
-(*         apply (ap (fun f => f oE e1)). *)
-(*         unfold swap_last. apply inverse. *)
-(*         apply path_equiv. apply path_arrow. *)
-(*         apply fin_transpose_last_with_invol. } *)
-(*     apply path_equiv. reflexivity. } *)
-(*     apply path_equiv. apply path_arrow. *)
-(*     unfold block_sum. *)
-(*     intros [x | []]. *)
-(*     + simpl.  *)
-
-
-
-  
-
-(*   Definition equiv_restrict_sum {m n : nat} {A B : Type} (e1 : A <~> Fin n) *)
-(*              (e2 : B + Unit <~> Fin m.+1) : *)
-(*   equiv_restrict ( *)
-
-(* (* Given e2 and e1, we have three cases: e1 preserve basepoint, e1 does not preserve basepoint *) *)
-(* Definition diff_cases {n : nat} (e1 e2 : Fin n.+1 <~> Fin n.+1) : *)
-(*   (e1 (inr tt) = inr tt) + *)
-(*   ({x : Fin n & e1 (inr tt) = inl x} * *)
-(*    ((e2 (e1 (inr tt)) = inr tt) + ({y : Fin n & e2 (e1 (inr tt)) = inl y}))). *)
-(* Proof. *)
-(*   recall (e1 (inr tt)) as x eqn:p.  *)
-(*   destruct x as [x | []].  *)
-(*   - apply inr. *)
-(*     apply (pair (x; p)). *)
-(*     recall (e2 (e1 (inr tt))) as y eqn:q. *)
-(*     destruct y as [y | []]. *)
-(*     + apply inr. exact (y; q). *)
-(*     + apply inl. exact q. *)
-(*   - apply inl. exact p. *)
-(* Defined. *)
-
-(* (* Find how far equiv_restrict is from respecting composition. We find an equivalence such that*) *)
-(* Definition diff_equiv_restrict {n : nat} (e1 e2 : Fin n.+1 <~> Fin n.+1) : *)
-(*   Fin n.+1 <~> Fin n.+1. *)
-(* Proof. *)
-(*   destruct (diff_cases e1 e2) as *)
-(*       [p |[[x p] [q | [y q]] ]]. *)
-(*   - exact equiv_idmap.          (* e1 preserves last point *) *)
-(*   - exact equiv_idmap.          (* the composition preserves last point *) *)
-(*   - exact (fin_transpose (e1 (inr tt)) (e2 (e1 (inr tt)))). (* neither preserve basepoint *) *)
-(* Defined. *)
-
-(*     rewrite (fin_transpose_invol (n := n.+1) (e2 (inr tt)) (inr tt) (e2 (e1 i))). *)
-(*     rewrite . *)
-  
-  
-  
-
-(* (* Definition swap_last_compose {n : nat} (e1 e2 : Fin n.+1 <~> Fin n.+1) : *) *)
-(* (*   swap_last (e2 oE e1) == (swap_last e2) oE (swap_last e1). *) *)
-(* (* Proof. *) *)
-(* (*   intro x. unfold swap_last. *) *)
-  
-(* Definition swap_compose {n : nat} (e1 e2 : Fin n.+1 <~> Fin n.+1) : *)
-(*   (swap_last e2) oE e2 oE (swap_last e1) oE e1 == *)
-(*   fin_transpose (e2 (inr tt)) (e2 (e1 (inr tt))) oE swap_last (e2 oE e1) oE e2 oE e1. *)
-(* Proof. *)
-(*   intro x. ev_equiv. unfold swap_last. *)
-(*   destruct x as [x | []]. *)
-(*   -  *)
-(*   - ev_equiv. *)
-(*     rewrite fin_transpose_beta_l. *)
-(*     rewrite fin_transpose_beta_l. *)
-(*     rewrite fin_transpose_beta_l. *)
-    
-    
-
-(*     +  *)
-(*   -  *)
-  
-  
-(*   e2 oE swap_last e1 oE e1 == e2 oE e1. *)
-(* Proof. *)
-(*   hnf. intro x. *)
-  
-
-(* Definition equiv_restrict_compose {n : nat} (e1 e2 : Fin n.+1 <~> Fin n.+1) : *)
-(*   equiv_restrict (e2 oE e1) == (equiv_restrict e2) oE (equiv_restrict e1). *)
-(* Proof. *)
-(*   destruct n. { intros []. } *)
-(*   intro x. *)
-(*   apply (path_sum_inl Unit). *)
-(*   refine (_ @ (unfunctor_sum_l_beta _ _ (equiv_restrict e1 x))^). *)
-(*   refine (_ @ (ap (swap_last e2 oE e2) (unfunctor_sum_l_beta _ _ x)^)). *)
-(*   refine (unfunctor_sum_l_beta _ _ x @ _). *)
-(*   assert (comm_sigma2 : forall g1 g2 : Fin 2 <~> Fin 2, g1 oE g2 == g2 oE g1). *)
-(*   { admit. } *)
-(*   transitivity ((swap_last e2 oE swap_last e1 oE (e2 oE e1)) (inl x)). *)
-(*   { simpl. generalize (e2 (e1 (inl x))). (* not true. . . *) admit. } *)
-(*   apply (ap (swap_last e2)). *)
-(*   apply (comm_sigma2 (swap_last e1) e2 (e1 (inl x))). *)
-  
-  
-
-(*   (* Fin 2 <~> Fin 2 commutative, and swap functorial *) *)
-(* Admitted. *)
-
 
 Require Import nat_lemmas.
 
@@ -1681,36 +1138,8 @@ Section Pointed_Finite.
       + apply (path_sigma_hprop). exact i_eq_sn^.
   Defined.
 
-  (* (* Give better name if this works *) *)
-  (* Definition decidable_path_Sn : forall (n : trunc_index) (x : Sphere n.+2), Decidable (merely (x = North)). *)
-  (* Proof. *)
-  (*   intros n x. unfold Decidable. *)
-  (*   induction n. *)
-  (*   revert x. srapply @Susp_ind; simpl. *)
-  (*   + apply inl. apply tr. exact idpath. *)
-  (*   +                           (* Trenger at merid er en ekvivalens? *) *)
-    
-    
-    
-  (*     (* Do this for n-spheres directly? *) *)
-  (* (* I want a map (pFin n -> X) -> (pFin n -> X) moving all basepoints to the end, and else keeping the order *) *)
-  (* Definition movebptoend {n : nat} (X : Type) : (pFin n -> X + Unit) -> (pFin n -> X + Unit). *)
-  (* Proof. *)
-  (*   induction n. *)
-  (*   - exact idmap. *)
-  (*   -  *)
-  (*     intro x. *)
-  (*     destruct (x (0;tt)).  *)
-      
-  (*     destruct (merely (x (0; tt) = x0)) as [fst_is_bp | fst_is_not_bp]. *)
-
-
   (* General pointed finite sets of cardinality n *)
   Definition Pointed_Finite (n : nat) := {A : Type & merely (A <~> pFin n)}.
-
-  (* Definition Canonical_Pointed_Finite (n : nat) : Pointed_Finite n:= *)
-  (*   (pFin n; tr 1%equiv). *)
-
 
 End Pointed_Finite.
 
@@ -1718,10 +1147,6 @@ End Pointed_Finite.
 Section Cosimplicial_maps.
   Local Open Scope nat.
    Notation "[ n ]" := {m : nat | m <= n}.
-  (* Definition pFin (n : nat) := { m : nat | m <= n }. *)
-  (* Definition pFin_include {n : nat} : pFin n -> nat := pr1. *)
-  (* Coercion pFin_include : pFin >-> nat. *)
-
   (* The i'th coface *)
   Definition coface {n : nat} (i : nat) (i_leq_n : i <= n) : [n] -> [n.+1].
   Proof.
@@ -1762,261 +1187,6 @@ End Cosimplicial_maps.
 
 
 
-
-
-
-
-
-
-
-
-(* Older definition of pointed finite sets: *)
-(* (* The nonempty finite sets of n+1 elements *) *)
-(* Inductive pFin : forall (n : nat), Type := *)
-(*   | fin_zero {n : nat} : pFin n *)
-(*   | fin_succ {n : nat} : pFin n -> pFin n.+1. *)
-
-(* Definition fin_include {n : nat} : pFin n -> pFin n.+1. *)
-(* Proof. *)
-(*   intro i. induction i. *)
-(*   (* zero goes to zero *) *)
-(*   exact fin_zero. *)
-(*   (* i+1 goes to i+1 *) *)
-(*   exact (fin_succ IHi). *)
-(* Defined. *)
-
-(* (* pFin is equivalent to Fin *) *)
-(* Lemma equiv_pFin_Fin (n : nat) : pFin n <~> Fin n.+1. *)
-(* Proof. *)
-(*   srapply @equiv_adjointify. *)
-(*   - intro i. induction i. *)
-(*     (* i=0 *) exact (inr tt). *)
-(*     (* i+1 *) exact (inl IHi). *)
-(*   - induction n. *)
-(*     intro i. exact fin_zero.    (* n=0 *) *)
-(*     intros [i |]. *)
-(*     exact (fin_succ (IHn i)). (* i+1 *) *)
-(*     intro t. exact fin_zero.  (* i=0 *) *)
-(*   - intro i. simpl. *)
-(*     induction n. simpl. destruct i. contradiction. destruct u. reflexivity. *)
-(*     destruct i. *)
-(*     { simpl. exact (ap inl (IHn f)). } destruct u. reflexivity. *)
-(*   - intro i. induction i. *)
-(*     + simpl. induction n. reflexivity. reflexivity. *)
-(*     + simpl. simpl in IHi. exact (ap fin_succ IHi). *)
-(* Defined. *)
-
-
-(* (* Use my own definition of minus. . . *) *)
-(* Notation "n - m" := (nat_minus m n). *)
-
-(* (* The finite pointed set {0, 1, ..., n} *) *)
-(* Notation "[ n ]" := (Fin (S n)). *)
-
-(* (* I order [Fin n] so that zero is the "outmost" element. *) *)
-(* (*In that way, recursion over [Fin n] is as close as possible as recursion over [nat]. *) *)
-(* Definition fin_zero {n} : [n] := inr tt. *)
-
-(* Instance ispointed_fin {n : nat} : IsPointed [n] := fin_zero. *)
-
-(* (* Then the inclusion [inl : [n] -> [n+1]] becomes the successor function *) *)
-(* Definition fin_succ {n : nat} : Fin n -> [n] := inl. *)
-
-(* (* Recursion over finite sets *) *)
-(* Definition fin_rec {n : nat} (A : Type) (a0 : A) (aS : (Fin n) -> A) : [n] -> A. *)
-(* Proof. *)
-(*   intros [|]. exact aS. exact (const a0). *)
-(* Defined. *)
-
-(* Definition fin_ind {n : nat} (P : [n] -> Type) (p0 : P fin_zero) (pS : forall i : (Fin n), P (fin_succ i)) : *)
-(*   forall i : [n], P i. *)
-(* Proof. *)
-(*   intros [|[]]. exact pS. exact p0. *)
-(* Defined. *)
-
-(* (* The inclution [Fin n -> Fin (n+1) *) *)
-(* Definition include_1 {n : nat} : Fin n -> [n]. *)
-(* Proof. *)
-(*   induction n. *)
-(*   (* Trivial when n is zero *) *)
-(*   contradiction. *)
-(*   srapply @fin_rec. *)
-(*   (* 0 goes to 0 *) exact fin_zero. *)
-(*   intro i. simpl. apply (@fin_succ (n.+1)). exact (IHn i). *)
-(* Defined. *)
-  
-  
-(*   (* apply fin_rec. *) *)
-(*   (* (* Zero goes to zero *) *) *)
-(*   (* - exact fin_zero. *) *)
-(*   (* (* [i+1] goes to [fin_succ i] *) *) *)
-(*   (* - refine (fin_succ o IHn). *) *)
-(* (* Defined. *) *)
-
-
-
-(* (* I think I order Fin the other way than in the HoTT library. . . *) *)
-(* Fixpoint nat_fin' {n : nat} : Fin n -> nat. *)
-(* Proof. induction n. contradiction. *)
-(*   apply (fin_rec nat O). *)
-(*   exact (S o (nat_fin' n)). *)
-(* Defined. *)
-
-(* (* Check that the order is right *) *)
-(* Definition zerotozero {n : nat} : nat_fin' (@fin_zero n) = O := idpath. *)
-(* Lemma i_to_i {n : nat} (i : Fin n) : @nat_fin' (n.+1) (include_1 i) = @nat_fin' n i. *)
-(* Proof. *)
-(*   induction n. contradiction. *)
-(*   revert i. apply fin_ind. *)
-(*   - reflexivity. *)
-(*   - intro i. simpl. rewrite <- IHn. reflexivity. *)
-(* Qed. *)
-
-
-(* (* The order is reverse from nat_fin defined in the HoTT library *) *)
-(* Definition zerotozero2 {n : nat} : not (nat_fin' (@fin_zero (n.+1)) = nat_fin (n.+2) fin_zero). *)
-(*   simpl. unfold const. Abort. *)
-
-
-
-(* Definition decompose_fin {n : nat} (i : Fin n) : *)
-(*   Fin n <~>  Fin (nat_minus (nat_fin' i).+1 n) + Unit + Fin (nat_fin' i). *)
-(* Proof. *)
-(*   induction n. contradiction. *)
-(*   revert i. *)
-(*   srapply @fin_ind. *)
-(*   - apply equiv_inverse. apply sum_empty_r.     *)
-(*   - intro i. simpl. simpl in IHn. *)
-(*     refine (_ oE equiv_functor_sum_r (IHn i)). *)
-(*     apply equiv_sum_assoc. *)
-(* Defined. *)
-
-(* Definition iterated_prod (A : Type) (n : nat) : Type. *)
-(* Proof. *)
-(*   induction n. *)
-(*   (* A^0 is Unit *) *)
-(*   - exact Unit. *)
-(*   (* A^(n+1) is A*(A^n) *) *)
-(*   - exact (prod A IHn). *)
-(* Defined. *)
-
-
-
-(* (* Decompose the iterated product, isolating the i'th component. *) *)
-(* Definition decompose_iterated_prod {A : Type} {n : nat} (i : Fin n) : *)
-(*   (A *^ n) <~> (A*^(nat_fin' i) * A * A*^(nat_minus (nat_fin' i).+1) n). *)
-(* Proof. *)
-(*   induction n. contradiction. *)
-(*   revert i. srapply @fin_ind; simpl. *)
-(*   - transitivity (Unit * (A * A *^ n)). *)
-(*       apply equiv_inverse. apply prod_unit_l. *)
-(*       apply equiv_prod_assoc. *)
-(*   - intro i. *)
-(*     refine (_ oE equiv_functor_prod_l (IHn i)). *)
-(*     refine (_ oE equiv_prod_assoc A _ _). *)
-(*     apply equiv_functor_prod_r. *)
-(*     apply equiv_prod_assoc. *)
-(* Defined. *)
-
-(* (* Project down to the i'th component *) *)
-(* Definition projection_iterated_prod {A : Type} {n : nat} (i : Fin n) : A*^n -> A. *)
-(* Proof. *)
-(*   refine (_ o (@decompose_iterated_prod A n i)). *)
-(*   intros [[a0 a] a1]. exact a. *)
-(* Defined. *)
-
-(* (* Project away from the i'th component *) *)
-(* Fixpoint face_iterated_prod {A: Type} {n : nat} (i : [n]) : A*^(n.+1) -> A*^n. *)
-(* Proof. *)
-(* (*   revert i. srapply @fin_rec. *) *)
-(* (*   (* i=0 *) *) *)
-(* (*   - intros [a0 a]. exact a. *) *)
-(* (*   (* i+1 *) *) *)
-(* (*   - induction n. contradiction. *) *)
-(* (*     intro i. *) *)
-(* (*     intros [a0 a]. exact (a0, face_iterated_prod A n i a). *) *)
-(* (* Defined. *) *)
-    
-(*   induction n. *)
-(*   (* n=0 *) *)
-(*   - exact (const tt). *)
-(*   - simpl. simpl in IHn. *)
-(*   revert i. srapply @fin_ind; simpl. *)
-(*   (* i=0 *) *)
-(*   + apply snd. *)
-(*   (* i+1 *) *)
-(*   + intro i. *)
-(*     intros [a0 a]. *)
-(*     exact (a0, IHn i a). *)
-(* Defined. *)
-
-(* (* (* The 0'th face projects away from the 0'th component *) *) *)
-(* (* Definition face_iterated_prod_0 {A:Type} {n : nat} (a0 : A) (a : A*^n) : *) *)
-(* (*   face_iterated_prod fin_zero (a0, a) = a. *) *)
-(* (* Proof. *) *)
-(* (*   induction n. *) *)
-(* (*   (* n=0 *) *) *)
-(* (*   - apply contr_unit. *) *)
-(* (*   (* n+1 *) *) *)
-(* (*   - reflexivity. *) *)
-(* (* Defined. *) *)
-
-(* (* (* I can't manage to make simpl do this reduction alone. . . *) *) *)
-(* (* Definition face_iterated_prod_Si {A : Type} {n : nat} (a0 : A) (a : A*^n.+1) (i : [n]) : *) *)
-(* (*   face_iterated_prod (fin_succ i) (a0, a) = (a0, face_iterated_prod i a) := idpath. *) *)
-
-(* (* Definition a_simplicial_identity_prod {A : Type} {n : nat} (i : [n]) (a : A*^n.+2): *) *)
-(* (*   (face_iterated_prod i o face_iterated_prod (fin_succ i)) a = *) *)
-(* (*   (face_iterated_prod i o face_iterated_prod (include_1 i)) a. *) *)
-(* (* Proof. *) *)
-(* (*   destruct a as [a0 [a1 a]]. *) *)
-(* (*   induction n. *) *)
-(* (*   (* n=0 *) *) *)
-(* (*   - reflexivity. *) *)
-(* (*   (* n+1 *) *) *)
-(* (*   - revert i. srapply @fin_ind. *) *)
-(* (*     (* i=0 *) *) *)
-(* (*     + reflexivity. *) *)
-(* (*     + srapply @fin_ind. *) *)
-(* (*       simpl. *) *)
-(* (*     +  *) *)
-(* (*     + induction n. simpl. *) *)
-
-(* (*     induction n. *) *)
-(* (*     (* n=1 *) *) *)
-(* (*     + revert i. srapply @fin_ind.  *) *)
-(* (*     (* i=0 *) *) *)
-(* (*       * reflexivity. *) *)
-(* (*       (* i+1 *) *) *)
-(* (*       * reflexivity. *) *)
-(* (*     (* n+2 *) *) *)
-(* (*     + revert i. *) *)
-(* (*       srapply @fin_ind. *) *)
-(* (*     (* i=0 *) reflexivity. *) *)
-(* (*     (* i+1 *) srapply @fin_ind. *) *)
-(* (*     (* i=1 *) reflexivity. *) *)
-(* (*     (* i+2 *) destruct a as [a2 [a3 a]]. simpl. *) *)
-      
-      
-(* (*     + srapply @fin_ind. *) *)
-(* (*       (* i=1 *) *) *)
-(* (*       * simpl. apply path_prod. reflexivity. simpl. rewrite face_iterated_prod_0. reflexivity. *) *)
-(* (*       *  *) *)
-(* (*         unfold face_iterated_prod. simpl. *) *)
-
-(* (*       intro i. destruct a as [a2 a]. *) *)
-(* (*       repeat rewrite face_iterated_prod_Si. simpl. simpl in IHn. *) *)
-(* (*       apply path_prod. reflexivity. *) *)
-      
-      
-      
-      
-(* (*       simpl. *) *)
-      
-(* (*       unfold face_iterated_prod. simpl. *) *)
-
-  
-  
   
     
   

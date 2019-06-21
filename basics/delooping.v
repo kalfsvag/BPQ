@@ -417,6 +417,9 @@ Section functor_deloop.
         refine (deloop_ind_beta_pt X isconn_X  _ _ _ _ ). 
   Defined.
 
+  Definition equiv_functor_loop : pMap X Y <~> Homomorphism (loopGroup X) (loopGroup Y)
+    := BuildEquiv _ _ functor_loop _.
+
 
 End functor_deloop.
 

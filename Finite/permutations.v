@@ -293,7 +293,7 @@ Proof.
     + exact (Pr j).
 Defined.
 
-
+Section Block_Sum.
 Definition block_sum {m n: nat} (e1 : Fin m <~> Fin m) (e2 : Fin n <~> Fin n) :
   Fin (n+m)%nat <~> Fin (n+m)%nat :=
   (fin_resp_sum m n) oE (e1 +E e2) oE (equiv_inverse (fin_resp_sum m n)).
@@ -365,4 +365,25 @@ Proof.
     + reflexivity.
 Qed.
 
+End Block_Sum.
 
+Require Import monoids_and_groups.
+
+Definition SymGrp (m : nat) := AutGroup (Fin m).
+
+Section Block_Sum_Hom.
+  Open Scope monoid_scope.
+  (* Block sum as a homomorphism *)
+  Definition block_sum_hom (m n : nat):
+    Hom (grp_prod (SymGrp m) (SymGrp n)) (SymGrp (n+m)).
+  Proof.
+    srapply @Build_Homomorphism.
+    - intros [s t].
+      exact (block_sum s t).
+    - simpl. apply path_equiv. apply path_arrow.
+      apply block_sum_eta; reflexivity.
+    - simpl. intros [s1 s2] [t1 t2].
+      apply path_equiv. apply path_arrow.
+      apply block_sum_compose.
+  Defined.
+End Block_Sum_Hom.

@@ -5,7 +5,7 @@ Require Import HoTT.
 (* destruct (dec A). *)
 (* exact a. *)
 (* destruct (X n). *)
-From GC Require Import finite_lemmas.
+From GC Require Import finite_lemmas permutations.
 
 
 

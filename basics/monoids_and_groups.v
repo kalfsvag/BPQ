@@ -639,9 +639,9 @@ Section HomFunctor.
 
   Lemma functor_hom_compose {X1 X2 Y1 Y2 Z1 Z2}
         (f1 : Hom Y1 X1) (f2 : Hom X2 Y2)
-        (g1 : Hom Z1 Y1) (g2 : Hom Y2 Z2) :
-    functor_hom (f1 oH g1) (g2 oH f2) ==
-    functor_hom g1 g2 o functor_hom f1 f2 .
+        (g1 : Hom Z1 Y1) (g2 : Hom Y2 Z2)
+    : functor_hom (f1 oH g1) (g2 oH f2) ==
+      functor_hom g1 g2 o functor_hom f1 f2 .
   Proof.
     intro h.
     apply path_hom. reflexivity.
@@ -653,7 +653,22 @@ Section HomFunctor.
   Proof.
     unfold functor_hom. simpl.
     intro x. apply eisretr.
-  Qed.
+  Defined.
+
+  Definition functor_hom_compose_001 {X1 X2 X3 Y1 Y2 Y3: Monoid}
+             (f1 : Hom Y1 X1) 
+             (f2 : Isomorphism Y2 X2)
+             (f3 : Hom X3 Y3)
+             (h1 : Hom X1 X2) (h2 : Hom X2 X3)
+    : functor_hom f1 f3 (h2 oH h1)
+      =
+      (functor_hom f2 f3 h2) oH (functor_hom f1 (iso_inv f2) h1).
+  Proof.
+    apply path_hom. apply path_arrow. simpl. intro x.
+    apply (ap (f3 o h2)).
+    apply inverse. apply eisretr.
+  Defined.
+  
 
 
 
@@ -692,52 +707,79 @@ Section Product.
   Defined.
 
   (* If a group is abelian, then the multiplication G*G -> G is a homomorphism *)
-  Definition mult_hom (G : Group) (abelian_G : symmetric (@mon_mult G))
-    : Hom (grp_prod G G) G.
+  Definition mult_hom (M : Monoid) (symm_M : symmetric (@mon_mult M))
+    : Hom (mon_prod M M) M.
   Proof.
-    srapply @Build_GrpHom.
-    - intros [g h].
-      exact (g + h).
-    - simpl. intros [g1 h1] [g2 h2].
+    srapply @Build_Homomorphism.
+    - intros [m n].
+      exact (m + n).
+    - apply mon_lid.
+    - simpl. intros [m1 n1] [m2 n2].
       refine (mon_assoc @ _ @ mon_assoc^).
-      apply (ap (mon_mult g1)).
+      apply (ap (mon_mult m1)).
       refine (mon_assoc^ @ _ @ mon_assoc).
-      apply (ap (fun x => x + h2)).
-      apply abelian_G.
+      apply (ap (fun x => x + n2)).
+      apply symm_M.
   Defined.
 
+  Definition mon_prod_hom {M1 M2 N1 N2 : Monoid}
+             (f1 : Hom M1 N1)
+             (f2 : Hom M2 N2) :
+    Hom (mon_prod M1 M2) (mon_prod N1 N2).
+  Proof.
+    srapply @Build_Homomorphism.
+    - exact (functor_prod f1 f2).
+    - apply path_prod; apply preserve_id.
+    - intros [m1 m2] [n1 n2].
+      apply path_prod; apply preserve_mult.
+  Defined.
+
+  Definition iso_prod_hom {M1 M2 N1 N2 : Monoid}
+             (f1 : Isomorphism M1 N1)
+             (f2 : Isomorphism M2 N2) :
+    Isomorphism (mon_prod M1 M2) (mon_prod N1 N2).
+  Proof.
+    apply (Build_Isomorphism _ _ (mon_prod_hom f1 f2)).
+    apply isequiv_functor_prod.
+  Defined.
 End Product.
 
-Require Import B_Aut.
-Section Iso_Loop_Aut.
-  Context (X : Type) `{IsHSet X}.
+
+(* Require Import B_Aut. *)
+(* Section Iso_Loop_Aut. *)
+(*   Context (X : Type) `{IsHSet X}. *)
   
   
-  (* Global Instance istrunc_BAut : IsTrunc 1 B_Aut. *)
-  (* Proof. *)
-  (*   intros x y. change (IsTrunc_internal 0) with IsHSet. *)
-  (*   apply (trunc_equiv' (x.1 <~> y.1)). *)
-  (*   - refine (_ oE equiv_path_universe _ _ ). *)
-  (*     apply equiv_path_sigma_hprop. *)
-  (*   - srapply @istrunc_equiv. *)
-  (*     destruct y as [y e]. strip_truncations. simpl. *)
-  (*     apply (trunc_equiv' X (equiv_inverse e)). *)
-  (* Qed. *)
+(*   (* Global Instance istrunc_BAut : IsTrunc 1 B_Aut. *) *)
+(*   (* Proof. *) *)
+(*   (*   intros x y. change (IsTrunc_internal 0) with IsHSet. *) *)
+(*   (*   apply (trunc_equiv' (x.1 <~> y.1)). *) *)
+(*   (*   - refine (_ oE equiv_path_universe _ _ ). *) *)
+(*   (*     apply equiv_path_sigma_hprop. *) *)
+(*   (*   - srapply @istrunc_equiv. *) *)
+(*   (*     destruct y as [y e]. strip_truncations. simpl. *) *)
+(*   (*     apply (trunc_equiv' X (equiv_inverse e)). *) *)
+(*   (* Qed. *) *)
   
-  Definition iso_loop_aut :
-    Isomorphism  (AutGroup X) (loopGroup (Build_pType (B_Aut X) _)).
-  Proof.
-    srapply @Build_Isomorphism.
-    - srapply @Build_GrpHom.
-      + simpl. unfold point.
-        refine (_ oE equiv_path_universe X X).
-        refine (equiv_path_sigma_hprop (_;_) (_;_)). 
-      + simpl. intros.
-        refine (_ @ path_sigma_hprop_pp _ _ _ _ _).
-        apply (ap (path_sigma_hprop (_; _) (_; _)) (path_universe_compose_uncurried g1 g2)).
-    - exact _.
-  Defined.
-End Iso_Loop_Aut.
+(*   Definition iso_loop_aut : *)
+(*     Isomorphism  (AutGroup X) *)
+(*                  (loopGroup *)
+(*                     (Build_pType *)
+(*                        {A : Type & merely (A <~> X)} *)
+(*                        (X; tr (equiv_idmap)))). *)
+(*                        (B_Aut X) _)). *)
+(*   Proof. *)
+(*     srapply @Build_Isomorphism. *)
+(*     - srapply @Build_GrpHom. *)
+(*       + simpl. unfold point. *)
+(*         refine (_ oE equiv_path_universe X X). *)
+(*         refine (equiv_path_sigma_hprop (_;_) (_;_)).  *)
+(*       + simpl. intros. *)
+(*         refine (_ @ path_sigma_hprop_pp _ _ _ _ _). *)
+(*         apply (ap (path_sigma_hprop (_; _) (_; _)) (path_universe_compose_uncurried g1 g2)). *)
+(*     - exact _. *)
+(*   Defined. *)
+(* End Iso_Loop_Aut. *)
 
 
   Definition prod_loopGroup (A1 A2 : pType)
@@ -903,3 +945,4 @@ End Iso_Loop_Aut.
 
 
                                                    
+

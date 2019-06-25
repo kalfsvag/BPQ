@@ -3,6 +3,29 @@ Require Import HoTT.
 (* Another notation for pointed maps *)
 Notation "X ->* Y" := (pMap (Build_pType X _) (Build_pType Y _)).
 Infix "o*" := pmap_compose.
+
+Definition ptype_prod (X Y : pType) : pType
+  := Build_pType (X * Y) (point _, point _).
+
+
+Definition isconn (X : pType) := forall (x : X), merely (point X = x).
+Record Conn_pType := {X :> pType ; isconn_conn_ptype : isconn X}.
+
+Definition conn_ptype_prod (X Y : Conn_pType) : Conn_pType.
+Proof.
+  apply (Build_Conn_pType (ptype_prod X Y)).
+  unfold isconn.
+  intros [x y].
+  generalize (isconn_conn_ptype X x). intro p.
+  generalize (isconn_conn_ptype Y y). intro q.
+  strip_truncations. apply tr. exact (path_prod (_,_) (_,_) p q).
+Defined.
+  
+
+
+
+
+
 Definition add_pt : Type -> pType :=
   fun X => Build_pType (X + Unit) (inr tt).
 

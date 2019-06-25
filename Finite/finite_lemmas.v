@@ -103,10 +103,11 @@ Section Sum_Finite.
   (*   fin_resp_sum m n.+1 (inr (inr tt)) = (inr tt) := idpath. *)
 End Sum_Finite.
 
-Require Import B_Aut.
+Require Import B_Aut pointed_lemmas.
 Section Finite_Types.
   Definition Finite_Types  (n : nat) :=
     {A : Type & merely (A <~> Fin n)}.
+
 
   Definition type_of {n : nat} (A : Finite_Types n) := pr1 A.
   Global Coercion type_of : Finite_Types >-> Sortclass.
@@ -231,118 +232,39 @@ Section Finite_Types.
     apply path_sigma_hprop_compose.
   Defined.
 
-  (* This is more complicated, not sure if it is needed? *)
-  (* better proof in BSigma.v *)
-  (* Lemma path_BSigma_compose (A B C : {n : nat & Finite_Types n}) *)
-  (*       (e1 : A.2 <~> B.2) (e2 : B.2 <~> C.2) : *)
-  (*   equiv_path_BSigma _ _ (e2 oE e1) *)
-  (*   = (equiv_path_BSigma _ _ e1) @ (equiv_path_BSigma _ _ e2). *)
-  (* Proof. *)
-  (*   destruct A as [l [A fA]]. *)
-  (*   destruct B as [m [B fB]]. *)
-  (*   destruct C as [n [C fC]]. *)
-  (*   simpl in e1, e2.  *)
-  (*   unfold equiv_path_BSigma. *)
-  (*   unfold equiv_path_finite_types. *)
-  (*   unfold pr1. *)
+  Global Instance istrunc_finite_types {m : nat} : IsTrunc 1 (Finite_Types m).
+  Proof.
+    intros x y.
+    change (IsTrunc_internal 0) with IsHSet.
+    apply (trunc_equiv' (x <~> y)).
+    - apply equiv_path_finite_types_fix.
+    - apply istrunc_equiv.
+  Qed.
 
-  (*   change *)
-  (*     (((equiv_ap fin_decompose (?x; (?a; ?fa)) (?y; (?b; ?fb)))^-1 *)
-  (*      oE (equiv_path_sigma_hprop (?a; finite_finite_type (?a; ?fa)) (?b; finite_finite_type (?b; ?fb)) *)
-  (*      oE equiv_path_universe ?a ?b)) ?e) *)
-  (*   with *)
-  (*   ((equiv_ap fin_decompose (x; (a; fa)) (y; (b; fb)))^-1 *)
-  (*     (path_sigma_hprop (a; finite_finite_type (a; fa)) (b; finite_finite_type (b; fb)) *)
-  (*     (path_universe e))). *)
-  (*   refine (ap ( (equiv_ap fin_decompose (l; (A; fA)) (n; (C; fC)))^-1                *)
-  (*                o (path_sigma_hprop (A; finite_finite_type (A; fA)) (C; finite_finite_type (C; fC)))) *)
-  (*              (path_universe_compose e1 e2) @ _). *)
-  (*   refine (ap (equiv_ap fin_decompose (l; (A; fA)) (n; (C; fC)))^-1 *)
-  (*              (path_sigma_hprop_compose *)
-  (*                 (A; finite_finite_type (A; fA)) *)
-  (*                 (B; finite_finite_type (B; fB)) *)
-  (*                 (C; finite_finite_type (C; fC)) *)
-  (*                 (path_universe e1) (path_universe e2)) @ _). *)
-  (*   cut (forall (a b c: {n : nat & Finite_Types n}) *)
-  (*               (p : fin_decompose a = fin_decompose b) (q : fin_decompose b = fin_decompose c), *)
-  (*           (equiv_ap fin_decompose a c)^-1 (p @ q) = *)
-  (*           ((equiv_ap fin_decompose a b)^-1 p) @ ((equiv_ap fin_decompose b c)^-1 q)). *)
-  (*   { intro H. apply H. } *)
-  (*   clear l A fA m B fB n C fC e1 e2. *)
-  (*   intros A B C p q. *)
-  (*   (* unfold equiv_ap. *) *)
-  (*   change ((equiv_ap fin_decompose ?x ?y)^-1) *)
-  (*          with *)
-  (*          (fun q : fin_decompose x = fin_decompose y => *)
-  (*             ((eissect fin_decompose x)^ @ ap fin_decompose^-1 q) @ eissect fin_decompose y). *)
-  (*   hnf. *)
-  (*   destruct (eissect fin_decompose C). *)
-  (*   destruct (eissect fin_decompose A). *)
-  (*   destruct (eissect fin_decompose B). hott_simpl. *)
-  (*   apply ap_pp. *)
-  (* Qed. *)
+  Global Instance ispointed_finite_types {m : nat} : IsPointed (Finite_Types m) := canon m.
 
-  (* Definition path_finite_types_1 (A : {n : nat & Finite_Types n}) : *)
-  (*     equiv_path_BSigma A A equiv_idmap = idpath. *)
-  (* Proof. *)
-  (*   destruct A as [n [A fA]]. *)
-  (*   unfold equiv_path_BSigma. *)
-  (*   unfold equiv_path_finite_types. *)
-  (*   unfold pr1. *)
-  (*   change *)
-  (*     (((equiv_ap fin_decompose (n; (A; fA)) (n; (A; fA)))^-1 *)
-  (*       oE (equiv_path_sigma_hprop (A; finite_finite_type (A; fA)) (A; finite_finite_type (A; fA)) *)
-  (*       oE equiv_path_universe A A)) *)
-  (*        equiv_idmap) *)
-  (*     with *)
-  (*     ((equiv_ap fin_decompose (n; (A; fA)) (n; (A; fA)))^-1 *)
-  (*         (path_sigma_hprop (A; finite_finite_type (A; fA)) (A; finite_finite_type (A; fA)) *)
-  (*            (@path_universe _ A A equiv_idmap _))). *)
-  (*   refine (ap ((equiv_ap fin_decompose (n; (A; fA)) (n; (A; fA)))^-1 o *)
-  (*              (path_sigma_hprop (A; finite_finite_type (A; fA)) (A; finite_finite_type (A; fA)))) *)
-  (*              (path_universe_1) @ _). *)
-  (*   refine (ap ((equiv_ap fin_decompose (n; (A; fA)) (n; (A; fA)))^-1) *)
-  (*              (path_sigma_hprop_1 _) @ _). *)
-  (*   change ((equiv_ap fin_decompose ?x ?y)^-1) *)
-  (*          with *)
-  (*          (fun q : fin_decompose x = fin_decompose y => *)
-  (*             ((eissect fin_decompose x)^ @ ap fin_decompose^-1 q) @ eissect fin_decompose y). *)
-  (*   hnf. *)
-  (*   destruct (eissect fin_decompose (n; (A; fA))). reflexivity. *)
-  (* Qed.      *)
- 
+  Lemma isconn_finite_types (m : nat) :
+    forall x : Finite_Types m,
+      merely (canon m = x).
+  Proof.
+    intros [A fA]. strip_truncations.
+    apply tr. apply inverse. apply path_finite_types_fix.
+    exact fA.
+  Qed.
 
-  (* This should more or less follow from baut_ind_hset (except that is only for P: Type -> Type*)
-  (* made redundant by deloop.v *)
-  (* Definition BSigma_ind_hSet (P : forall n : nat, Finite_Types n -> Type) *)
-  (*            {isset_P : forall (n : nat) (s : Finite_Types n), IsHSet (P n s)} *)
-  (*            (pt : forall n : nat, P  n (canon n)) *)
-  (*            (wd : forall (n : nat) (e : Fin n <~> Fin n), *)
-  (*                transport (P n) (path_finite_types_fix n (canon n) (canon n) e) (pt n) = pt n) : *)
-  (*   forall (n : nat) (s : Finite_Types n), P n s. *)
-  (* Proof. *)
-  (*   intros n s. *)
-  (*   apply (@pr1 (P n s) (fun p : P n s => forall e' : Fin n <~> s, *)
-  (*                          transport (P n) (path_finite_types_fix n (canon n) s e') (pt n) = p)). *)
-  (*   assert (isprop_goal : forall s' : Finite_Types n, IsHProp *)
-  (*                                                     {p : P n s' & *)
-  (*                                                          forall e' : Fin n <~> s', *)
-  (*                                                            transport (P n) (path_sigma_hprop (canon n) s' (path_universe_uncurried e')) *)
-  (*                                                                      (pt n) = p}). *)
-  (*   { destruct s' as [A eA]. *)
-  (*     strip_truncations. apply trunc_sigma'. *)
-  (*     - intro p. apply trunc_forall. *)
-  (*     - intros p q. *)
-  (*       apply (contr_inhabited_hprop _). *)
-  (*       destruct p as [p fp]. destruct q as [q fq]. simpl. simpl in fp. simpl in fq.       *)
-  (*       exact ((fp (equiv_inverse eA))^ @ (fq (equiv_inverse eA))). } *)
-  (*   destruct s as [A eA]. strip_truncations. *)
-  (*   destruct (path_finite_types_fix n (canon n) (A; (tr eA)) (equiv_inverse eA)). simpl. *)
-  (*   exact (pt n; wd n). *)
-  (* Defined. *)
+  Definition pFin (m : nat) : Conn_pType.
+  Proof.
+    apply (Build_Conn_pType (Build_pType (Finite_Types m) _)).
+    intro x.
+    apply (isconn_finite_types m x).
+  Defined.
+    
+    
+
 
 
 End Finite_Types.
+
 
 
 

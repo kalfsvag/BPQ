@@ -781,22 +781,56 @@ End Product.
 (*   Defined. *)
 (* End Iso_Loop_Aut. *)
 
+Definition hom_prod_loopGroup (A1 A2 : pType)
+             {istrunc_A1 : IsTrunc 1 A1}
+             {istrunc_A2 : IsTrunc 1 A2}
+  : Homomorphism (loopGroup (Build_pType (A1*A2) (point _,point _)))
+                 (grp_prod (loopGroup A1) (loopGroup A2)).
+Proof.
+  srapply @Build_Homomorphism.
+  - exact (fun p => (ap fst p, ap snd p)).
+  - reflexivity.
+  - simpl. intros p q.
+    apply path_prod; simpl; refine (ap_pp _ p q).
+Defined.
 
-  Definition prod_loopGroup (A1 A2 : pType)
+Definition isequiv_prod_loopGroup (A1 A2 : pType)
+             {istrunc_A1 : IsTrunc 1 A1}
+             {istrunc_A2 : IsTrunc 1 A2}
+  : IsEquiv (hom_prod_loopGroup A1 A2).
+Proof.
+  simpl. srapply @isequiv_adjointify.
+  - intros [p q]. unfold point.
+    exact (path_prod (_,_) (_,_) p q).
+  - simpl. intros [[] [] ]. reflexivity.
+  - simpl. intro p. unfold point in p.
+    revert p.
+    cut (forall (a : A1 * A2) (p : (point (A1 * A2) = a)),
+            path_prod (point (A1 * A2)) a (ap fst p) (ap snd p) = p).
+    { intro H. apply H. }
+    intros a []. reflexivity.
+Defined.
+  
+    
+    
+Definition iso_prod_loopGroup (A1 A2 : pType)
              {istrunc_A1 : IsTrunc 1 A1}
              {istrunc_A2 : IsTrunc 1 A2} :
-    Isomorphism (loopGroup (Build_pType (A1*A2) (point _,point _))) (grp_prod (loopGroup A1) (loopGroup A2))
-                 .
-  Proof.
-    srapply Build_Grp_Iso'.
-    - simpl. apply equiv_inverse.
-      apply (equiv_path_prod (_,_)(_,_)).
-    - simpl. intros p q. revert p q.
-      cut (forall (a b: A1*A2) (p : point (A1 * A2) = a) (q : a = b),
-              (ap fst (p @ q), ap snd (p @ q)) = (ap fst p @ ap fst q, ap snd p @ ap snd q)).
-      { intro H. apply H. }
-      intros a b p []. destruct p. reflexivity.
-  Defined.
+    Isomorphism (loopGroup (Build_pType (A1*A2) (point _,point _)))
+                (grp_prod (loopGroup A1) (loopGroup A2))
+  := Build_Isomorphism _ _ (hom_prod_loopGroup A1 A2) (isequiv_prod_loopGroup A1 A2).
+  (* Proof. *)
+  (*   srapply Build_Grp_Iso'. *)
+  (*   - simpl. *)
+      
+  (*     apply equiv_inverse. *)
+  (*     apply (equiv_path_prod (_,_)(_,_)). *)
+  (*   - simpl. intros p q. revert p q. *)
+  (*     cut (forall (a b: A1*A2) (p : point (A1 * A2) = a) (q : a = b), *)
+  (*             (ap fst (p @ q), ap snd (p @ q)) = (ap fst p @ ap fst q, ap snd p @ ap snd q)). *)
+  (*     { intro H. apply H. } *)
+  (*     intros a b p []. destruct p. reflexivity. *)
+  (* Defined. *)
 
 (* The rest here is important, don't forget it! *)
 

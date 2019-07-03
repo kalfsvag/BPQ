@@ -302,10 +302,9 @@ Section loop_BSigma.
   Definition loop_BSigma (m n : nat) :
     pMap (pFin m) (pFin n)
     -> Homomorphism (SymGrp m) (SymGrp n)
-    := functor_hom
-         (iso_loop_symgrp m) (iso_inv (iso_loop_symgrp n))
-         o
-         functor_loop (pFin m) (pFin n).
+    := Compose (functor_hom
+                  (iso_loop_symgrp m) (iso_inv (iso_loop_symgrp n)))
+               (functor_loop (pFin m) (pFin n)).
 
   Global Instance isequiv_loop_BSigma (m n : nat) : IsEquiv (loop_BSigma m n) :=
     @isequiv_compose _ _
@@ -315,16 +314,29 @@ Section loop_BSigma.
                      (functor_hom (iso_loop_symgrp m) (iso_inv (iso_loop_symgrp n)))
                      (isequiv_functor_hom _ _).
 
-  Definition equiv_loop_BSigma (m n : nat) :=
-    BuildEquiv _ _ (loop_BSigma m n) (isequiv_loop_BSigma m n).
+  Definition equiv_loop_BSigma (m n : nat)
+    : pMap (pFin m) (pFin n) <~>
+           Homomorphism (SymGrp m) (SymGrp n).
+  Proof.
+    refine (_ oE equiv_functor_loop _ _).
+    apply equiv_functor_hom.
+    - apply iso_loop_symgrp.
+    - apply iso_inv. apply iso_loop_symgrp.
+  Defined.
+  
+  (* Definition equiv_loop_BSigma (m n : nat) := *)
+  (*   BuildEquiv _ _ (loop_BSigma m n) (isequiv_loop_BSigma m n). *)
 
   Definition loop_BSigma_prod (l m n : nat) :
     pMap (conn_ptype_prod (pFin l) (pFin m)) (pFin n) ->
     Homomorphism (grp_prod (SymGrp l) (SymGrp m)) (SymGrp n).
   Proof.
-    srefine (_ o (functor_loop
-                    (conn_ptype_prod (pFin l) (pFin m))
-                    (pFin n))).
+    srefine (compose _ (functor_loop
+                          (conn_ptype_prod (pFin l) (pFin m))
+                          (pFin n))).
+    (* srefine (_ o (functor_loop *)
+    (*                 (conn_ptype_prod (pFin l) (pFin m)) *)
+    (*                 (pFin n))). *)
     - apply functor_hom.
       + refine (iso_compose 
                 (iso_inv (iso_prod_loopGroup
@@ -342,14 +354,29 @@ Section loop_BSigma.
          _
          (functor_hom _ _) (isequiv_functor_hom _ _).
 
-  Definition equiv_loop_BSigma_prod (l m n : nat) :=
-    BuildEquiv _ _ (loop_BSigma_prod l m n) (isequiv_loop_BSigma_prod l m n).
+  Definition equiv_loop_BSigma_prod (l m n : nat)
+    : pMap (conn_ptype_prod (pFin l) (pFin m)) (pFin n) <~>
+           Homomorphism (grp_prod (SymGrp l) (SymGrp m)) (SymGrp n).
+  Proof.
+    refine (_ oE equiv_functor_loop _ _).
+    apply equiv_functor_hom.
+    - refine (iso_compose 
+                (iso_inv (iso_prod_loopGroup
+                   (pFin l)
+                   (pFin m))) _).
+      apply iso_prod_hom; apply iso_loop_symgrp.
+    - apply iso_inv. apply iso_loop_symgrp.
+  Defined.
+
+  (* Definition equiv_loop_BSigma_prod (l m n : nat) := *)
+  (*   BuildEquiv _ _ (loop_BSigma_prod l m n) (isequiv_loop_BSigma_prod l m n). *)
   
   
   Definition loop_BSigma_1 (m : nat) :
     (loop_BSigma m m (pmap_idmap _)) = idhom.
   Proof.
     unfold loop_BSigma.
+    unfold Compose.
     transitivity
       (functor_hom (iso_loop_symgrp m) (iso_inv (iso_loop_symgrp m)) idhom).
     - apply (ap (functor_hom (iso_loop_symgrp m) (iso_inv (iso_loop_symgrp m)))).
@@ -431,54 +458,91 @@ Section loop_BSigma.
       apply fin_resp_sum.
   Defined.
 
+  (* move *)
+  Definition path_finite_types_fix_inv {m : nat} (A B : Finite_Types m) (e : A <~> B)
+    : path_finite_types_fix m B A (equiv_inverse e) = (path_finite_types_fix m A B e)^.
+  Proof.
+    unfold path_finite_types_fix.
+    refine (ap (path_sigma_hprop B A)
+               (path_universe_V_uncurried e) @ _).
+    apply path_sigma_hprop_V.
+  Defined.
+
   Definition loop_BSigma_sum (m n : nat)
     : loop_BSigma_prod m n (n+m) (BSigma_sum_uncurried m n) = block_sum_hom m n.
   Proof.
-    apply path_hom. apply path_arrow. intro x. 
-    destruct x as [s t].
-    unfold block_sum. simpl. 
-    unfold pr1_path.
-    rewrite ap_pp. rewrite ap_pp.
-    rewrite equiv_path_pp. rewrite equiv_path_pp.
-    apply (ap011 (fun f g => f oE g)).
-    - apply (ap011 (fun f g => f oE g)).
-      + refine (eissect (equiv_path_finite_types_fix (n+m)
-                                                     (sum_finite_types (canon m) (canon n))
-                                                     (canon (n+m))) (fin_resp_sum m n)).
-      + simpl in s,t.
-        refine (_ @ ap011 (fun f g => f +E g)
-                  (eissect (equiv_path_finite_types_fix m (canon m) (canon m)) s)
-                  (eissect (equiv_path_finite_types_fix n (canon n) (canon n)) t)). simpl.
-        unfold pr1_path.
-        generalize (path_finite_types_fix n (canon n) (canon n) t) as q.
-        generalize (path_finite_types_fix m (canon m) (canon m) s) as p. intros.
-        clear s t.
-        transitivity
-          (equiv_path
-             (Fin m + Fin n) (Fin m + Fin n)
-             (ap pr1
-                 (ap (fun X : Finite_Types m * Finite_Types n => sum_finite_types (fst X) (snd X))
-                     (path_prod (_,_) (_,_) p q)))).
-        { reflexivity. }
+    
+    unfold loop_BSigma_prod. unfold functor_hom.
+    (* unfold block_sum_hom. unfold block_sum. *)
 
-        cut (forall (A : Finite_Types m) (B : Finite_Types n)
-                    (p : canon m = A) (q : canon n = B),
-                equiv_path
-                  (Fin m + Fin n) (A + B)
-                  (ap pr1
-                      (ap (fun X : Finite_Types m * Finite_Types n => sum_finite_types (fst X) (snd X))
-                                   (path_prod (canon m, canon n) (A, B) p q))) =
-                equiv_path (Fin m) A (ap pr1 p) +E equiv_path (Fin n) B (ap pr1 q)).
-        { intro H. apply (H (canon m) (canon n)). }
-        intros A B [] []. simpl.
-        apply path_equiv. simpl. apply path_arrow. intros [x | x]; reflexivity.
-    - rewrite ap_V. rewrite equiv_path_V. apply (ap (equiv_inverse)).
-      refine (eissect (equiv_path_finite_types_fix (n+m)
-                                                   (sum_finite_types (canon m) (canon n))
-                                                   (canon (n+m)))
-                      ((fin_resp_sum m n))).
+    apply path_hom. 
+    apply path_arrow. intro x.
+    apply moveR_equiv_V.
+    unfold functor_loop. simpl.
+    apply moveR_Vp. destruct x as [s t]. simpl.
+    unfold point. unfold ispointed_finite_types.
+    
+    refine (_ @ ap011 (fun f g =>
+                     _ @ path_finite_types_fix (n + m) (canon (n + m)) (canon (n + m)) (block_sum f g))
+                  (eissect (equiv_path_finite_types_fix m (canon m) (canon m)) s)
+                  (eissect (equiv_path_finite_types_fix n (canon n) (canon n)) t)
+                  ).
+    change (equiv_path_finite_types_fix ?n ?f ?g ?e)
+           with
+           (path_finite_types_fix n f g e ).
+    generalize (path_finite_types_fix m (canon m) (canon m) s). clear s. intro s.
+    generalize (path_finite_types_fix n (canon n) (canon n) t). clear t. intro t.
+    unfold block_sum.
+    refine (_ @ path_finite_types_fix_compose _ _ _ _ _ _).
+    apply moveR_pM.
+    refine (_ @ ap (fun p => _ @ p)
+              (path_finite_types_fix_inv
+                 (sum_finite_types (canon m) (canon n))
+                 (canon (n+m))
+                 (fin_resp_sum m n))).
+    refine (_ @ path_finite_types_fix_compose _ _ _ _ _ _).
+    
+    transitivity
+      (path_finite_types_fix
+         (n + m) (sum_finite_types (canon m) (canon n))
+         (sum_finite_types (canon m) (canon n))
+         ((equiv_path_finite_types_fix m (canon m) (canon m))^-1 s
+          +E (equiv_path_finite_types_fix n (canon n) (canon n))^-1 t)).
+                                                                       
+    - revert s t.
+      cut (forall (A : Finite_Types m) (B : Finite_Types n)
+                  (s : canon m = A) (t : canon n = B),
+              ap (fun X : Finite_Types m * Finite_Types n => sum_finite_types (fst X) (snd X))
+                 (path_prod (canon m, canon n) (A, B) s t) =
+              path_finite_types_fix
+                (n + m) (sum_finite_types (canon m) (canon n))
+                (sum_finite_types A B)
+                ((equiv_path_finite_types_fix m (canon m) A)^-1 s
+                 +E (equiv_path_finite_types_fix n (canon n) B)^-1 t)).
+      { intro H. apply H. }
+      intros A B [] []. simpl.
+      apply inverse.
+      refine (_ @ path_finite_types_fix_id (n+m) _).
+      apply (ap (path_finite_types_fix (n+m)
+                                       (sum_finite_types (canon m) (canon n))
+                                       (sum_finite_types (canon m) (canon n)))).
+      apply path_equiv.  apply path_arrow.
+      intros [x | x]; reflexivity.
+    - apply (ap (path_finite_types_fix
+                   (n + m)
+                   (sum_finite_types (canon m) (canon n))
+                   (sum_finite_types (canon m) (canon n)))).
+      transitivity
+        (((fin_resp_sum m n)^-1 oE fin_resp_sum m n)
+           oE ((equiv_path_finite_types_fix _ _ _)^-1 s +E (equiv_path_finite_types_fix _ _ _)^-1 t)
+           oE ((fin_resp_sum m n)^-1 oE fin_resp_sum m n)).
+      + refine (_ @
+                  ap011 (fun f g => f oE _ oE g)
+                  (ecompose_Ve (fin_resp_sum m n))^
+                (ecompose_Ve (fin_resp_sum m n))^).
+        apply path_equiv. reflexivity.
+      + apply path_equiv. reflexivity.
   Defined.
-  
   
   (* Definition deloop_BSigma_rec (m : nat) *)
   (*            (Y : 1-Type) *)
@@ -669,6 +733,22 @@ Proof.
   apply path_prod; apply point_eq.
 Defined.
 
+(* move *)
+Definition functor_mon_prod {A1 A2 B1 B2 C1 C2 D1 D2}
+           (f1 : Homomorphism C1 A1)
+           (f2 : Homomorphism C2 A2)
+           (g1 : Homomorphism B1 D1)
+           (g2 : Homomorphism B2 D2)
+           (h1 : Homomorphism A1 B1)
+           (h2 : Homomorphism A2 B2)
+  : mon_prod_hom
+      (functor_hom f1 g1 h1)
+      (functor_hom f2 g2 h2)
+    = functor_hom (mon_prod_hom f1 f2) (mon_prod_hom g1 g2) (mon_prod_hom h1 h2).
+Proof.
+  apply path_hom. apply path_arrow. intros [c1 c2]; reflexivity.
+Defined.
+
 (* move up *)
 Definition compose_loop_BSigma_functor_prod {j k l m n}
            (f1 : pMap (Build_pType (Finite_Types j) _) (Build_pType (Finite_Types l) _))
@@ -679,7 +759,28 @@ Definition compose_loop_BSigma_functor_prod {j k l m n}
   : loop_BSigma_prod j k n (pmap_compose g (pointed_functor_prod f1 f2))
     = (loop_BSigma_prod l m n g) oH (mon_prod_hom (loop_BSigma j l f1) (loop_BSigma k m f2)).
 Proof.
-  apply path_hom. apply path_arrow. intros [s t].
+  (* apply path_hom. apply path_arrow. intros [s t]. *)
+  unfold loop_BSigma_prod. unfold loop_BSigma. unfold Compose.
+  refine
+    (_ @ ap (fun f => _ oH f)
+       (functor_mon_prod _ _ _ _ _ _)^).
+  transitivity
+    (functor_hom
+       (
+    
+  transitivity
+    (functor_hom
+       (iso_compose
+          (iso_inv (iso_prod_loopGroup (pFin l) (pFin m)))
+          (iso_prod_hom (iso_loop_symgrp l) (iso_loop_symgrp m)))
+       (iso_inv (iso_loop_symgrp n))
+       (functor_loop (conn_ptype_prod (pFin l) (pFin m)) (pFin n) g)
+       oH
+       functor_hom
+       
+  
+  unfold functor_hom.
+  
   
   simpl.
   

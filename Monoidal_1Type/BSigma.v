@@ -409,7 +409,7 @@ Section loop_BSigma.
     apply path_hom. apply path_arrow. apply (eisretr f).
   Defined.
 
-  Definition homcompose_e_ee {K L M N : Monoid}
+  Definition homcompose_f_ff {K L M N : Monoid}
              (f : Hom K L) (g : Hom L M) (h : Hom M N)
     : h oH (g oH f) = (h oH g) oH f.
   Proof.
@@ -424,23 +424,23 @@ Section loop_BSigma.
   Proof.
     unfold loop_BSigma_prod. unfold loop_BSigma.
     unfold functor_hom.
-    refine (_ @ homcompose_e_ee _ _ _).
-    refine (_ @ homcompose_e_ee _ _ _).
-    refine ((homcompose_e_ee _ _ _)^ @ _).
+    refine (_ @ homcompose_f_ff _ _ _).
+    refine (_ @ homcompose_f_ff _ _ _).
+    refine ((homcompose_f_ff _ _ _)^ @ _).
     apply (ap (fun f => iso_inv (iso_loop_symgrp n) oH f)).
-    refine ((homcompose_e_ee _ _ _) @ _).
-    refine (_ @ (homcompose_e_ee _ _ _)^).
-    refine (_ @ (homcompose_e_ee _ _ _)^).
-    refine (_ @ (homcompose_e_ee _ _ _)^).
+    refine ((homcompose_f_ff _ _ _) @ _).
+    refine (_ @ (homcompose_f_ff _ _ _)^).
+    refine (_ @ (homcompose_f_ff _ _ _)^).
+    refine (_ @ (homcompose_f_ff _ _ _)^).
     apply (ap (fun f => f oH iso_prod_hom (iso_loop_symgrp k) (iso_loop_symgrp l))).
     apply (ap (fun f => f oH iso_inv (iso_prod_loopGroup (pFin k) (pFin l)))).
     refine ((path_hom _ _
               (path_arrow
                  _ _
                  (functor_loop_compose _ _ _ f g)))^ @ _).
-    refine (_ @ homcompose_e_ee _ _ _).
+    refine (_ @ homcompose_f_ff _ _ _).
     refine (_ @ (ap (fun h => functor_loop (pFin m) (pFin n) g oH h)
-                    (homcompose_e_ee _ _ _)^)).
+                    (homcompose_f_ff _ _ _)^)).
     apply (ap (fun h => functor_loop (pFin m) (pFin n) g oH h)).
     refine (_ @ ap (fun h => h oH functor_loop (conn_ptype_prod (pFin k) (pFin l)) (pFin m) f)
               (isoisretr (iso_loop_symgrp m))^).
@@ -474,206 +474,63 @@ Section loop_BSigma.
     
     unfold loop_BSigma_prod. unfold functor_hom.
     (* unfold block_sum_hom. unfold block_sum. *)
-
+    
     apply path_hom. 
     apply path_arrow. intro x.
-    apply moveR_equiv_V.
-    unfold functor_loop. simpl.
-    apply moveR_Vp. destruct x as [s t]. simpl.
-    unfold point. unfold ispointed_finite_types.
-    
-    refine (_ @ ap011 (fun f g =>
-                     _ @ path_finite_types_fix (n + m) (canon (n + m)) (canon (n + m)) (block_sum f g))
-                  (eissect (equiv_path_finite_types_fix m (canon m) (canon m)) s)
-                  (eissect (equiv_path_finite_types_fix n (canon n) (canon n)) t)
-                  ).
-    change (equiv_path_finite_types_fix ?n ?f ?g ?e)
-           with
-           (path_finite_types_fix n f g e ).
-    generalize (path_finite_types_fix m (canon m) (canon m) s). clear s. intro s.
-    generalize (path_finite_types_fix n (canon n) (canon n) t). clear t. intro t.
+    apply moveR_equiv_V. simpl. unfold point. unfold ispointed_finite_types.
+    destruct x as [s t]. simpl.
     unfold block_sum.
+    apply moveR_Vp.
     refine (_ @ path_finite_types_fix_compose _ _ _ _ _ _).
     apply moveR_pM.
-    refine (_ @ ap (fun p => _ @ p)
-              (path_finite_types_fix_inv
-                 (sum_finite_types (canon m) (canon n))
-                 (canon (n+m))
-                 (fin_resp_sum m n))).
+    refine (_ @ (ap (fun p => _ @ p)
+                    (path_finite_types_fix_inv
+                       (sum_finite_types (canon m) (canon n)) (canon (n + m))
+                       (fin_resp_sum m n)))).
     refine (_ @ path_finite_types_fix_compose _ _ _ _ _ _).
-    
     transitivity
       (path_finite_types_fix
-         (n + m) (sum_finite_types (canon m) (canon n))
+         (n + m)
          (sum_finite_types (canon m) (canon n))
-         ((equiv_path_finite_types_fix m (canon m) (canon m))^-1 s
-          +E (equiv_path_finite_types_fix n (canon n) (canon n))^-1 t)).
-                                                                       
-    - revert s t.
-      cut (forall (A : Finite_Types m) (B : Finite_Types n)
+         (sum_finite_types (canon m) (canon n))
+         (s +E t)).
+    - refine (_ @
+                (ap011 (fun g h =>
+                          path_finite_types_fix
+                            (n + m)
+                            (sum_finite_types (canon m) (canon n))
+                            (sum_finite_types (canon m) (canon n))
+                            (g +E h))
+                       (eissect (equiv_path_finite_types_fix m (canon m) (canon m)) s)
+                       (eissect (equiv_path_finite_types_fix n (canon n) (canon n)) t))).
+      change ((equiv_path_finite_types_fix ?m (canon ?m) (canon ?m)) ?s) with
+      ((path_finite_types_fix m (canon m) (canon m)) s).
+      generalize ((path_finite_types_fix m (canon m) (canon m)) s). clear s. intro s.
+      generalize ((path_finite_types_fix n (canon n) (canon n)) t). clear t. intro t.
+      revert s t.
+      cut (forall (A : Finite_Types m) (B: Finite_Types n)
                   (s : canon m = A) (t : canon n = B),
               ap (fun X : Finite_Types m * Finite_Types n => sum_finite_types (fst X) (snd X))
                  (path_prod (canon m, canon n) (A, B) s t) =
-              path_finite_types_fix
-                (n + m) (sum_finite_types (canon m) (canon n))
-                (sum_finite_types A B)
-                ((equiv_path_finite_types_fix m (canon m) A)^-1 s
-                 +E (equiv_path_finite_types_fix n (canon n) B)^-1 t)).
+              path_finite_types_fix (n + m) (sum_finite_types (canon m) (canon n))
+                                    (sum_finite_types A B)
+                                    ((equiv_path_finite_types_fix m (canon m) A)^-1 s
+                                     +E (equiv_path_finite_types_fix n (canon n) B)^-1 t)).
       { intro H. apply H. }
-      intros A B [] []. simpl.
+      intros A B [] []. simpl. 
       apply inverse.
-      refine (_ @ path_finite_types_fix_id (n+m) _).
-      apply (ap (path_finite_types_fix (n+m)
-                                       (sum_finite_types (canon m) (canon n))
-                                       (sum_finite_types (canon m) (canon n)))).
-      apply path_equiv.  apply path_arrow.
-      intros [x | x]; reflexivity.
-    - apply (ap (path_finite_types_fix
-                   (n + m)
-                   (sum_finite_types (canon m) (canon n))
-                   (sum_finite_types (canon m) (canon n)))).
-      transitivity
-        (((fin_resp_sum m n)^-1 oE fin_resp_sum m n)
-           oE ((equiv_path_finite_types_fix _ _ _)^-1 s +E (equiv_path_finite_types_fix _ _ _)^-1 t)
-           oE ((fin_resp_sum m n)^-1 oE fin_resp_sum m n)).
-      + refine (_ @
-                  ap011 (fun f g => f oE _ oE g)
-                  (ecompose_Ve (fin_resp_sum m n))^
-                (ecompose_Ve (fin_resp_sum m n))^).
-        apply path_equiv. reflexivity.
-      + apply path_equiv. reflexivity.
+      refine (_ @ path_finite_types_fix_id _ _).
+      apply (ap (path_finite_types_fix _ _ _)).
+      apply path_equiv. apply path_arrow. intros [x | x]; reflexivity.                       
+                       
+    - apply (ap (path_finite_types_fix _ _ _ )).
+      apply path_equiv. apply path_arrow. intro x.
+      apply inverse. ev_equiv.
+      refine (eissect (fin_resp_sum m n) ((s +E t) ((fin_resp_sum m n)^-1 ((fin_resp_sum m n) x))) @ _).
+      apply (ap (s +E t)).
+      apply eissect.
   Defined.
-  
-  (* Definition deloop_BSigma_rec (m : nat) *)
-  (*            (Y : 1-Type) *)
-  (*            (y0 : Y) *)
-  (*            (f : (canon m <~> canon m) -> y0 = y0) *)
-  (*            (ishom_f : *)
-  (*               forall (e g : canon m <~> canon m), *)
-  (*                 f (g oE e) = f e @ f g) : *)
-  (*   Finite_Types m -> Y. *)
-  (* Proof. *)
-  (*   srefine (deloop_rec (Finite_Types m) (canon m) _ Y y0 _ _). *)
-  (*   - apply isconn_finite_types. *)
-  (*   - intro p. *)
-  (*     apply f. apply ((path_finite_types_fix m (canon m) (canon m))^-1 p). *)
-  (*   - simpl. intros. *)
-  (*     refine (_ @ ishom_f _ _). *)
-  (*     apply (ap f). *)
-  (*     revert α ω. *)
       
-  (*     cut (forall (x y: Finite_Types m) (p : canon m = x) (q : x = y), *)
-  (*             equiv_path (Fin m) y (p @ q) ..1 = *)
-  (*             equiv_path x y  q ..1 oE equiv_path (Fin m) x p ..1). *)
-  (*     { intro H. apply H.  } *)
-  (*     intros x y p []. destruct p. reflexivity. *)
-  (* Defined. *)
-
-  (* Definition functor_BSigma (m n : nat)  *)
-  (*   (f : (canon m <~> canon m) -> (canon n <~> canon n)) *)
-  (*   (ishom_f :  *)
-  (*     forall (e g : canon m <~> canon m), *)
-  (*       f (g oE e) = f g oE f e) *)
-  (*   : Finite_Types m -> Finite_Types n. *)
-  (* Proof. *)
-  (*   srefine (deloop_BSigma_rec m _ (canon n) _ _). *)
-  (*   - exact ((path_finite_types_fix n (canon n) (canon n)) o f).       *)
-  (*   - intros. *)
-  (*     refine (_ @ path_finite_types_fix_compose n _ _ _ (f e) (f g)). *)
-  (*     apply (ap (path_finite_types_fix n (canon n) (canon n))). *)
-  (*     apply ishom_f. *)
-  (* Defined. *)
-
-  (* Definition functor_BSigma_of {m n : nat} (g : Finite_Types m -> Finite_Types n) *)
-  (*   (ispointed_g : g (canon m) = canon n) : *)
-  (*   Finite_Types m -> Finite_Types n. *)
-  (* Proof. *)
-  (*   srefine (functor_BSigma m n _ _). *)
-  (*   - refine ( *)
-  (*         (path_finite_types_fix n (canon n) (canon n))^-1 *)
-  (*                  o _ o *)
-  (*                  (path_finite_types_fix m (canon m) (canon m))). *)
-  (*     intro p. *)
-  (*     refine (_ @ ap g p @ _). + exact ispointed_g^. + exact ispointed_g. *)
-  (*   - simpl. intros. *)
-      
-  (*     exact  *)
-  (* := *)
-  (*   rec_of _ (canon m) (isconn_finite_types m) _ g. *)
-
-  (* Definition functor_BSigma_eta (m n : nat) (g : Finite_Types m -> Finite_Types n) : *)
-  (*   functor_BSigma_of g == g. *)
-  (* Proof. *)
-  (*   apply is_rec. *)
-  (* Defined. *)
-
-
-  (* Definition functor_BSigma_of {m n : nat} (g : Finite_Types m -> Finite_Types n): *)
-  (*   Finite_Types m -> Finite_Types n := *)
-  (*   rec_of _ (canon m) (isconn_finite_types m) _ g. *)
-
-  (* Definition functor_BSigma_eta (m n : nat) (g : Finite_Types m -> Finite_Types n) : *)
-  (*   functor_BSigma_of g == g. *)
-  (* Proof. *)
-  (*   apply is_rec. *)
-  (* Defined. *)
-
-  (* Definition ishom_compose {l m n : nat} *)
-  (*            (f1 : canon m <~> canon m -> canon n <~> canon n) *)
-  (*            (ishom_f1 : forall (e g : canon m <~> canon m), *)
-  (*                f1 (g oE e) = f1 g oE f1 e) *)
-  (*            (f2 : canon l <~> canon l -> canon m <~> canon m) *)
-  (*            (ishom_f2 : forall (e g : canon l <~> canon l), *)
-  (*                f2 (g oE e) = f2 g oE f2 e) : *)
-  (*   forall (e g : canon l <~> canon l), *)
-  (*     f1 (f2 (g oE e)) = f1 (f2 g) oE f1 (f2 e). *)
-  (* Proof. *)
-  (*   intros. *)
-  (*   refine (_ @ ishom_f1 _ _). apply (ap f1). apply ishom_f2. *)
-  (* Defined. *)
-
-  (* Definition functor_BSigma_compose (l m n : nat) *)
-  (*            (f1 : canon m <~> canon m -> canon n <~> canon n) *)
-  (*            (ishom_f1 : forall (e g : canon m <~> canon m), *)
-  (*                f1 (g oE e) = f1 g oE f1 e) *)
-  (*            (f2 : canon l <~> canon l -> canon m <~> canon m) *)
-  (*            (ishom_f2 : forall (e g : canon l <~> canon l), *)
-  (*                f2 (g oE e) = f2 g oE f2 e) : *)
-  (*   functor_BSigma m n f1 ishom_f1 o functor_BSigma l m f2 ishom_f2 == *)
-  (*   functor_BSigma l n(f1 o f2) (ishom_compose f1 ishom_f1 f2 ishom_f2). *)
-  (* Proof. *)
-  (*   intro x. revert x. *)
-  (*   srapply @ *)
-  (*   refine (_ @ functor_BSigma_eta _ _ _ _ ). *)
-  (*   unfold  *)
-             
-      
-
-                  
-                  
-      
-
-    
-
-             (* (ishom_f : *)
-             (*    forall (e g : canon m <~> canon m), *)
-             (*      f (g oE e) = transport_pp P *)
-             (*                                (path_finite_types_fix m _ _ e) *)
-             (*                                (path_finite_types_fix m _ _ g) *)
-  (* : forall x : Finite_Types m, P x. *)
-  (* Proof. *)
-  (*   srefine (deloop_ind (Finite_Types m) (canon m) _ P p0 _ _). *)
-  (*   - intros [A fA]. strip_truncations. *)
-  (*     apply tr. apply inverse. *)
-  (*     apply path_finite_types_fix. exact fA. *)
-  (*   - intro ω. *)
-  (*     refine (_ @ f ((path_finite_types_fix m (canon m) (canon m))^-1 ω)). *)
-  (*     apply (ap (fun x => *)
-  (*              transport P x p0)). *)
-  (*     apply inverse. apply eisretr. *)
-  (*   - intros. hnf. *)
-  (*     repeat rewrite concat_1p. *)
-  
   (* TODO *)
 End loop_BSigma.
 
@@ -681,9 +538,12 @@ Definition add_canon (m n : nat) :
   pMap (Build_pType (Finite_Types n) _) (Build_pType (Finite_Types (n+m)) _).
 Proof.
   srapply @Build_pMap.
-  - apply (sum_finite_types (canon m)).
-  - apply path_finite_types_fix. 
-    apply fin_resp_sum.
+  - simpl. intro B. exact (sum_finite_types (canon m) B).
+  - exact (path_finite_types_fix
+             (n+m)
+             (sum_finite_types (canon m) (canon n))
+             (canon (n+m))
+             (fin_resp_sum m n)).
 Defined.
 
 Require Import determinants.
@@ -715,9 +575,10 @@ Definition BDet (m : nat) := (loop_BSigma m 2)^-1 (det_hom m).
 (*   - apply det_compose. *)
 (* Defined. *)
 
-Definition deloop_mult_uncurried : pMap
-                                     (Build_pType (Finite_Types 2 * Finite_Types 2) (point _, point _))
-                                     (Build_pType (Finite_Types 2) _).
+Definition deloop_mult_uncurried
+  : pMap
+      (Build_pType (Finite_Types 2 * Finite_Types 2) (point _, point _))
+      (Build_pType (Finite_Types 2) _).
 Proof.
   apply (loop_BSigma_prod 2 2 2)^-1.
   apply mult_hom.
@@ -749,6 +610,23 @@ Proof.
   apply path_hom. apply path_arrow. intros [c1 c2]; reflexivity.
 Defined.
 
+(* move *)
+Definition mon_prod_hom_compose {A1 A2 A3 B1 B2 B3 : Monoid}
+           (f1 : Homomorphism A1 A2)
+           (f2 : Homomorphism A2 A3)
+           (g1 : Homomorphism B1 B2)
+           (g2 : Homomorphism B2 B3)
+  : mon_prod_hom (f2 oH f1) (g2 oH g1) = mon_prod_hom f2 g2 oH mon_prod_hom f1 g1.
+Proof.
+  apply path_hom. apply path_arrow. intros [a b]. reflexivity.
+Defined.
+
+Definition mon_prod_hom_id (A1 A2 : Monoid)
+  : mon_prod_hom (@idhom A1) (@idhom A2) = @idhom (mon_prod A1 A2).
+Proof.
+  apply path_hom. apply path_arrow. intros [a1 a2]. reflexivity.
+Defined.
+
 (* move up *)
 Definition compose_loop_BSigma_functor_prod {j k l m n}
            (f1 : pMap (Build_pType (Finite_Types j) _) (Build_pType (Finite_Types l) _))
@@ -764,26 +642,42 @@ Proof.
   refine
     (_ @ ap (fun f => _ oH f)
        (functor_mon_prod _ _ _ _ _ _)^).
-  transitivity
-    (functor_hom
-       (
-    
-  transitivity
-    (functor_hom
-       (iso_compose
-          (iso_inv (iso_prod_loopGroup (pFin l) (pFin m)))
-          (iso_prod_hom (iso_loop_symgrp l) (iso_loop_symgrp m)))
-       (iso_inv (iso_loop_symgrp n))
-       (functor_loop (conn_ptype_prod (pFin l) (pFin m)) (pFin n) g)
-       oH
-       functor_hom
-       
-  
   unfold functor_hom.
-  
-  
-  simpl.
-  
+  repeat rewrite <- homcompose_f_ff.
+  apply (ap (fun f => (iso_inv (iso_loop_symgrp n)) oH f)).
+  rewrite <- (path_hom _ _ (path_arrow
+                              _ _
+                              (functor_loop_compose
+                                 (conn_ptype_prod (pFin j) (pFin k))
+                                 (conn_ptype_prod (pFin l) (pFin m))
+                                 (pFin n)
+                                 (pointed_functor_prod f1 f2) g))).
+  rewrite <- homcompose_f_ff.
+  apply (ap (fun f => (functor_loop (conn_ptype_prod (pFin l) (pFin m)) (pFin n) g) oH f)).
+  change (?f oH (iso_compose ?g ?h)) with
+  (f oH (g oH h)).
+  change (?f oH (iso_prod_hom ?g ?h)) with (f oH (mon_prod_hom g h)).
+  repeat rewrite homcompose_f_ff.
+  change (?f oH (iso_prod_hom ?g ?h)) with (f oH (mon_prod_hom g h)).
+  apply (ap (fun f => f oH mon_prod_hom (iso_loop_symgrp j) (iso_loop_symgrp k))).
+  transitivity
+    (iso_inv (iso_prod_loopGroup (pFin l) (pFin m)) oH idhom
+             oH
+             (mon_prod_hom (functor_loop (pFin j) (pFin l) f1) (functor_loop (pFin k) (pFin m) f2))).
+  { apply path_hom. apply path_arrow. simpl.  intros [s t].
+    pointed_reduce. unfold ispointed_finite_types in *.
+    destruct s. destruct t. simpl.
+    reflexivity. }
+  apply (ap (fun f => f
+                        oH mon_prod_hom
+                        (functor_loop (pFin j) (pFin l) f1) (functor_loop (pFin k) (pFin m) f2))).
+  rewrite <- homcompose_f_ff.
+  apply (ap (fun f => (iso_inv (iso_prod_loopGroup (pFin l) (pFin m))) oH f)).
+  apply inverse.
+  refine (_ @ mon_prod_hom_id _ _).
+  refine ((mon_prod_hom_compose _ _ _ _)^ @ _).
+  apply (ap011 mon_prod_hom); apply isoisretr.
+Qed.
   
 
 
@@ -796,212 +690,81 @@ Proof.
   refine (loop_BSigma_prod_compose _ _ _ _ _ _ @ _).
   rewrite (eisretr (loop_BSigma (n+m) 2)).
   rewrite loop_BSigma_sum.
-  transitivity
-    ((loop_BSigma_prod 2 2 2 deloop_mult_uncurried)
-       oH
-       mon_prod_hom (loop_BSigma m 2 (BDet m)) (loop_BSigma n 2 (BDet n))).
-  - admit.
-
-  - 
-       
-  det_block_sum
-  ev_equiv.
-  simpl.
-  
-  
-
-Definition loop_BDet_sum {m n : nat} (A : Finite_Types m) (B : Finite_Types n) :
-  BDet (n+m) (sum_finite_types A B) = deloop_mult_uncurried (BDet m A, BDet n B).
-Proof.
-  
-  
-  change (sum_finite_types A B)
-         with
-         (BSigma_sum_uncurried m n (A,B)).
-  change ((BDet m) A, (BDet n) B)
-         with
-         ((functor_prod (BDet m) (BDet n)) (A,B)).
-  cut (pmap_compose (BDet (n+m)) (BSigma_sum_uncurried m n) =
-       pmap_compose (deloop_mult_uncurried)
-                    (Build_pMap
-                       (Build_pType (_*_) (_,_))
-                       (Build_pType (_*_) (_,_))
-                       (functor_prod (BDet m) (BDet n))
-                       (path_prod (_,_) (_,_)
-                                  (point_eq (BDet m))
-                                  (point_eq (BDet n))))).
-  { intro H.
-    destruct ((equiv_path_pmap (pmap_compose (BDet (n + m)) ((BSigma_sum_uncurried m n) ))
-                               (pmap_compose deloop_mult_uncurried (pointed_functor_prod (BDet m) (BDet n)) ))^-1 H).
-    apply pointed_htpy. }       (* make this quicker. . . *)
-  apply (equiv_inj (equiv_loop_BSigma_prod _ _ _)).
-  refine (loop_BSigma_prod_compose _ _ _ _ _ _ @ _).
-  rewrite (eisretr (loop_BSigma (n+m) 2)).
-  rewrite loop_BSigma_sum.
-
-  det_block_sum
-  
-    
-  
-  unfold BDet.
-  apply moveR_equiv_V.
-simpl.
-
-  loop_BSigma_prod_compose
-  
-         
+  refine (_ @ (compose_loop_BSigma_functor_prod _ _ _)^).
+  rewrite (eisretr (loop_BSigma m 2)).
+  rewrite (eisretr (loop_BSigma n 2)).
+  rewrite (eisretr (loop_BSigma_prod 2 2 2)).
+  apply path_hom. apply path_arrow. intros [s t]. simpl.
+  apply det_block_sum.
+Qed.     
 
 Definition add_canon_is_block_sum_id (m n : nat) :
   loop_BSigma n (n+m) (add_canon m n) = (block_sum_id_hom m n).
 Proof.
-  unfold loop_BSigma.
+  (* unfold add_canon. *)
+  (* refine (loop_BSigma_prod_compose n _ (n+m) _ (BSigma_sum_uncurried m n) @ _). *)
+  
+  unfold loop_BSigma. unfold Compose. unfold functor_hom.
   apply path_hom.
-  apply path_arrow. intro p. 
-  unfold functor_hom. simpl.
-  unfold block_sum. unfold pr1_path.
-
-  hnf.
-  change ((BuildEquiv _ _ ?f _) ?x) with (f x).
-  unfold functor_hom.
-  change ((?f oH ?g oH ?h) p) with (f (g (h p))).
-  hnf.
-
-  apply moveL_equiv_M.
-  simpl. unfold block_sum.
-  unfold point. unfold ispointed_finite_types.
-  unfold pr1_path.
-  rewrite ap_pp. rewrite ap_pp.
-  rewrite equiv_path_pp. rewrite equiv_path_pp.
-  apply (ap011 (equiv_compose')); try apply (ap011 (equiv_compose')).
-  - cut (ap pr1
-            (path_sigma_hprop
-               (sum_finite_types (canon m) (canon n)) (canon (n + m))
-               (path_universe_uncurried (fin_resp_sum m n))) =
-         path_universe_uncurried (fin_resp_sum m n)).
-    { apply (moveR_equiv_M). }
-    refine (pr1_path_path_sigma_hprop _ _ _).
-  - simpl.
-    simpl in p. 
-    revert p.
-    cut (forall (x : Finite_Types n) (p : point (Finite_Types n) = x),
-            equiv_path (Fin m + Fin n) (Fin m + x) (ap pr1 (ap (sum_finite_types (canon m)) p)) =
-            1 +E equiv_path (Fin n) x (ap pr1 p)).
-    { intro H. apply H. }
-    intros x []. simpl.
-    apply path_equiv.  simpl. apply path_arrow. intros [y | y]; reflexivity.
-  - rewrite ap_V. refine (equiv_path_V _ _ _ @ _).
-    apply (ap (equiv_inverse)).
-    cut (ap pr1
-            (path_sigma_hprop
-               (sum_finite_types (canon m) (canon n)) (canon (n + m))
-               (path_universe_uncurried (fin_resp_sum m n))) =
-         path_universe_uncurried (fin_resp_sum m n)).
-    { apply moveR_equiv_M. }    
-    refine (pr1_path_path_sigma_hprop _ _ _).
-Qed.
-
-Definition isretr_BDet (m : nat) :
-    pmap_compose (BDet m.+2) (add_canon m 2) = pmap_idmap _.
-Proof.
-  apply (equiv_inj (equiv_inverse (pMap_BSigma 2 2))).
-  assert (p : idhom =
-              equiv_inverse
-                (pMap_BSigma 2 2)
-                (pmap_idmap
-                   {| pointed_type := Finite_Types 2; ispointed_type := ispointed_finite_types |})
-              ).
-  { apply moveL_equiv_V. apply pMap_BSigma_1. }
-  refine (_ @ p). clear p.
-  transitivity
-    (compose_hom (det_hom (m.+2)) (equiv_inverse (pMap_BSigma _ _) (add_canon m 2))).
-  - apply moveR_equiv_V.
-    refine (_ @ pMap_BSigma_compose 2 (m.+2) 2 _ _).
-    apply (ap (pmap_compose (BDet m.+2))). apply inverse.
-    apply eisretr.
-  - transitivity (det_hom m.+2 oH (block_sum_id_hom m 2)).
-    + apply (ap (compose_hom (det_hom m.+2))).
-      apply moveR_equiv_V.
-      apply add_canon_is_block_sum_id.
-    + apply path_hom. apply path_arrow.
-      intro x.
-      refine (det_block_sum equiv_idmap x @ _).
-      rewrite det_id. rewrite det2_is_id.
-      apply ecompose_e1.
-Qed.
-
-Definition iso_transport_sym {M N : Monoid} (f : Isomorphism M N) :
-  symmetric (@mon_mult N) -> symmetric (@mon_mult M).
-Proof.
-  unfold symmetric. intros symm_N m1 m2.
-  apply (equiv_inj f).
-  refine (preserve_mult f @ _ @ (preserve_mult f)^).
-  apply symm_N.
-Qed.  
-
-Definition deloop_mult : Finite_Types 2 -> Finite_Types 2 -> Finite_Types 2.
-Proof.
-  cut ((Finite_Types 2) * (Finite_Types 2) -> (Finite_Types 2)).
-  - intro f.
-    intros x y. exact (f (x,y)).
-  - apply (pointed_fun (Build_pType (Finite_Types 2 * Finite_Types 2) (point _, point _))
-                       (Build_pType (Finite_Types 2) _ )).
-    srapply @functor_deloop. 
-    + simpl.
-      intros [x1 x2].
-      generalize (isconn_finite_types 2 x1). intro p.
-      generalize (isconn_finite_types 2 x2). intro q.
-      strip_truncations. destruct p. destruct q.
-      apply tr. reflexivity.
-    + refine (_ oH prod_loopGroup (Build_pType (Finite_Types 2) _) (Build_pType (Finite_Types 2) _)).
-      apply mult_hom.
-      apply (iso_transport_sym (iso_inv (iso_loop_aut (canon 2)))).
-      intros x y. simpl.
-      apply (symm_sigma2 y x).
+  apply path_arrow. intro s.
+  unfold block_sum_id_hom.
+  change (Build_GrpHom ?f _ ?x) with (f x). unfold block_sum.
+  change ((?f oH ?g oH ?h) s) with (f (g (h s))).
+  apply moveR_equiv_V.
+  change ((iso_loop_symgrp ?n) ?x) with (path_finite_types_fix n (canon n) (canon n) x).
+  change ((functor_loop _ _ ?f) ?p) with ((point_eq f)^ @ (ap f p @ point_eq f)).
+  refine (_ @ (path_finite_types_fix_compose (n+m) (canon (n+m))
+                                             (sum_finite_types (canon m) (canon n))
+                                             (canon (n+m))
+                                             _
+                                             (fin_resp_sum m n oE (equiv_idmap +E s)))^).
+  apply concat2.
+  { simpl.  unfold point. unfold ispointed_finite_types.
+    apply inverse.
+    apply path_finite_types_fix_inv. }
+  refine (_ @ (path_finite_types_fix_compose (n+m)
+                                           (sum_finite_types (canon m) (canon n))
+                                           (sum_finite_types (canon m) (canon n))
+                                           (canon (n+m))
+                                           (equiv_idmap +E s)
+                                           (fin_resp_sum m n))^).
+  apply whiskerR.
+  refine (_ @
+            ap (fun e => _ (equiv_idmap +E e))
+            (eissect (equiv_path_finite_types_fix n (canon n) (canon n)) s)).
+  change (equiv_path_finite_types_fix n (canon n) (canon n) s) with
+  (path_finite_types_fix n (canon n) (canon n) s).
+  generalize (path_finite_types_fix n (canon n) (canon n) s). clear s. intro s.
+  revert s.
+  cut (forall (A : Finite_Types n) (s : canon n = A),
+          ap (add_canon m n) s =
+          path_finite_types_fix (n + m)
+                                (sum_finite_types (canon m) (canon n))
+                                (sum_finite_types (canon m) A)
+                                (equiv_idmap +E (equiv_path_finite_types_fix _ _ _)^-1 s)).
+  { intro H. apply H. }
+  intros A []. simpl.
+  apply inverse.
+  refine (_ @ path_finite_types_fix_id _ _).
+  apply (ap (path_finite_types_fix _ _ _)).
+  apply path_equiv. apply path_arrow.
+  intros [x | x]; reflexivity.
 Defined.
 
-Definition deloop_det_sum {m n : nat} (A : Finite_Types m) (B : Finite_Types n) :
-  BDet (n+m) (sum_finite_types A B) = deloop_mult (BDet n B) (BDet m A).
+Definition isretr_BDet (m : nat) :
+    pmap_compose (BDet (2 + m)) (add_canon m 2) = pmap_idmap _.
 Proof.
-  revert A B.
-  srapply (deloop_double_ind_set
-           (Build_pType (Finite_Types m) _) (isconn_finite_types m)
-           (Build_pType (Finite_Types n) _) (isconn_finite_types n)).
-  - hnf. unfold point.
-    unfold ispointed_type.
-    transitivity (BDet (n+m) (canon (n+m))).
-    { apply (ap (BDet (n+m))).
-      apply path_finite_types_fix.
-      exact (BuildEquiv _ _ (finsum m n) _). }
-    refine (point_eq _ @ _). unfold point. unfold ispointed_type. unfold ispointed_finite_types.
-    apply inverse.
-    refine (ap011 (deloop_mult) (point_eq (BDet n)) (point_eq (BDet m)) @ _).
-    simpl.
-    unfold deloop_mult. unfold functor_deloop. hnf.
-    refine (deloop_rec_beta_pt _ _ _ _ _ _ ).
-  - hnf.
-    intros.
-    refine (transport_paths_FlFr ω _ @ _).
-    admit.
-  - admit.
-
-    
-simpl.
-      apply equiv_finsum.
-    
-    unfold canon. unfold point. unfold ispointed_BAut.
-    
-    change
-      
-      (sum_finite_types (ispointed_type {| pointed_type := Finite_Types m; ispointed_type := canon m |})
-       (ispointed_type {| pointed_type := Finite_Types n; ispointed_type := canon n |}))
-    
-    unfold sum_finite_types. hnf.
-           
-           
-
-           
-  unfold BDet.
-  
-  
-  unfold BDet. unfold pMap_BSigma. 
-simpl.
+  apply (equiv_inj (loop_BSigma 2 2)).
+  refine (loop_BSigma_compose _ _ _ _ _ @ _).
+  transitivity (det_hom (2 + m) oH (block_sum_id_hom m 2)).
+  { apply (ap011 compose_hom).
+    { apply (eisretr (equiv_loop_BSigma m.+2 2)). }
+    { apply add_canon_is_block_sum_id. }
+  }
+  refine (_ @ (loop_BSigma_1 _)^).
+  apply path_hom. apply path_arrow. intro s.
+  refine (@det_block_sum m 2 _ _ @ _).
+  refine (ap (fun f => _ oE f) (det_id m) @ _).
+  refine (ecompose_e1 _ @ _).
+  apply (det2_is_id s).
+Defined.

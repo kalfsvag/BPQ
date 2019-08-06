@@ -139,9 +139,9 @@ Notation "'grp_rid'" := (@mon_rid (grp_mon _)) (at level 0) : monoid_scope.
 
 
 Section Examples.
-  Definition loopGroup (A : pType) {istrunc_A : IsTrunc 1 A} : Group.
+  Definition loopGroup (A : Type) (a0 : A) {istrunc_A : IsTrunc 1 A} : Group.
     srapply Build_Group.
-    - exact (Build_Monoid (BuildhSet (loops A)) concat idpath concat_pp_p concat_1p concat_p1). 
+    - exact (Build_Monoid (BuildhSet (a0 = a0)) concat idpath concat_pp_p concat_1p concat_p1). 
     - exact inverse.
     - exact concat_Vp.
     - exact concat_pV.
@@ -544,6 +544,18 @@ End Homomorphism.
 Notation "'Hom'" := Homomorphism : monoid_scope.
 Infix "oH" := compose_hom (at level 40, left associativity).
 
+(* move *)
+Definition homcompose_f_ff {K L M N : Monoid}
+           (f : Homomorphism K L) (g : Homomorphism L M) (h : Homomorphism M N)
+  : h oH (g oH f) = (h oH g) oH f.
+Proof.
+  apply path_hom. reflexivity.
+Defined.
+
+
+
+
+
 Section Isomorphism.
   Class Isomorphism (M N : Monoid) :=
     {iso_hom : Homomorphism M N; iso_isequiv : IsEquiv iso_hom}.
@@ -608,15 +620,23 @@ Section Isomorphism.
     srapply @Build_Isomorphism.
     - exact (f oH g).
     - simpl. apply isequiv_compose.
-  Defined.    
+  Defined.
+
+    Definition isoisretr {M N : Monoid} (f : Isomorphism M N) :
+    f oH (iso_inv f) = idhom.
+  Proof.
+    apply path_hom. apply path_arrow. apply (eisretr f).
+  Defined.
+
+
 End Isomorphism.
 
 
 Section HomFunctor.
   Open Scope monoid_scope.
   Definition functor_hom {X1 X2 Y1 Y2 : Monoid}
-             (f1 : Hom Y1 X1) (f2 : Hom X2 Y2)
-  : Hom X1 X2 -> Hom Y1 Y2 :=
+             (f1 : Homomorphism Y1 X1) (f2 : Homomorphism X2 Y2)
+  : Homomorphism X1 X2 -> Homomorphism Y1 Y2 :=
     fun g => f2 oH g oH f1.
 
   Lemma isequiv_functor_hom {X1 X2 Y1 Y2 : Monoid}
@@ -634,12 +654,12 @@ Section HomFunctor.
 
   Definition equiv_functor_hom {X1 X2 Y1 Y2 : Monoid}
              (f1 : Isomorphism Y1 X1) (f2 : Isomorphism X2 Y2) :
-    Hom X1 X2 <~> Hom Y1 Y2 :=
+    Homomorphism X1 X2 <~> Homomorphism Y1 Y2 :=
     BuildEquiv _ _ (functor_hom f1 f2) (isequiv_functor_hom f1 f2).
 
   Lemma functor_hom_compose {X1 X2 Y1 Y2 Z1 Z2}
-        (f1 : Hom Y1 X1) (f2 : Hom X2 Y2)
-        (g1 : Hom Z1 Y1) (g2 : Hom Y2 Z2)
+        (f1 : Homomorphism Y1 X1) (f2 : Homomorphism X2 Y2)
+        (g1 : Homomorphism Z1 Y1) (g2 : Homomorphism Y2 Z2)
     : functor_hom (f1 oH g1) (g2 oH f2) ==
       functor_hom g1 g2 o functor_hom f1 f2 .
   Proof.
@@ -656,10 +676,10 @@ Section HomFunctor.
   Defined.
 
   Definition functor_hom_compose_001 {X1 X2 X3 Y1 Y2 Y3: Monoid}
-             (f1 : Hom Y1 X1) 
+             (f1 : Homomorphism Y1 X1) 
              (f2 : Isomorphism Y2 X2)
-             (f3 : Hom X3 Y3)
-             (h1 : Hom X1 X2) (h2 : Hom X2 X3)
+             (f3 : Homomorphism X3 Y3)
+             (h1 : Homomorphism X1 X2) (h2 : Homomorphism X2 X3)
     : functor_hom f1 f3 (h2 oH h1)
       =
       (functor_hom f2 f3 h2) oH (functor_hom f1 (iso_inv f2) h1).
@@ -708,7 +728,7 @@ Section Product.
 
   (* If a group is abelian, then the multiplication G*G -> G is a homomorphism *)
   Definition mult_hom (M : Monoid) (symm_M : symmetric (@mon_mult M))
-    : Hom (mon_prod M M) M.
+    : Homomorphism (mon_prod M M) M.
   Proof.
     srapply @Build_Homomorphism.
     - intros [m n].
@@ -723,9 +743,9 @@ Section Product.
   Defined.
 
   Definition mon_prod_hom {M1 M2 N1 N2 : Monoid}
-             (f1 : Hom M1 N1)
-             (f2 : Hom M2 N2) :
-    Hom (mon_prod M1 M2) (mon_prod N1 N2).
+             (f1 : Homomorphism M1 N1)
+             (f2 : Homomorphism M2 N2) :
+    Homomorphism (mon_prod M1 M2) (mon_prod N1 N2).
   Proof.
     srapply @Build_Homomorphism.
     - exact (functor_prod f1 f2).
@@ -742,6 +762,41 @@ Section Product.
     apply (Build_Isomorphism _ _ (mon_prod_hom f1 f2)).
     apply isequiv_functor_prod.
   Defined.
+
+  (* move *)
+  Definition functor_mon_prod {A1 A2 B1 B2 C1 C2 D1 D2}
+             (f1 : Homomorphism C1 A1)
+             (f2 : Homomorphism C2 A2)
+             (g1 : Homomorphism B1 D1)
+             (g2 : Homomorphism B2 D2)
+             (h1 : Homomorphism A1 B1)
+             (h2 : Homomorphism A2 B2)
+    : mon_prod_hom
+        (functor_hom f1 g1 h1)
+        (functor_hom f2 g2 h2)
+      = functor_hom (mon_prod_hom f1 f2) (mon_prod_hom g1 g2) (mon_prod_hom h1 h2).
+  Proof.
+    apply path_hom. apply path_arrow. intros [c1 c2]; reflexivity.
+  Defined.
+
+  (* move *)
+  Definition mon_prod_hom_compose {A1 A2 A3 B1 B2 B3 : Monoid}
+             (f1 : Homomorphism A1 A2)
+             (f2 : Homomorphism A2 A3)
+             (g1 : Homomorphism B1 B2)
+             (g2 : Homomorphism B2 B3)
+    : mon_prod_hom (f2 oH f1) (g2 oH g1) = mon_prod_hom f2 g2 oH mon_prod_hom f1 g1.
+  Proof.
+    apply path_hom. apply path_arrow. intros [a b]. reflexivity.
+  Defined.
+
+  Definition mon_prod_hom_id (A1 A2 : Monoid)
+    : mon_prod_hom (@idhom A1) (@idhom A2) = @idhom (mon_prod A1 A2).
+  Proof.
+    apply path_hom. apply path_arrow. intros [a1 a2]. reflexivity.
+  Defined.
+
+
 End Product.
 
 
@@ -781,11 +836,12 @@ End Product.
 (*   Defined. *)
 (* End Iso_Loop_Aut. *)
 
-Definition hom_prod_loopGroup (A1 A2 : pType)
-             {istrunc_A1 : IsTrunc 1 A1}
-             {istrunc_A2 : IsTrunc 1 A2}
-  : Homomorphism (loopGroup (Build_pType (A1*A2) (point _,point _)))
-                 (grp_prod (loopGroup A1) (loopGroup A2)).
+Definition hom_prod_loopGroup
+           (A B : Type) (a0 : A) (b0 : B)
+           {istrunc_A : IsTrunc 1 A}
+           {istrunc_B : IsTrunc 1 B}
+  : Homomorphism (loopGroup (A*B) (a0, b0))
+                 (grp_prod (loopGroup A a0) (loopGroup B b0)).
 Proof.
   srapply @Build_Homomorphism.
   - exact (fun p => (ap fst p, ap snd p)).
@@ -794,31 +850,31 @@ Proof.
     apply path_prod; simpl; refine (ap_pp _ p q).
 Defined.
 
-Definition isequiv_prod_loopGroup (A1 A2 : pType)
-             {istrunc_A1 : IsTrunc 1 A1}
-             {istrunc_A2 : IsTrunc 1 A2}
-  : IsEquiv (hom_prod_loopGroup A1 A2).
+Definition isequiv_prod_loopGroup
+           (A B : pType) (a0 : A) (b0 : B)
+           {istrunc_A : IsTrunc 1 A}
+           {istrunc_B : IsTrunc 1 B}
+  : IsEquiv (hom_prod_loopGroup A B a0 b0).
 Proof.
   simpl. srapply @isequiv_adjointify.
   - intros [p q]. unfold point.
     exact (path_prod (_,_) (_,_) p q).
   - simpl. intros [[] [] ]. reflexivity.
-  - simpl. intro p. unfold point in p.
+  - simpl. intro p. 
     revert p.
-    cut (forall (a : A1 * A2) (p : (point (A1 * A2) = a)),
-            path_prod (point (A1 * A2)) a (ap fst p) (ap snd p) = p).
+    cut (forall (ab : A * B) (p : (a0, b0) = ab),
+            path_prod (a0,b0) ab (ap fst p) (ap snd p) = p).
     { intro H. apply H. }
-    intros a []. reflexivity.
-Defined.
-  
+    intros ab []. reflexivity.
+Defined.    
     
-    
-Definition iso_prod_loopGroup (A1 A2 : pType)
-             {istrunc_A1 : IsTrunc 1 A1}
-             {istrunc_A2 : IsTrunc 1 A2} :
-    Isomorphism (loopGroup (Build_pType (A1*A2) (point _,point _)))
-                (grp_prod (loopGroup A1) (loopGroup A2))
-  := Build_Isomorphism _ _ (hom_prod_loopGroup A1 A2) (isequiv_prod_loopGroup A1 A2).
+Definition iso_prod_loopGroup
+           (A B : pType) (a0 : A) (b0 : B)
+           {istrunc_A : IsTrunc 1 A}
+           {istrunc_B : IsTrunc 1 B} :
+    Isomorphism (loopGroup (A*B) (a0,b0))
+                (grp_prod (loopGroup A a0) (loopGroup B b0))
+  := Build_Isomorphism _ _ (hom_prod_loopGroup A B a0 b0) (isequiv_prod_loopGroup A B a0 b0).
   (* Proof. *)
   (*   srapply Build_Grp_Iso'. *)
   (*   - simpl. *)

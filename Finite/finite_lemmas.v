@@ -103,7 +103,7 @@ Section Sum_Finite.
   (*   fin_resp_sum m n.+1 (inr (inr tt)) = (inr tt) := idpath. *)
 End Sum_Finite.
 
-Require Import B_Aut pointed_lemmas.
+Require Import (* B_Aut *) pointed_lemmas.
 Section Finite_Types.
   Definition Finite_Types  (n : nat) :=
     {A : Type & merely (A <~> Fin n)}.
@@ -188,6 +188,18 @@ Section Finite_Types.
                                                      (fun A : Type => A -> X)) x @ _).
     exact (transport_exp X A B e x).
   Defined.
+
+
+  Definition path_finite_types_fix_inv {m : nat} (A B : Finite_Types m) (e : A <~> B)
+    : path_finite_types_fix m B A (equiv_inverse e) = (path_finite_types_fix m A B e)^.
+  Proof.
+    unfold path_finite_types_fix.
+    refine (ap (path_sigma_hprop B A)
+               (path_universe_V_uncurried e) @ _).
+    apply path_sigma_hprop_V.
+  Defined.
+
+
 
   Definition transport_exp_finite_sum {X : Type} {A B : {A : Type & Finite A}}
              (e : A.1 <~> B.1) (x : A.1 -> X)

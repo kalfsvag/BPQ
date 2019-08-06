@@ -1,13 +1,79 @@
 Require Import HoTT.
-Print LoadPath.
+
+(* Print LoadPath. *)
 Add Rec LoadPath "~/Coq-projects/groupoids" as GR.
-Print LoadPath.
+(* Print LoadPath. *)
 
 From GR Require Import cquot cquot_principles.
-From GC Require Import finite_lemmas group_complete_1type BSigma delooping determinants.
+From GC Require Import finite_lemmas path_finite_types monoids_and_groups
+                       group_complete_1type BSigma delooping determinants pointed_lemmas.
 
+Definition iso_path_finite_types (m n: nat)
+  : Isomorphism (AutGroup (Fin m)) (loopGroup (Finite_Types m) (canon m)).
+Proof.
+  srapply Build_Grp_Iso'.
+  - simpl. apply (equiv_path_finite_types_fix m (canon m) (canon m)).
+  - intros alpha beta. simpl.
+    apply (path_finite_types_fix_compose m (canon m) (canon m) (canon m) alpha beta).
+Defined.
+
+Definition deloop_fin (m n : nat)
+  : Homomorphism (AutGroup (Fin m)) (AutGroup (Fin n)) -> Finite_Types m -> Finite_Types n.
+Proof.
+  intro f.
+  srefine (deloop_rec (pFin m) (Finite_Types n) (canon n) _ _).
+  - 
+    apply (@hom_map (loopGroup (Finite_Types m) (canon m)) (loopGroup (Finite_Types n) (canon n))).
+    apply (functor_hom
+             (iso_inv (iso_path_finite_types m m))
+             (iso_path_finite_types n n) f).
+  - intros.
+    apply (preserve_mult
+             (functor_hom (iso_inv (iso_path_finite_types m m)) (iso_path_finite_types n n) f)).
+Defined.  
+
+Definition deloop_fin_canon (m n : nat) (f : Homomorphism (AutGroup (Fin m)) (AutGroup (Fin n)))
+  : deloop_fin m n f (canon m) = canon n.
+Proof.
+  unfold deloop_fin.
+  apply deloop_rec_beta_pt.
+Defined.
+
+Definition deloop_fin_loop (m n : nat) (f : Homomorphism (AutGroup (Fin m)) (AutGroup (Fin n)))
+           (ω : canon m = canon m)
+  : ap (deloop_fin m n f) ω =
+    (deloop_fin_canon m n f @ (functor_hom
+                              (iso_inv (iso_path_finite_types m m))
+                              (iso_path_finite_types n n) f) ω)
+      @ (deloop_fin_canon m n f)^.
+Proof.
+  apply deloop_rec_beta_loop'.
+Defined.
+    
+Definition BDet (m : nat) : Finite_Types m -> Finite_Types 2.
+  apply deloop_fin.
+  srapply @Build_GrpHom.
+  + apply determinant.
+  + apply det_compose.
+Defined.
 
 Local Definition Z := cquot (group_completion_BSigma).
+
+Section GrpCompl_To_Fin2.
+  Definition grpcompl_to_fin2 : Z -> Finite_Types 2.
+  Proof.
+    srapply @cquot_rec.
+    - simpl.
+      intros [[a1 A1] [a2 A2]].
+      (* change BDet to be the underlying map, not the pointed map *)
+      exact (BDet (a2 + a1) (sum_finite_types A1 A2)).
+    - intros [[a1 A1] [a2 A2]] B [[s S] p]. simpl in *. destruct p. simpl.
+      (* make triple set induction in deloop.v *)
+      simpl in B.
+
+
+
+
 
 Section BSigma_set_ind.
 Definition fin_resp_sum_id (m n : nat) :
@@ -57,6 +123,8 @@ Proof.
 Defined.
 
 Local Open Scope nat_scope.
+
+(* change to only one act? *)
 Definition grp_compl_BSigma_ind_set
            (P : Z -> hSet)
            (f : forall (m n : nat), P (ccl (group_completion_BSigma) ((canon_BSigma m), (canon_BSigma n))))
@@ -80,8 +148,8 @@ Definition grp_compl_BSigma_ind_set
     - simpl.
       intros [[m x] [n y]]. revert x y.
       srefine (deloop_double_ind_set
-               (Finite_Types m) (canon m) (isconn_finite_types m)
-               (Finite_Types n) (canon n) (isconn_finite_types n)
+               (pFin m) 
+               (pFin n)
                _
                (f m n)
                _ _
@@ -95,33 +163,30 @@ Definition grp_compl_BSigma_ind_set
       intros [[m a1] [n a2]] b [s p].  destruct p. simpl.
       revert a2.
       srefine (deloop_ind_prop
-               (Finite_Types n) (canon n) (isconn_finite_types n)
+               (pFin n) 
                _ _).
       revert a1.
       srefine (deloop_ind_prop
-               (Finite_Types m) (canon m) (isconn_finite_types m)
+               (pFin m)
                _ _).
       destruct s as [s x]. revert x.
       srefine (deloop_ind_prop
-               (Finite_Types s) (canon s) (isconn_finite_types s)
+               (pFin s)
                _ _).
       simpl.
-      rewrite deloop_double_ind_set_beta_x0.
+      rewrite deloop_double_ind_set_beta_pt.
       (* endre til transport bla bla = transport ble ble *)
       set (g := double_uncurry _
                   (deloop_double_ind_set
-                     (Finite_Types (m + s))
-                     (canon (m + s))
-                     (isconn_finite_types (m + s))
-                     (Finite_Types (n + s))
-                     (canon (n + s))
-                     (isconn_finite_types (n + s))
+                     (pFin (m + s))
+                     (pFin (n + s))
                      (fun (x1 : Finite_Types (m + s)) (x2 : Finite_Types (n + s)) =>
                         P (ccl group_completion_BSigma ((m + s; x1), (n + s; x2)))) (f (m + s) (n + s))
                      (fun ω : canon (n + s) = canon (n + s) =>
                         act_r (m + s) (n + s) ω) (act_l (m + s) (n + s)))%nat).
-      change (deloop_double_ind_set (Finite_Types (m + s)) (canon (m + s)) (isconn_finite_types (m + s))
-       (Finite_Types (n + s)) (canon (n + s)) (isconn_finite_types (n + s))
+      unfold point. unfold ispointed_finite_types.
+      change (deloop_double_ind_set (pFin (m + s)) 
+                                    (pFin (n + s)) 
        (fun (x1 : Finite_Types (m + s)) (x2 : Finite_Types (n + s)) =>
         P (ccl group_completion_BSigma ((m + s; x1), (n + s; x2)))) (f (m + s) (n + s))
        (fun ω : canon (n + s) = canon (n + s) => act_r (m + s) (n + s) ω) (act_l (m + s) (n + s))
@@ -131,7 +196,7 @@ Definition grp_compl_BSigma_ind_set
       rewrite <-
               (apD g (path_prod (_,_) (_,_) (fin_resp_sum_id s m) (fin_resp_sum_id s n))^).
       unfold g. unfold double_uncurry.
-      rewrite deloop_double_ind_set_beta_x0. clear g.
+      rewrite deloop_double_ind_set_beta_pt. clear g.
       apply path_to_path_over.
       rewrite <- act_add.
       refine (_ @
@@ -157,6 +222,9 @@ Definition grp_compl_BSigma_ind_set
   Defined.
 
 End BSigma_set_ind.
+
+      
+      
 
   
   

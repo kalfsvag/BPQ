@@ -20,10 +20,16 @@ Proof.
   generalize (isconn_conn_ptype Y y). intro q.
   strip_truncations. apply tr. exact (path_prod (_,_) (_,_) p q).
 Defined.
-  
 
 
-
+(* move *)
+Definition pointed_functor_prod {A1 B1 A2 B2 : pType} (f1 : pMap A1 B1) (f2 : pMap A2 B2)
+  : pMap (Build_pType (A1 * A2) (point _, point _)) (Build_pType (B1 * B2) (point _, point _)).
+Proof.
+  srapply @Build_pMap.
+  { exact (functor_prod f1 f2). }
+  apply path_prod; apply point_eq.
+Defined.
 
 
 Definition add_pt : Type -> pType :=

@@ -365,19 +365,20 @@ Section functor_deloop.
   Context (X : Conn_pType) `{istrunc_X : IsTrunc 1 X}.
   Context (Y : pType) `{istrunc_Y : IsTrunc 1 Y}.
 
-  Definition equiv_functor_deloop' : Homomorphism (loopGroup X) (loopGroup Y) <~> pMap X Y.
+  Definition equiv_functor_deloop'
+    : Homomorphism (loopGroup X (point X)) (loopGroup Y (point Y)) <~> pMap X Y.
   Proof.
     refine (equiv_deloop_prec X Y oE _).
     srapply @equiv_adjointify.
     - intros [f f_id f_mult]. exact (f; f_mult).
     - intros [f f_mult].
-      apply (@Build_GrpHom (loopGroup X) (loopGroup Y) f f_mult).
+      apply (@Build_GrpHom (loopGroup X _) (loopGroup Y _) f f_mult).
     - intro f.
       apply path_sigma_hprop. reflexivity.
     - intro f. apply path_hom. reflexivity.
   Defined.
 
-  Definition functor_deloop : Homomorphism (loopGroup X) (loopGroup Y) -> pMap X Y.
+  Definition functor_deloop : Homomorphism (loopGroup X (point X)) (loopGroup Y (point Y)) -> pMap X Y.
   Proof.
     intros [f f_1 f_mult]. simpl in f_mult.
     srapply @Build_pMap.
@@ -385,7 +386,7 @@ Section functor_deloop.
     - apply deloop_rec_beta_pt.
   Defined.      
 
-  Definition functor_loop : pMap X Y -> Homomorphism (loopGroup X) (loopGroup Y).
+  Definition functor_loop : pMap X Y -> Homomorphism (loopGroup X (point X)) (loopGroup Y (point Y)).
   Proof.
     intro f.
     srapply @Build_GrpHom.
@@ -412,7 +413,8 @@ Section functor_deloop.
         refine (deloop_ind_beta_pt X  _ _ _ _ ). 
   Defined.
 
-  Definition equiv_functor_loop : pMap X Y <~> Homomorphism (loopGroup X) (loopGroup Y)
+  Definition equiv_functor_loop
+    : pMap X Y <~> Homomorphism (loopGroup X (point X)) (loopGroup Y (point Y))
     := BuildEquiv _ _ functor_loop _.
 
 
@@ -460,8 +462,8 @@ Section functor_deloop_compose.
 
   Open Scope monoid_scope.
   Definition functor_deloop_compose
-             (f : Homomorphism (loopGroup X) (loopGroup Y))
-             (g : Homomorphism (loopGroup Y) (loopGroup Z)) :
+             (f : Homomorphism (loopGroup X (point X)) (loopGroup Y (point Y)))
+             (g : Homomorphism (loopGroup Y (point Y)) (loopGroup Z (point Z))) :
     (functor_deloop X Z (g oH f)) =
     (pmap_compose (functor_deloop Y Z g)
                   (functor_deloop X Y f)).

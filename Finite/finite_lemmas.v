@@ -55,7 +55,7 @@ Proof.
   exact (eB^-1 oE eA).
 Qed.
 
-Section Sum_Finite.
+Section Equiv_Finsum.
   Definition finl (m n : nat) : Fin m -> Fin (n + m).
   Proof.
     induction n.
@@ -101,7 +101,7 @@ Section Sum_Finite.
 
   (* Definition fin_resp_sum_last (m n : nat) : *)
   (*   fin_resp_sum m n.+1 (inr (inr tt)) = (inr tt) := idpath. *)
-End Sum_Finite.
+End Equiv_Finsum.
 
 Require Import (* B_Aut *) pointed_lemmas.
 Section Finite_Types.
@@ -128,7 +128,7 @@ Section Finite_Types.
   
 
   (* Canonical finite types *)
-  Definition canon (n : nat) : IsPointed (Finite_Types n) := (Fin n; tr equiv_idmap).    
+  Global Instance canon (n : nat) : IsPointed (Finite_Types n) := (Fin n; tr equiv_idmap).    
 
   (* A detachable subset of a finite set has smaller cardinal *)
   Definition leq_card_subset {n : nat} (A : Finite_Types n) (P : A -> Type)
@@ -155,18 +155,74 @@ Section Finite_Types.
     exact (equiv_functor_sum' H equiv_idmap).
   Defined.
 
+  (* Move to finite_types.v when created *)
+  Definition sum_finite_types {m n : nat} (A : Finite_Types m) (B : Finite_Types n) :
+    Finite_Types (n + m).
+  Proof.
+    exists (A + B).
+    destruct A as [A fA]. destruct B as [B fB]. strip_truncations.
+    apply tr. simpl.
+    refine (_ oE equiv_functor_sum' fA fB).
+    apply fin_resp_sum.
+  Defined.
+
+  
+End Finite_Types.
+
+Section Path_Finite_Types.
+
   (* Path types in various "types of finite types" *)
   Definition path_finite_types_fix (n : nat) (s t : Finite_Types n)
     : (s <~> t) -> s = t
     :=  path_sigma_hprop _ _ o path_universe_uncurried.
 
+  Lemma path_finite_types_fix_id (m : nat) (A : Finite_Types m) :
+    path_finite_types_fix m A A equiv_idmap = idpath.
+  Proof.
+    unfold path_finite_types_fix. apply moveR_equiv_M.
+    simpl. unfold path_universe_uncurried.
+    apply moveR_equiv_V.
+    apply path_equiv. reflexivity.
+  Defined.
+  
+
+  Definition inv_path_finite_types_fix (n : nat) (s t : Finite_Types n)
+    : (s = t) -> (s <~> t).
+  Proof.
+    intros []. exact equiv_idmap.
+  Defined.
+
   Global Instance isequiv_path_finite_types_fix (n : nat) (s t : Finite_Types n)
-    : IsEquiv (path_finite_types_fix n s t)
-    := isequiv_compose (f := path_universe_uncurried) (g := path_sigma_hprop _ _).
+    : IsEquiv (path_finite_types_fix n s t).
+  Proof.
+    srapply @isequiv_adjointify.
+    - apply inv_path_finite_types_fix.
+    - intros []. apply path_finite_types_fix_id.
+    - unfold Sect. simpl.
+      intro f. unfold path_finite_types_fix.
+      assert (h : inv_path_finite_types_fix n s t  ==
+                  (equiv_inverse (equiv_path_universe s t))
+                    o  ((equiv_inverse (equiv_path_sigma_hprop s t)) )).
+      { intros []. reflexivity. }
+      refine (h ((path_sigma_hprop s t (path_universe_uncurried f))) @ _).
+      refine (ap (equiv_path_universe s t)^-1
+                 (eissect (path_sigma_hprop s t) (path_universe_uncurried f)) @ _).
+      apply eissect.
+  Defined.
+  (* := isequiv_compose (f := path_universe_uncurried) (g := path_sigma_hprop _ _). *)
 
   Definition equiv_path_finite_types_fix (n : nat) (s t : Finite_Types n)
     : (s <~> t) <~> (s = t)
-    := BuildEquiv _ _ (path_finite_types_fix n s t) (isequiv_path_finite_types_fix n s t).    
+    := BuildEquiv _ _ (path_finite_types_fix n s t) (isequiv_path_finite_types_fix n s t).
+
+
+  (* Global Instance isequiv_path_finite_types_fix (n : nat) (s t : Finite_Types n) *)
+  (*   : IsEquiv (path_finite_types_fix n s t) *)
+  (*   := isequiv_compose (f := path_universe_uncurried) (g := path_sigma_hprop _ _). *)
+
+  (* Definition equiv_path_finite_types_fix (n : nat) (s t : Finite_Types n) *)
+  (*   : (s <~> t) <~> (s = t) *)
+  (*   := BuildEquiv _ _ (path_finite_types_fix n s t) (isequiv_path_finite_types_fix n s t). *)
 
   Definition equiv_path_finite_types (s t : {A : Type & Finite A}) :
     (s.1 <~> t.1) <~> s = t :=
@@ -174,7 +230,7 @@ Section Finite_Types.
 
   Definition equiv_path_BSigma (s t : {n : nat & Finite_Types n}) :
     (s.2 <~> t.2) <~> s = t.
-  Proof.  
+  Proof.
     refine ((equiv_ap fin_decompose s t)^-1 oE _).
     destruct s as [m [A eA]]. destruct t as [n [B eB]]. simpl.
     exact (equiv_path_finite_types (A; finite_finite_type (A; eA)) (B; finite_finite_type (B; eB))).
@@ -225,14 +281,14 @@ Section Finite_Types.
     apply (concat2 (path_sigma_hprop_1 (x1; x2)) (path_sigma_hprop_1 (x1; x2))).
   Defined.
 
-  Lemma path_finite_types_fix_id (m : nat) (A : Finite_Types m) :
-    path_finite_types_fix m A A equiv_idmap = idpath.
-  Proof.
-    unfold path_finite_types_fix. apply moveR_equiv_M.
-    simpl. unfold path_universe_uncurried.
-    apply moveR_equiv_V.
-    apply path_equiv. reflexivity.
-  Defined.
+  (* Lemma path_finite_types_fix_id (m : nat) (A : Finite_Types m) : *)
+  (*   path_finite_types_fix m A A equiv_idmap = idpath. *)
+  (* Proof. *)
+  (*   unfold path_finite_types_fix. apply moveR_equiv_M. *)
+  (*   simpl. unfold path_universe_uncurried. *)
+  (*   apply moveR_equiv_V. *)
+  (*   apply path_equiv. reflexivity. *)
+  (* Defined. *)
   
   Lemma path_finite_types_fix_compose (m : nat) (A B C : Finite_Types m)
         (e1 : A <~> B) (e2 : B <~> C) :
@@ -244,38 +300,42 @@ Section Finite_Types.
     apply path_sigma_hprop_compose.
   Defined.
 
-  Global Instance istrunc_finite_types {m : nat} : IsTrunc 1 (Finite_Types m).
-  Proof.
-    intros x y.
-    change (IsTrunc_internal 0) with IsHSet.
-    apply (trunc_equiv' (x <~> y)).
-    - apply equiv_path_finite_types_fix.
-    - apply istrunc_equiv.
-  Qed.
+End Path_Finite_Types.
 
-  Global Instance ispointed_finite_types {m : nat} : IsPointed (Finite_Types m) := canon m.
+Global Instance istrunc_finite_types {m : nat} : IsTrunc 1 (Finite_Types m).
+Proof.
+  intros x y.
+  change (IsTrunc_internal 0) with IsHSet.
+  apply (trunc_equiv' (x <~> y)).
+  - apply equiv_path_finite_types_fix.
+  - apply istrunc_equiv.
+Qed.
 
-  Lemma isconn_finite_types (m : nat) :
-    forall x : Finite_Types m,
-      merely (canon m = x).
-  Proof.
-    intros [A fA]. strip_truncations.
-    apply tr. apply inverse. apply path_finite_types_fix.
-    exact fA.
-  Qed.
+(* Global Instance ispointed_finite_types {m : nat} : IsPointed (Finite_Types m) := canon m. *)
 
-  Definition pFin (m : nat) : Conn_pType.
-  Proof.
-    apply (Build_Conn_pType (Build_pType (Finite_Types m) _)).
-    intro x.
-    apply (isconn_finite_types m x).
-  Defined.
-    
-    
+Definition sum_finite_types_canon {m n : nat} :
+  sum_finite_types (canon m) (canon n) = canon (n + m).
+Proof.
+  apply path_finite_types_fix. simpl.
+  apply fin_resp_sum.
+Defined.
+  
 
+Lemma isconn_finite_types (m : nat) :
+  forall x : Finite_Types m,
+    merely (canon m = x).
+Proof.
+  intros [A fA]. strip_truncations.
+  apply tr. apply inverse. apply path_finite_types_fix.
+  exact fA.
+Qed.
 
-
-End Finite_Types.
+Definition pFin (m : nat) : Conn_pType.
+Proof.
+  apply (Build_Conn_pType (Build_pType (Finite_Types m) _)).
+  intro x.
+  apply (isconn_finite_types m x).
+Defined.
 
 
 

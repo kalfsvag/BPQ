@@ -12,7 +12,6 @@ basics/B_Aut.v
 basics/delooping.v
 basics/monoids_and_groups.v
 Finite/finite_lemmas.v
-Finite/path_finite_types.v
 Finite/permutations.v
 Finite/determinants.v
 group_completion_quotient.v

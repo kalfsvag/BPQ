@@ -88,18 +88,6 @@ Section BSigma.
   Qed.
     
 
-  (* Move to finite_types.v when created *)
-  Definition sum_finite_types {m n : nat} (A : Finite_Types m) (B : Finite_Types n) :
-    Finite_Types (n + m).
-  Proof.
-    exists (A + B).
-    destruct A as [A fA]. destruct B as [B fB]. strip_truncations.
-    apply tr. simpl.
-    refine (_ oE equiv_functor_sum' fA fB).
-    apply fin_resp_sum.
-  Defined.
-    
-  
   Definition plus_BSigma : BSigma -> BSigma -> BSigma.
   Proof.
     intros [m A] [n B].

@@ -5,11 +5,11 @@ Add Rec LoadPath "~/Coq-projects/groupoids" as GR.
 (* Print LoadPath. *)
 
 From GR Require Import cquot cquot_principles.
-From GC Require Import finite_lemmas path_finite_types monoids_and_groups
-                       group_complete_1type BSigma delooping determinants pointed_lemmas.
+From GC Require Import finite_lemmas (* path_finite_types *) monoids_and_groups
+                       group_complete_1type BSigma delooping permutations determinants pointed_lemmas.
 
 Definition iso_path_finite_types (m n: nat)
-  : Isomorphism (AutGroup (Fin m)) (loopGroup (Finite_Types m) (canon m)).
+  : Isomorphism (SymGrp m) (loopGroup (Finite_Types m) (canon m)).
 Proof.
   srapply Build_Grp_Iso'.
   - simpl. apply (equiv_path_finite_types_fix m (canon m) (canon m)).
@@ -18,7 +18,7 @@ Proof.
 Defined.
 
 Definition deloop_fin (m n : nat)
-  : Homomorphism (AutGroup (Fin m)) (AutGroup (Fin n)) -> Finite_Types m -> Finite_Types n.
+  : Homomorphism (SymGrp m) (SymGrp n) -> Finite_Types m -> Finite_Types n.
 Proof.
   intro f.
   srefine (deloop_rec (pFin m) (Finite_Types n) (canon n) _ _).
@@ -32,14 +32,14 @@ Proof.
              (functor_hom (iso_inv (iso_path_finite_types m m)) (iso_path_finite_types n n) f)).
 Defined.  
 
-Definition deloop_fin_canon (m n : nat) (f : Homomorphism (AutGroup (Fin m)) (AutGroup (Fin n)))
+Definition deloop_fin_canon (m n : nat) (f : Homomorphism (SymGrp m) (SymGrp n))
   : deloop_fin m n f (canon m) = canon n.
 Proof.
   unfold deloop_fin.
   apply deloop_rec_beta_pt.
 Defined.
 
-Definition deloop_fin_loop (m n : nat) (f : Homomorphism (AutGroup (Fin m)) (AutGroup (Fin n)))
+Definition deloop_fin_loop (m n : nat) (f : Homomorphism (SymGrp m) (SymGrp n))
            (ω : canon m = canon m)
   : ap (deloop_fin m n f) ω =
     (deloop_fin_canon m n f @ (functor_hom
@@ -49,15 +49,43 @@ Definition deloop_fin_loop (m n : nat) (f : Homomorphism (AutGroup (Fin m)) (Aut
 Proof.
   apply deloop_rec_beta_loop'.
 Defined.
-    
-Definition BDet (m : nat) : Finite_Types m -> Finite_Types 2.
-  apply deloop_fin.
+
+Definition dethom (m : nat) : Homomorphism (SymGrp m) (SymGrp 2).
+Proof.
   srapply @Build_GrpHom.
   + apply determinant.
   + apply det_compose.
 Defined.
 
+Definition BDet (m : nat) :=
+  deloop_fin m 2 (dethom m).
+
+Definition path_triple_prod {A B C : Type} (a1 a2 : A * (B * C)) :
+  (fst a1 = fst a2) * ((fst (snd a1) = fst (snd a2)) * (snd (snd a1) = snd (snd a2))) -> a1 = a2.
+Proof.
+  intros [p [q r]].
+  apply (path_prod a1 a2 p (path_prod (_,_) (_,_) q r)).
+Defined.
+  
+Definition equiv_path_triple_prod {A B C : Type} (a1 a2 : A * (B * C)) :
+  (fst a1 = fst a2) * ((fst (snd a1) = fst (snd a2)) * (snd (snd a1) = snd (snd a2))) <~> a1 = a2.
+Proof.
+  srapply (@equiv_adjointify _ _ (path_triple_prod a1 a2)).
+  - intro p.
+    exact (ap fst p, (ap fst (ap snd p), (ap snd (ap snd p)))).
+  - intros []. reflexivity.
+  - intros [p [q r]].
+    destruct a2 as [a2 [b2 c2]]. simpl in *.
+    destruct p,q,r. reflexivity.
+Defined.
+
 Local Definition Z := cquot (group_completion_BSigma).
+
+Local Definition pft {m : nat}
+  := path_finite_types_fix m.
+
+Local Definition pft_inv {m : nat} {A B}
+  := inv_path_finite_types_fix m A B.
 
 Section GrpCompl_To_Fin2.
   Definition grpcompl_to_fin2 : Z -> Finite_Types 2.
@@ -65,10 +93,151 @@ Section GrpCompl_To_Fin2.
     srapply @cquot_rec.
     - simpl.
       intros [[a1 A1] [a2 A2]].
-      (* change BDet to be the underlying map, not the pointed map *)
       exact (BDet (a2 + a1) (sum_finite_types A1 A2)).
     - intros [[a1 A1] [a2 A2]] B [[s S] p]. simpl in *. destruct p. simpl.
+      revert S A1 A2.
+      cut (forall SA : (Finite_Types s) * ((Finite_Types a1) * (Finite_Types a2)),
+              BDet (a2 + a1) (sum_finite_types (fst (snd SA)) (snd (snd SA))) =
+              BDet (a2 + s + (a1 + s))
+                   (sum_finite_types (sum_finite_types (fst SA) (fst (snd SA)))
+                                     (sum_finite_types (fst SA) (snd (snd SA))))).
+      { intros H S A1 A2. exact (H (S, (A1, A2))). }
+
+      srapply (@deloop_ind_set (conn_ptype_prod (pFin s)
+                                            (conn_ptype_prod (pFin a1) (pFin a2)))).
+      + simpl. unfold point.
+        unfold BDet.
+        transitivity (canon 2).
+        * refine (_ @ (deloop_fin_canon (a2 + a1) 2 (dethom _))).
+          apply (ap (BDet (a2 + a1)) (sum_finite_types_canon)).
+        * apply inverse.
+          refine (_ @ (deloop_fin_canon (a2 + s + (a1 + s)) 2 (dethom (a2 + s + (a1 + s))))).
+          apply (ap (BDet _)).
+          refine (_ @ sum_finite_types_canon).
+          apply (ap011 sum_finite_types); apply sum_finite_types_canon.
+      + simpl. unfold point. intro.
+        refine (transport_paths_FlFr ω _ @ _).
+        (* revert ω. *)
+        (* apply (equiv_functor_forall_pf *)
+        (*          (equiv_inverse (equiv_path_prod (_,_) (_,_)))). *)
+        (* simpl. intros [sigma p]. revert p. *)
+        (* apply (equiv_functor_forall_pf *)
+        (*          (equiv_inverse (equiv_path_prod (_,_) (_,_)))). simpl. *)
+        (* intros [alpha betta]. *)
+        
+        assert (
+            p : forall (x : Finite_Types s * (Finite_Types a1 * Finite_Types a2))
+                       (q : (canon s, (canon a1, canon a2)) = x),
+              (ap
+                 (fun x : Finite_Types s * (Finite_Types a1 * Finite_Types a2) =>
+                    BDet (a2 + a1) (sum_finite_types (fst (snd x)) (snd (snd x)))) q)
+              =
+              ap (BDet (a2 + a1))
+                 (ap011 sum_finite_types
+                        (ap fst (ap snd q))
+                              (ap snd (ap snd q)))).
+        { intros x []. reflexivity. }
+        rewrite (p _ ω). clear p. 
+        assert (
+            p : forall (x : Finite_Types s * (Finite_Types a1 * Finite_Types a2))
+                       (q : (canon s, (canon a1, canon a2)) = x),
+              ap (fun x : Finite_Types s * (Finite_Types a1 * Finite_Types a2) =>
+                    BDet (a2 + s + (a1 + s))
+                         (sum_finite_types (sum_finite_types (fst x) (fst (snd x)))
+                                           (sum_finite_types (fst x) (snd (snd x))))) q
+              =
+              ap (BDet (a2 + s + (a1 + s)))
+                 (ap011
+                    sum_finite_types
+                    (ap011 sum_finite_types (ap fst q) (ap fst (ap snd q)))
+                    (ap011 sum_finite_types (ap fst q) (ap snd (ap snd q))))).
+        { intros x []. reflexivity. }
+        rewrite (p _ ω). clear p.
+        revert ω.
+        apply (equiv_functor_forall_pb
+                 (equiv_path_triple_prod (canon s, (canon a1, canon a2)) 
+                                         (canon s, (canon a1, canon a2)))).
+        intros [p [q r]].
+        simpl in p. simpl in q. simpl in r.
+        change
+          (equiv_path_triple_prod ?a ?b ?c) with
+          (path_triple_prod a b c).  unfold path_triple_prod.        
+        rewrite ap_fst_path_prod. rewrite ap_snd_path_prod. rewrite ap_snd_path_prod.
+        rewrite ap_fst_path_prod.
+        apply moveL_pV.
+        rewrite inv_pp. 
+        repeat rewrite <- concat_p_pp.        
+        apply moveR_Vp. apply moveR_Mp. apply moveR_Mp.
+        transitivity
+          (pft (canon 2) (canon 2)
+               (determinant _ (block_sum
+                                 (pft_inv q)
+                                 (pft_inv r)))).
+        { transitivity
+            (pft (canon 2) (canon 2)
+                 (determinant _ (block_sum
+                                   (block_sum (pft_inv p) (pft_inv q))
+                                   (block_sum (pft_inv p) (pft_inv r))))).
+          - admit.
+          - apply (ap (pft (canon 2) (canon 2))).
+            refine (det_block_sum _ _ @ _).
+            refine (ap011 (fun f g => f oE g)
+                          (det_block_sum _ _)
+                          (det_block_sum _ _) @ _).
+            refine (_ @ (det_block_sum _ _)^).
+            refine (ap (fun f => determinant a2 (pft_inv r) oE determinant s (pft_inv p)
+                                             oE f)
+                       (symm_sigma2 _ _) @ _).
+            refine (ecompose_ee_e _ _ _ @ _).
+            apply (ap (fun f => determinant a2 (pft_inv r) oE f)).
+            refine ((ecompose_ee_e _ _ _)^ @ _).
+            refine (_ @ ecompose_1e _).
+            apply (ap (fun f => f oE determinant a1 (pft_inv q))).
+            generalize (determinant s (pft_inv p)). intro e.
+            admit. } 
+        
+
+            
+          
+                                   
+                 
+        
+        
+        
+        cut
+          (((deloop_fin_canon (a2 + s + (a1 + s)) 2 (dethom (a2 + s + (a1 + s))))^
+            @ (ap (BDet (a2 + s + (a1 + s)))
+                  (ap011 sum_finite_types sum_finite_types_canon sum_finite_types_canon
+                         @ sum_finite_types_canon))^)
+             @ 
+                                                                                  
+        rewrite <- ap_V. rewrite <- ap_V. rewrite inv_pp. apply moveR_Vp.
+        repeat rewrite concat_p_pp.
+        rewrite <- ap_pp. rewrite <- ap_pp. 
+        
+        
+        
+        repeat rewrite <- concat_p_pp.
+        rewrite <- ap_pp.
+        
+        rewrite <- ap_pp.
+        
+                 
+        assert (ω = path_prod
+        assert (forall (A B C D : Type) (a1 a2 : A * (B * C)) (f : A * (B * C) -> D)
+                       (p : a1 = a2),
+                   ap f p = 
+                       
+        unfold point. simpl. 
+          
+          unfold BDet.
+          refine (ap (BDet _) (sum_finite_types_canon) @ _).
+        
+          refine (_ @ deloop_fin_canon (a2 + a1) 2 
+
+      equiv_prod_ind
       (* make triple set induction in deloop.v *)
+      (* and also double set induction *)
       simpl in B.
 
 

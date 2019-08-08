@@ -168,6 +168,35 @@ Section GrpCompl_To_Fin2.
         rewrite inv_pp. 
         repeat rewrite <- concat_p_pp.        
         apply moveR_Vp. apply moveR_Mp. apply moveR_Mp.
+        (* cut ( *)
+        (*     (deloop_fin_canon (a2 + s + (a1 + s)) 2 (dethom (a2 + s + (a1 + s))))^ *)
+        (*     @ (ap (BDet (a2 + s + (a1 + s))) *)
+        (*           (sum_finite_types_canon^ *)
+        (*           @ (ap011 sum_finite_types sum_finite_types_canon sum_finite_types_canon)^ *)
+        (*           @ (ap011 sum_finite_types (ap011 sum_finite_types p q) (ap011 sum_finite_types p r)) *)
+        (*           @ (ap011 sum_finite_types sum_finite_types_canon sum_finite_types_canon) *)
+        (*           @ sum_finite_types_canon)) *)
+        (*       @ (deloop_fin_canon (a2 + s + (a1 + s)) 2 (dethom (a2 + s + (a1 + s)))) *)
+        (*     = *)
+        (*     (deloop_fin_canon (a2 + a1) 2 (dethom (a2 + a1)))^ *)
+        (*     @ (ap (BDet (a2 + a1))) *)
+        (*       (sum_finite_types_canon^ *)
+        (*        @ (ap011 sum_finite_types q r) *)
+        (*          @ sum_finite_types_canon) *)
+        (*       @ (deloop_fin_canon (a2 + a1) 2 (dethom (a2 + a1)))). *)
+        (* { intro H. *)
+        (*   refine (_ @ H @ _). *)
+        (*   - refine (_ @ concat_p_pp _ _ _). *)
+        (*     apply whiskerL.  *)
+        (*     @ _). *)
+        (*     repeat rewrite ap_pp.  *)
+        (*     repeat rewrite ap_V. repeat rewrite inv_pp. *)
+        (*     repeat rewrite concat_p_pp. reflexivity. *)
+        (*   - repeat rewrite ap_pp. *)
+        (*     repeat rewrite ap_V. *)
+        (*     repeat rewrite concat_p_pp. reflexivity. *)
+            
+              
         transitivity
           (pft (canon 2) (canon 2)
                (determinant _ (block_sum
@@ -194,7 +223,51 @@ Section GrpCompl_To_Fin2.
             refine (_ @ ecompose_1e _).
             apply (ap (fun f => f oE determinant a1 (pft_inv q))).
             generalize (determinant s (pft_inv p)). intro e.
-            admit. } 
+            admit. }
+        apply inverse.
+        transitivity
+          ((deloop_fin_canon (a2 + a1) 2 (dethom (a2 + a1)))^
+           @ ap (BDet (a2 + a1))
+                      (sum_finite_types_canon^
+                       @ (ap011 sum_finite_types q r)
+                      @ sum_finite_types_canon)
+             @ deloop_fin_canon (a2 + a1) 2 (dethom (a2 + a1))).
+        { destruct (deloop_fin_canon (a2+a1) 2 (dethom (a2 + a1))).
+          simpl. rewrite concat_1p. rewrite concat_1p. rewrite concat_p1. rewrite concat_p1.
+          rewrite ap_pp. rewrite ap_pp. rewrite ap_V.
+          repeat rewrite concat_p_pp. reflexivity. }
+
+        (* lag lemma *)
+        assert(
+        ((sum_finite_types_canon^ @ ap011 sum_finite_types q r) @ sum_finite_types_canon)
+        = pft (canon (a2 + a1)) (canon (a2 + a1)) (block_sum (pft_inv q) (pft_inv r))).
+        { clear p.
+          unfold block_sum. unfold pft.
+          refine
+            (_ @
+               (path_finite_types_fix_compose (a2 + a1) (canon (a2 + a1)) (canon (a2 + a1))
+                                               _ _)^).
+          
+          revert q r. unfold block_sum.
+          cut (forall (A1 : Finite_Types a1) (A2 : Finite_Types a2)
+                      (q : canon a1 = A1) (r : canon a2 = A2),
+                  (sum_finite_types_canon^ @ ap011 sum_finite_types q r) @ sum_finite_types_canon =
+  pft (canon (a2 + a1)) (canon (a2 + a1))
+    (fin_resp_sum a1 a2 oE (pft_inv q +E pft_inv r) oE (fin_resp_sum a1 a2)^-1)).
+                  
+                  
+          
+
+        (* generelt: ap  *)
+        
+          repeat apply whiskerR.
+          generalize (ap (BDet (a2 + a1)) sum_finite_types_canon). intros. reflexivity.
+          reflexivity.
+        refine (_ @ deloop_fin_loop (a2+a1) 2 (dethom (a2 + a1))
+                  (sum_finite_types_canon^
+                   @ ap011 sum_finite_types q r
+                     @ sum_finite_types_canon) @ _).
+        refine (_ @ deloop_fin_loop m 2 
         
 
             

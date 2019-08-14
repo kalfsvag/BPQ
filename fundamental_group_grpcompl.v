@@ -150,7 +150,7 @@ Defined.
 
 
 Local Definition Z := cquot (group_completion_BSigma).
-Require Import Category.
+Require Import Category.Core.
 Section BSigma_set_ind.
   Definition cquot_rec' {C : PreCategory} (Y : Type)
              (cclY : C -> Y)
@@ -385,9 +385,25 @@ Section GrpCompl_To_Fin2.
     apply (ap (fun f => f oE determinant a alpha)).
     apply invol_SymGrp2.
   Qed.
-    
+
+  Definition BDet_SASB_canon (s a1 a2 : nat) :
+    BDet (a2 + a1) (sum_finite_types (canon a1) (canon a2)) =
+    BDet (a2 + s + (a1 + s))
+         (sum_finite_types
+            (sum_finite_types (canon s) (canon a1))
+            (sum_finite_types (canon s) (canon a2))).
+  Proof.
+    transitivity (canon 2).
+      * refine (_ @ (deloop_fin_canon (a2 + a1) 2 (dethom _))).
+        apply (ap (BDet (a2 + a1)) (sum_finite_types_canon)).
+      * apply inverse.
+        refine (_ @ (deloop_fin_canon (a2 + s + (a1 + s)) 2 (dethom (a2 + s + (a1 + s))))).
+        apply (ap (BDet _)).
+        refine (_ @ sum_finite_types_canon).
+        apply (ap011 sum_finite_types); apply sum_finite_types_canon.
+  Defined.
   
-  Definition grpcompl_to_fin2_morphism (s a1 a2 : nat)
+  Definition BDet_SASB (s a1 a2 : nat)
              (S : Finite_Types s) (A1 : Finite_Types a1) (A2 : Finite_Types a2)
   : BDet (a2 + a1) (sum_finite_types A1 A2) =
     BDet (a2 + s + (a1 + s)) (sum_finite_types (sum_finite_types S A1) (sum_finite_types S A2)).
@@ -402,15 +418,7 @@ Section GrpCompl_To_Fin2.
     srapply (@deloop_ind_set (conn_ptype_prod (pFin s)
                                               (conn_ptype_prod (pFin a1) (pFin a2)))).
     + simpl. unfold point.
-      unfold BDet.
-      transitivity (canon 2).
-      * refine (_ @ (deloop_fin_canon (a2 + a1) 2 (dethom _))).
-        apply (ap (BDet (a2 + a1)) (sum_finite_types_canon)).
-      * apply inverse.
-        refine (_ @ (deloop_fin_canon (a2 + s + (a1 + s)) 2 (dethom (a2 + s + (a1 + s))))).
-        apply (ap (BDet _)).
-        refine (_ @ sum_finite_types_canon).
-        apply (ap011 sum_finite_types); apply sum_finite_types_canon.
+      apply BDet_SASB_canon.
     + simpl. unfold point. intro.
       refine (transport_paths_FlFr ω _ @ _).
       (* revert ω. *)
@@ -460,7 +468,7 @@ Section GrpCompl_To_Fin2.
       (path_triple_prod a b c).  unfold path_triple_prod.
       rewrite ap_fst_path_prod. rewrite ap_snd_path_prod. rewrite ap_snd_path_prod.
       rewrite ap_fst_path_prod.
-      apply moveL_pV.
+      apply moveL_pV. unfold BDet_SASB_canon.
       rewrite inv_pp. 
       repeat rewrite <- concat_p_pp.        
       apply moveR_Vp. apply moveR_Mp. apply moveR_Mp.
@@ -582,13 +590,17 @@ Section GrpCompl_To_Fin2.
                   (block_sum (pft_inv q) (pft_inv r))
               ).
   Defined.
-  
-  (* Definition grpcompl_to_fin2_morphism_canon (s a1 a2 : nat) *)
-  (*   : Type. *)
-
-  (*   Check grpcompl_to_fin2_morphism s a1 a2 (canon s) (canon a1) (canon a2). *)
     
-  (*                  deloop_ind_beta_pt *)
+  Definition BDet_SASB_canon_id (s a1 a2 : nat)
+    : BDet_SASB s a1 a2 (canon s) (canon a1) (canon a2) = BDet_SASB_canon s a1 a2.
+  Proof.
+    refine
+      (deloop_ind_beta_pt
+         (conn_ptype_prod (pFin s) (conn_ptype_prod (pFin a1) (pFin a2))) _
+         (BDet_SASB_canon s a1 a2)
+         _ _
+      ).
+  Qed.
   
   Definition grpcompl_to_fin2 : Z -> Finite_Types 2.
   Proof.
@@ -597,7 +609,7 @@ Section GrpCompl_To_Fin2.
       intros [a1 A1] [a2 A2].
       exact (BDet (a2 + a1) (sum_finite_types A1 A2)).
     - simpl. intros [s S] [a1 A1] [a2 A2].
-      apply grpcompl_to_fin2_morphism.
+      apply BDet_SASB.
     - intros [s S] [t T] [a1 A1] [a2 A2].
       revert A1.
       apply (deloop_ind_prop (pFin a1)).
@@ -608,8 +620,59 @@ Section GrpCompl_To_Fin2.
       revert S.
       apply (deloop_ind_prop (pFin s)).
       hnf.
-      change (point (pFin ?n)) with (canon n). (* do something about Require Import Category above. . . *)
-      unfold point. unfold ispointed_type. 
+      change (point (pFin ?n)) with (canon n).
+      assert (H : forall (x m n : nat)
+                       (S S': Finite_Types x) (A : Finite_Types m) (B : Finite_Types n)
+                       (p : S = S'),
+                 BDet_SASB _ _ _ S A B =
+                 BDet_SASB _ _ _ S' A B
+                           @ (ap (BDet _)
+                                 (ap (fun x => sum_finite_types (sum_finite_types x A)
+                                                                (sum_finite_types x B)) p^))).
+      { intros. destruct p. refine (concat_p1 _)^. }
+      rewrite (H _ _ _ _ _ _ _ (fin_resp_sum_id t s)). clear H.
+      assert (H :
+                forall (x m n : nat)
+                       (S S': Finite_Types x) (A A' : Finite_Types m) (B B' : Finite_Types n)
+                       (p : S = S') (q : A = A') (r : B = B'),
+                  BDet_SASB _ _ _ S A B =
+                  (ap (BDet _) (ap011 sum_finite_types q r))
+                    @ BDet_SASB _ _ _ S' A' B' @
+                    (ap (BDet _) (ap011 sum_finite_types
+                                        (ap011 sum_finite_types p^ q^)
+                                        (ap011 sum_finite_types p^ r^)))).
+      { intros. destruct p. destruct q. destruct r.
+        refine (_ @ (concat_p1 _)^).
+        refine (concat_1p _)^. }
+      rewrite (H _ _ _ _ _ _ _ _ _
+                 idpath (fin_resp_sum_id s a1) (fin_resp_sum_id s a2)).
+      clear H.
+      rewrite BDet_SASB_canon_id.
+      rewrite BDet_SASB_canon_id.
+      rewrite BDet_SASB_canon_id.
+      simpl.
+      
+
+      
+      assert (H
+              : ap011
+                  (fun X X0 : BSigma => BDet (pr1 X0 + pr1 X) (sum_finite_types (pr2 X) (pr2 X0)))
+                  (BSigma_assoc (t; canon t) (s; canon s) (a1; canon a1))
+                  (BSigma_assoc (t; canon t) (s; canon s) (a2; canon a2))
+                =
+                ap (BDet _) (ap011
+                               sum_finite_types
+                               (ap (fun x : BSigma => pr2 x) (BSigma_assoc (t; canon t) (s; canon s) (a1; canon a1)))
+                               (ap pr2 (BSigma_assoc (t; canon t) (s; canon s) (a2; canon a2))))).
+      
+      unfold BDet_SASB_canon. simpl. 
+      simpl. rewrite concat_1p.
+      
+      
+      
+                   
+
+      point. unfold ispointed_type. 
       
 simpl.
       

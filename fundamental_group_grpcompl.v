@@ -386,22 +386,27 @@ Section GrpCompl_To_Fin2.
     apply invol_SymGrp2.
   Qed.
 
+  (* make these theri own lemmas because they don't need to get unfolded later *)
+  Definition BDet_sum_sum (s a1 a2 : nat)
+    : BDet _ (sum_finite_types (sum_finite_types (canon s) (canon a1))
+                               (sum_finite_types (canon s) (canon a2)))
+      = BDet _ (sum_finite_types (canon (a1 + s)) (canon (a2 + s)))
+    := ap (BDet _) (ap011 sum_finite_types
+                          (sum_finite_types_canon)
+                          (sum_finite_types_canon)).
+
+  Definition BDet_sum_canon2 (a1 a2 : nat)
+    : BDet _ (sum_finite_types (canon a1) (canon a2)) = canon 2
+    := ap (BDet _) sum_finite_types_canon @ deloop_fin_canon (a2 + a1) 2 (dethom _).  
+
   Definition BDet_SASB_canon (s a1 a2 : nat) :
     BDet (a2 + a1) (sum_finite_types (canon a1) (canon a2)) =
     BDet (a2 + s + (a1 + s))
          (sum_finite_types
             (sum_finite_types (canon s) (canon a1))
-            (sum_finite_types (canon s) (canon a2))).
-  Proof.
-    transitivity (canon 2).
-      * refine (_ @ (deloop_fin_canon (a2 + a1) 2 (dethom _))).
-        apply (ap (BDet (a2 + a1)) (sum_finite_types_canon)).
-      * apply inverse.
-        refine (_ @ (deloop_fin_canon (a2 + s + (a1 + s)) 2 (dethom (a2 + s + (a1 + s))))).
-        apply (ap (BDet _)).
-        refine (_ @ sum_finite_types_canon).
-        apply (ap011 sum_finite_types); apply sum_finite_types_canon.
-  Defined.
+            (sum_finite_types (canon s) (canon a2)))
+    :=
+      BDet_sum_canon2 a1 a2 @ ((BDet_sum_canon2 (a1 + s) (a2 + s))^ @ (BDet_sum_sum _ _ _)^).
   
   Definition BDet_SASB (s a1 a2 : nat)
              (S : Finite_Types s) (A1 : Finite_Types a1) (A2 : Finite_Types a2)
@@ -468,11 +473,11 @@ Section GrpCompl_To_Fin2.
       (path_triple_prod a b c).  unfold path_triple_prod.
       rewrite ap_fst_path_prod. rewrite ap_snd_path_prod. rewrite ap_snd_path_prod.
       rewrite ap_fst_path_prod.
-      apply moveL_pV. unfold BDet_SASB_canon.
-      rewrite inv_pp. 
+      apply moveL_pM. unfold BDet_SASB_canon.
+      rewrite inv_VV. 
       repeat rewrite <- concat_p_pp.        
       apply moveR_Vp. apply moveR_Mp. apply moveR_Mp.
-
+      
       refine (_ @ (ap (pft (canon 2) (canon 2))
                       (det_sasb _ _ _ (pft_inv p) (pft_inv q) (pft_inv r))) @ _).
       -refine (_ @ deloop_fin_loop _ _
@@ -480,16 +485,17 @@ Section GrpCompl_To_Fin2.
                  (pft (canon _) (canon _)
                       (block_sum (block_sum (pft_inv p) (pft_inv q))
                                               (block_sum (pft_inv p) (pft_inv r)))) @ _).
-       { destruct (deloop_fin_canon (a2 + s + (a1 + s)) 2 (dethom (a2 + s + (a1 + s)))).
-         rewrite concat_p1. rewrite concat_p1. rewrite concat_1p. rewrite concat_1p.
-         rewrite <- ap_pp. rewrite <- ap_V. rewrite <- ap_pp.
+       { unfold BDet_sum_canon2. unfold BDet_sum_sum.
+         destruct (deloop_fin_canon (a2 + s + (a1 + s)) 2 (dethom (a2 + s + (a1 + s)))).
+         rewrite concat_p1. rewrite concat_p1. rewrite concat_1p. 
+         rewrite <- ap_pp. rewrite <- ap_V. rewrite <- ap_pp. rewrite <- ap_V.
+         rewrite <- ap_pp. rewrite <- ap_pp.
          apply (ap (ap (BDet (a2 + s + (a1 + s))))).
          unfold block_sum. unfold pft. apply inverse.
          refine (path_finite_types_fix_compose
                    _ _
                    (sum_finite_types (canon _) (canon _)) _ _ _ @ _).
-         rewrite inv_pp.
-         refine (_ @ concat_p_pp _ _ _).
+         (* refine (_ @ concat_p_pp _ _ _). *)
          apply concat2.
          { refine (path_finite_types_fix_inv _ _ _). }
          refine (path_finite_types_fix_compose
@@ -553,7 +559,8 @@ Section GrpCompl_To_Fin2.
         refine (_ @ deloop_fin_loop _ _
                   (dethom (a2 + a1)) (pft (canon _) (canon _) (block_sum (pft_inv q) (pft_inv r)))
                   @ _).
-        { destruct (deloop_fin_canon (a2 + a1) 2 (dethom (a2 + a1))).
+        { unfold BDet_sum_canon2.
+          destruct (deloop_fin_canon (a2 + a1) 2 (dethom (a2 + a1))).
           rewrite concat_p1. rewrite concat_p1. rewrite concat_1p. rewrite concat_1p.
           rewrite <- ap_pp. rewrite <- ap_V. rewrite <- ap_pp.
           apply (ap (ap (BDet (a2 + a1)))).
@@ -621,6 +628,7 @@ Section GrpCompl_To_Fin2.
       apply (deloop_ind_prop (pFin s)).
       hnf.
       change (point (pFin ?n)) with (canon n).
+      unfold plus_BSigma.
       assert (H : forall (x m n : nat)
                        (S S': Finite_Types x) (A : Finite_Types m) (B : Finite_Types n)
                        (p : S = S'),
@@ -628,7 +636,7 @@ Section GrpCompl_To_Fin2.
                  BDet_SASB _ _ _ S' A B
                            @ (ap (BDet _)
                                  (ap (fun x => sum_finite_types (sum_finite_types x A)
-                                                                (sum_finite_types x B)) p^))).
+                                                                (sum_finite_types x B)) p))^).
       { intros. destruct p. refine (concat_p1 _)^. }
       rewrite (H _ _ _ _ _ _ _ (fin_resp_sum_id t s)). clear H.
       assert (H :
@@ -639,8 +647,8 @@ Section GrpCompl_To_Fin2.
                   (ap (BDet _) (ap011 sum_finite_types q r))
                     @ BDet_SASB _ _ _ S' A' B' @
                     (ap (BDet _) (ap011 sum_finite_types
-                                        (ap011 sum_finite_types p^ q^)
-                                        (ap011 sum_finite_types p^ r^)))).
+                                        (ap011 sum_finite_types p q)^
+                                        (ap011 sum_finite_types p r)^))).
       { intros. destruct p. destruct q. destruct r.
         refine (_ @ (concat_p1 _)^).
         refine (concat_1p _)^. }
@@ -651,7 +659,79 @@ Section GrpCompl_To_Fin2.
       rewrite BDet_SASB_canon_id.
       rewrite BDet_SASB_canon_id.
       simpl.
+      unfold BDet_SASB_canon.
+      rewrite <- (inv_V (BDet_sum_canon2 a1 a2)).
+      destruct (BDet_sum_canon2 a1 a2)^. rewrite concat_1p. rewrite concat_1p.
+      change (ap (BDet (a2 + s + (a1 + s)))
+      (ap011 sum_finite_types (fin_resp_sum_id s a1) (fin_resp_sum_id s a2)))
+             with
+             (BDet_sum_sum s a1 a2).
+      rewrite <- (inv_V (BDet_sum_sum s a1 a2)).
+      destruct (BDet_sum_sum s a1 a2)^. rewrite concat_1p. rewrite concat_p1.
+      rewrite <- (inv_V (BDet_sum_canon2 (a1 + s) (a2 + s))).
+      destruct (BDet_sum_canon2 (a1 + s) (a2 + s))^.
+      rewrite concat_1p. rewrite concat_1p.
+      assert (H : forall (m1 m2 n1 n2 : nat) (p1 : m1 = n1) (p2 : m2 = n2),
+                 (BDet_sum_canon2 m1 m2)
+                 = ap011 (fun x y => BDet _ (sum_finite_types (canon x) (canon y))) p1 p2
+                    @ (BDet_sum_canon2 n1 n2)).
+      { intros. destruct p1. destruct p2. destruct (BDet_sum_canon2 m1 m2). reflexivity. }
+      set (plus_assoc := nat_lemmas.plus_assoc).
+      rewrite (H _ _ _ _ (plus_assoc a1 s t) (plus_assoc a2 s t)). clear H.
+      rewrite inv_pp.
+      destruct (BDet_sum_canon2 (a1 + (s + t)) (a2 + (s + t))). rewrite concat_1p. rewrite concat_1p.
+      unfold BDet_sum_sum.
+      rewrite <- inv_pp. rewrite <- ap_pp.
+      refine (_ @ concat_p_pp _ _ _).
+      rewrite <- ap_V. rewrite <- ap_V. rewrite <- ap_pp.
+      rewrite ap_V. apply moveR_Vp.
+
+      (* define these above *)
+      assert (canon_BSigma_ab_c : forall (a b c : nat),
+                 plus_BSigma (plus_BSigma (canon_BSigma a) (canon_BSigma b)) (canon_BSigma c)
+                 = canon_BSigma ((a + b) + c)%nat).
+      { intros. apply path_BSigma. admit. }
+      assert (canon_BSigma_a_bc : forall (a b c : nat),
+                 plus_BSigma (canon_BSigma a) (plus_BSigma (canon_BSigma b) (canon_BSigma c))
+                 = canon_BSigma (a + (b + c)) % nat).
+      { intros. apply path_BSigma. admit. }
+                
       
+      assert (H : forall (a b c : nat),
+                 BSigma_assoc (a; canon a) (b; canon b) (c; canon c)
+                 = canon_BSigma_ab_c a b c
+                   @ (ap canon_BSigma (plus_assoc a b c))
+                   @ (canon_BSigma_a_bc a b c)^).
+      { admit. }
+      rewrite H. rewrite H.
+      
+      rewrite ap011_pp_pp.
+      rewrite ap011_pp_pp.
+
+      
+      
+      recall (BDet_sum_canon2 a1 a2)^ as h eqn:p.
+      rewrite (
+      repeat rewrite concat_pp_p.
+      apply whiskerL. apply whiskerL.
+      
+      unfold BDet_sum_sum.
+      repeat rewrite inv_pp.
+      repeat rewrite concat_p_pp.
+      apply moveL_pM.
+      apply moveL_pV. apply moveL_pV.
+      transitivity (idpath (canon 2)).
+      + apply moveR_pM.
+        repeat rewrite concat_pp_p.
+        refine (_ @ (concat_1p _)^).
+        apply moveR_Vp.
+        rewrite <- ap_V.
+        repeat 
+        
+        refine (_ @ (concat_pV _)^).
+      
+      apply whiskerR.
+      rewrite <- ap_pp.
 
       
       assert (H

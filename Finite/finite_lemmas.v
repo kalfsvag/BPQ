@@ -72,35 +72,116 @@ Section Equiv_Finsum.
       exact (functor_sum IHn idmap).
   Defined.
 
+  (* move *)
+  Definition sum_assoc (A B C : Type)
+    : A + B + C -> A + (B + C).
+  Proof.
+    intros [[a | b] | c].
+    - exact (inl a).
+    - exact (inr (inl b)).
+    - exact (inr (inr c)).
+  Defined.
+  
+  Definition sum_assoc_inv (A B C : Type)
+    : A + (B + C) -> (A + B) + C.
+  Proof.
+    intros [a | [b | c]].
+    - exact (inl (inl a)).
+    - exact (inl (inr b)).
+    - exact (inr c).
+  Defined.
+
+  Definition equiv_sum_assoc' (A B C : Type)
+    : (A + B) + C <~> A + (B + C).
+  Proof.
+    apply (equiv_adjointify (sum_assoc A B C) (sum_assoc_inv A B C)).
+    - intros [a | [b | c]]; reflexivity.
+    - intros [[a | b] | c]; reflexivity.
+  Defined.
+
   Definition finsum (m n : nat) : Fin m + Fin n -> Fin (n+m).
   Proof.
-    intros [i | j].
-    - exact (finl _ _ i).
-    - exact (finr _ _ j).
+    induction n; simpl.
+    - apply sum_empty_r.
+    - exact (functor_sum (IHn) idmap o (equiv_sum_assoc' _ _ _)^-1).
+  Defined.
+      
+  (*   intros [i | j]. *)
+  (*   - exact (finl _ _ i). *)
+  (*   - exact (finr _ _ j). *)
+  (* Defined. *)
+
+  Definition finsum_l (m n : nat) (x : Fin m)
+    : finsum m n (inl x) = finl m n x.
+  Proof.
+    induction n; try reflexivity.
+    simpl. exact (ap inl IHn).
+  Defined.
+
+  Definition finsum_r (m n : nat) (x : Fin n)
+    : finsum m n (inr x) = finr m n x.
+  Proof.
+    induction n; try reflexivity.
+    simpl.
+    destruct x as [x | x]; try reflexivity. simpl.
+    exact (ap inl (IHn x)).
+  Defined.    
+             
+  
+  (* Definition finsum_succ (m n : nat) *)
+  (*   : finsum m n.+1 == (functor_sum (finsum m n) idmap) o (equiv_sum_assoc _ _ _)^-1. *)
+  (* Proof. *)
+  (*   intros [i | [i | []]]; reflexivity. *)
+  (* Defined. *)
+
+  Definition finsum_inv (m n : nat) : Fin (n+m) -> Fin m + Fin n.
+  Proof.
+    induction n;simpl.
+    - exact inl.
+    - refine (equiv_sum_assoc' _ _ _ o _).
+      exact (functor_sum IHn idmap).
   Defined.
 
   Global Instance isequiv_finsum {m n : nat} : IsEquiv (finsum m n).
   Proof.
-    induction n.
-    - simpl.
-      assert (h : finsum m 0 = (sum_empty_r (Fin m))).
-      { apply path_arrow.
-        intros [x | []]; reflexivity. }
-      rewrite h.  exact _.
-    - assert (h : finsum m n.+1 =
-                  (functor_sum (finsum m n) idmap) o (equiv_sum_assoc (Fin m) (Fin n) Unit)^-1).
-      { apply path_arrow.
-        intros [i | [i | []]]; reflexivity. }
-      rewrite h.
-      apply (isequiv_compose (g := (functor_sum (B := Unit) (finsum m n) (idmap)))).
-  Qed.
+    apply (isequiv_adjointify (finsum m n) (finsum_inv m n)).
+    - intro x.
+      induction n; try reflexivity. simpl.
+      refine (ap (functor_sum (finsum m n) idmap) 
+                 (eissect
+                    (equiv_sum_assoc' (Fin m) (Fin n) Unit)
+                    (functor_sum (finsum_inv m n) idmap x)) @ _).
+      destruct x as [x | x]; try reflexivity. simpl.
+      exact (ap inl (IHn x)).
+    - intro x. 
+      induction n.
+      { simpl. destruct x as [x | []]. reflexivity. }
+      refine (_ @ eisretr (equiv_sum_assoc' (Fin m) (Fin n) Unit) x).
+      simpl. 
+      apply (ap (equiv_sum_assoc _ _ _)).
+      generalize ((sum_assoc_inv (Fin m) (Fin n) Unit x)). clear x. intro x.
+      destruct x as [x | x]; try reflexivity.
+      simpl. exact (ap inl (IHn x)).
+  Defined.
+    (* induction n. *)
+    (* - simpl. *)
+    (*   assert (h : finsum m 0 = (sum_empty_r (Fin m))). *)
+    (*   { apply path_arrow. *)
+    (*     intros [x | []]; reflexivity. } *)
+    (*   rewrite h.  exact _. *)
+    (* - assert (h : finsum m n.+1 = *)
+    (*               (functor_sum (finsum m n) idmap) o (equiv_sum_assoc (Fin m) (Fin n) Unit)^-1). *)
+    (*   { apply path_arrow. *)
+    (*     intros [i | [i | []]]; reflexivity. } *)
+    (*   rewrite h. *)
+    (*   apply (isequiv_compose (g := (functor_sum (B := Unit) (finsum m n) (idmap)))). *)
 
-  (* TODO: rename to equiv_finsum *)
-  Definition fin_resp_sum (m n : nat) : (Fin m) + (Fin n) <~> Fin (n + m) :=
+
+  Definition equiv_finsum (m n : nat) : (Fin m) + (Fin n) <~> Fin (n + m) :=
     BuildEquiv _ _ (finsum m n) isequiv_finsum.
 
-  (* Definition fin_resp_sum_last (m n : nat) : *)
-  (*   fin_resp_sum m n.+1 (inr (inr tt)) = (inr tt) := idpath. *)
+  (* Definition equiv_finsum_last (m n : nat) : *)
+  (*   equiv_finsum m n.+1 (inr (inr tt)) = (inr tt) := idpath. *)
 End Equiv_Finsum.
 
 Require Import (* B_Aut *) pointed_lemmas.
@@ -163,7 +244,7 @@ Section Finite_Types.
     destruct A as [A fA]. destruct B as [B fB]. strip_truncations.
     apply tr. simpl.
     refine (_ oE equiv_functor_sum' fA fB).
-    apply fin_resp_sum.
+    apply equiv_finsum.
   Defined.
 
   
@@ -317,7 +398,7 @@ Definition sum_finite_types_canon {m n : nat} :
   sum_finite_types (canon m) (canon n) = canon (n + m).
 Proof.
   apply path_finite_types_fix. simpl.
-  apply fin_resp_sum.
+  apply equiv_finsum.
 Defined.
   
 

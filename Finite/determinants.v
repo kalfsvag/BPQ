@@ -279,7 +279,7 @@ Section Determinant.
   (*   - apply (block_sum_fixlast m n e1 e2)^-1. *)
   (*   - srapply @functor_sigma. *)
   (*     + intro i. *)
-  (*       apply (fin_resp_sum m n)^-1. exact (inr i). *)
+  (*       apply (equiv_finsum m n)^-1. exact (inr i). *)
   (*     + intro i. simpl. *)
   (*       intro p. *)
   (*       rewrite p. reflexivity. *)

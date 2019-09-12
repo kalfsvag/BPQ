@@ -121,12 +121,12 @@ Section BSigma.
         
   (*       (plus_BSigma (canon_BSigma b) (canon_BSigma a)) *)
   (*       (canon_BSigma _) *)
-  (*       (fin_resp_sum b a) *)
+  (*       (equiv_finsum b a) *)
   (*   = *)
   (*   @path_BSigma *)
   (*     (plus_BSigma (canon_BSigma a) (canon_BSigma b)) *)
   (*     (canon_BSigma _) *)
-  (*     (fin_resp_sum a b) *)
+  (*     (equiv_finsum a b) *)
   (*   @ *)
   (*   ap canon_BSigma (nat_plus_comm b a). *)
   (* Proof. *)
@@ -345,9 +345,81 @@ Section BSigma.
   Definition sum_canon_BSigma (j k : nat) :
     plus_BSigma (canon_BSigma j) (canon_BSigma k) = canon_BSigma (k + j)%nat.
   Proof.
-    srapply @path_BSigma. apply fin_resp_sum.
-  Defined.    
+    srapply @path_BSigma. apply equiv_finsum.
+  Defined.
+
+  Definition canon_assoc (a b c : nat)
+    : Fin (a + (b + c)) <~> Fin ((a + b) + c ).
+  Proof.
+    refine (_ oE (equiv_finsum _ _)^-1).
+    refine (_ oE (equiv_functor_sum_r (equiv_finsum _ _))^-1).
+    refine (_ oE ((equiv_sum_assoc' _ _ _))).
+    refine (equiv_finsum _ _ oE _).
+    apply (equiv_functor_sum_l (equiv_finsum _ _)).
+  Defined.
+
+  (* Definition canon_assoc (a b c : nat) *)
+  (*   : Fin ((a + b) + c ) <~> Fin (a + (b + c)). *)
+  (* Proof. *)
+  (*   refine (_ oE (equiv_finsum _ _)^-1). *)
+  (*   refine (_ oE (equiv_functor_sum_l (equiv_finsum _ _))^-1). *)
+  (*   refine (_ oE ((equiv_sum_assoc _ _ _))^-1). *)
+  (*   refine (equiv_finsum _ _ oE _). *)
+  (*   apply (equiv_functor_sum_r (equiv_finsum _ _)). *)
+  (* Defined. *)
+
+  
+  Definition equiv_functor_sum_r_compose
+    : forall (A A1 A2 B : Type)
+             (e1 : A <~> A1)
+             (e2 : A1 <~> A2),
+      equiv_functor_sum_r (B := B) (e2 oE e1)
+      = equiv_functor_sum_r (B:= B) e2 oE equiv_functor_sum_r (B := B) e1.
+  Proof.
+    intros. apply path_equiv. apply path_arrow.
+    intros [x | x]; reflexivity.
+  Defined.
+
+  (* move *)
+  Definition equiv_finsum_succ (a b : nat)
+    : equiv_finsum a (b.+1) = equiv_functor_sum_r (equiv_finsum a b) oE (equiv_sum_assoc' _ _ _)^-1.
+  Proof.
+    apply path_equiv. apply path_arrow.
+    intro x. simpl. reflexivity.
+  Defined.
+
+  Definition canon_assoc_succ (a b c : nat)
+    : canon_assoc (a.+1) b c
+      = equiv_functor_sum_r (canon_assoc a b c).
+  Proof.
     
+    unfold canon_assoc. simpl.
+    apply emoveR_eV. apply emoveR_eV.
+    repeat rewrite equiv_functor_sum_r_compose.
+    apply path_equiv.  apply path_arrow.  intro x. ev_equiv. simpl.
+    apply (ap (equiv_functor_sum_r (equiv_finsum c (a + b)))).
+    destruct x as [[x | x] | [x | x]]; simpl.
+    - apply (ap inl).
+      change (finsum (b+c) a ?y) with (equiv_finsum (b+c) a y).
+      change (finsum_inv (b+c) a ?y) with ((equiv_finsum (b+c) a)^-1 y).
+      rewrite eissect. simpl.
+      change (finsum c b ?y) with (equiv_finsum c b y).
+      change (finsum_inv c b ?y) with ((equiv_finsum c b)^-1 y).
+      rewrite eissect. reflexivity.
+    - apply (ap inl).
+      change (finsum (b+c) a ?y) with (equiv_finsum (b+c) a y).
+      change (finsum_inv (b+c) a ?y) with ((equiv_finsum (b+c) a)^-1 y).
+      rewrite eissect. simpl.
+      change (finsum c b ?y) with (equiv_finsum c b y).
+      change (finsum_inv c b ?y) with ((equiv_finsum c b)^-1 y).
+      rewrite eissect. reflexivity.
+    - apply (ap inl).
+      change (finsum (b+c) a ?y) with (equiv_finsum (b+c) a y).
+      change (finsum_inv (b+c) a ?y) with ((equiv_finsum (b+c) a)^-1 y).
+      rewrite eissect. simpl. reflexivity.
+    - reflexivity.
+  Defined.
+      
   Definition canon_BSigma_assoc (j k l : nat) :
     canon_BSigma (j + k + l)%nat = canon_BSigma (j + (k + l))%nat.
   Proof.
@@ -357,6 +429,42 @@ Section BSigma.
     refine (_ @ sum_canon_BSigma _ _).
     refine (ap (fun x => plus_BSigma x (canon_BSigma j)) (sum_canon_BSigma _ _)).
   Defined.
+
+  Definition canon_BSigma_succ (a : nat)
+    : canon_BSigma (a.+1) = plus_BSigma (canon_BSigma a) (canon_BSigma 1).
+  Proof.
+    apply path_BSigma. apply equiv_functor_sum_l.
+    simpl. apply equiv_inverse.
+    apply sum_empty_l.
+  Defined.
+
+  Definition canon_BSigma_assoc_succ (a b c : nat)
+    : canon_BSigma_assoc (a.+1) b c
+      = canon_BSigma_succ _ @ ap (fun x => plus_BSigma x (canon_BSigma 1)) (canon_BSigma_assoc a b c)
+                          @ (canon_BSigma_succ _)^.
+  Proof.
+    unfold canon_BSigma_assoc. unfold canon_BSigma_succ.
+    apply moveR_Vp. apply moveR_Vp.
+    unfold sum_canon_BSigma.    
+    repeat rewrite path_BSigma_V. simpl.
+    rewrite natural_path_BSigma_l. rewrite natural_path_BSigma_l.
+    rewrite natural_path_BSigma_r. rewrite natural_path_BSigma_r.
+    rewrite path_BSigma_V. 
+    repeat rewrite <- path_BSigma_compose.
+    rewrite natural_path_BSigma_l. repeat rewrite <- path_BSigma_compose.
+    
+    apply (ap path_BSigma). 
+    apply path_equiv. apply path_arrow.
+    intros [x | [x | [x | x]]]; simpl.
+    - apply (ap inl).
+      unfold finsum. 
+    unfold canon_BSigma in x. unfold canon in x. 
+    simpl in x.
+    
+    
+    
+    
+    
 
   Definition eq_canon_BSigma_assoc (j k l : nat)
     : canon_BSigma_assoc j k l = ap canon_BSigma (plus_assoc j k l).
@@ -378,12 +486,17 @@ Section BSigma.
       apply path_equiv. apply path_arrow. simpl.
       intros [x | [y | []]]; reflexivity.
     - simpl.
+      assert (forall (m n : nat) (p : m = n),
+
+                 ap canon_BSigma (ap S p)
+              = ap (fun x => plus_BSigma x (canon_BSigma 1)) (ap canon_BSigma p)).
+
       
       
       refine (_ @ ap_compose S canon_BSigma (plus_assoc j k l)).
-      assert 
+      assert
       assert (H : forall x : nat, canon_BSigma x.+1 = plus_BSigma (canon_BSigma x) (canon_BSigma 1)).
-      { intro x. apply path_BSigma. 
+      { intro x. apply path_BSigma.
         apply equiv_functor_sum_l. apply equiv_inverse. apply sum_empty_l. }
       rewrite (path_arrow (fun x : nat => canon_BSigma x.+1)
                           (fun x : nat => plus_BSigma (canon_BSigma x) (canon_BSigma 1)) H).
@@ -406,13 +519,13 @@ Section BSigma.
       rewrite path_BSigma_V. rewrite <- path_BSigma_compose.
       change (path_BSigma ?f) with (equiv_path_BSigma _ _ f).
       refine (_ @ ap (fun f => equiv_functor_sum_r (B:= Unit) f
-                     oE (fin_resp_sum l (j + k).+1 oE equiv_functor_sum_l (fin_resp_sum k j.+1)))
+                     oE (equiv_finsum l (j + k).+1 oE equiv_functor_sum_l (equiv_finsum k j.+1)))
                 (eissect
                    (equiv_path_BSigma (canon_BSigma (j + k + l)) (canon_BSigma (j + (k + l))))
-                   (fin_resp_sum (k + l) j oE equiv_functor_sum_r (fin_resp_sum l k)
+                   (equiv_finsum (k + l) j oE equiv_functor_sum_r (equiv_finsum l k)
                                  oE (equiv_sum_assoc (Fin l) (Fin k) (Fin j))^-1
-                                 oE (fin_resp_sum l (j + k)
-                                                  oE equiv_functor_sum_l (fin_resp_sum k j))^-1)
+                                 oE (equiv_finsum l (j + k)
+                                                  oE equiv_functor_sum_l (equiv_finsum k j))^-1)
                 )^).
       (* move *)
       assert (equiv_functor_sum_r_compose : forall (A A1 A2 B : Type)
@@ -480,7 +593,7 @@ Proof.
              (n+m)
              (sum_finite_types (canon m) (canon n))
              (canon (n+m))
-             (fin_resp_sum m n)).
+             (equiv_finsum m n)).
 Defined.
 
 

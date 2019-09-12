@@ -161,7 +161,7 @@ Section loop_BSigma.
     - intros [A B]. apply (sum_finite_types A B).
     - simpl.  unfold point. unfold ispointed_finite_types.
       apply path_finite_types_fix.
-      apply fin_resp_sum.
+      apply equiv_finsum.
   Defined.
 
     Definition loop_BSigma_sum (m n : nat)
@@ -182,7 +182,7 @@ Section loop_BSigma.
     refine (_ @ (ap (fun p => _ @ p)
                     (path_finite_types_fix_inv
                        (sum_finite_types (canon m) (canon n)) (canon (n + m))
-                       (fin_resp_sum m n)))).
+                       (equiv_finsum m n)))).
     refine (_ @ path_finite_types_fix_compose _ _ _ _ _ _).
     transitivity
       (path_finite_types_fix
@@ -222,7 +222,7 @@ Section loop_BSigma.
     - apply (ap (path_finite_types_fix _ _ _ )).
       apply path_equiv. apply path_arrow. intro x.
       apply inverse. ev_equiv.
-      refine (eissect (fin_resp_sum m n) ((s +E t) ((fin_resp_sum m n)^-1 ((fin_resp_sum m n) x))) @ _).
+      refine (eissect (equiv_finsum m n) ((s +E t) ((equiv_finsum m n)^-1 ((equiv_finsum m n) x))) @ _).
       apply (ap (s +E t)).
       apply eissect.
   Defined.
@@ -356,7 +356,7 @@ Proof.
                                              (sum_finite_types (canon m) (canon n))
                                              (canon (n+m))
                                              _
-                                             (fin_resp_sum m n oE (equiv_idmap +E s)))^).
+                                             (equiv_finsum m n oE (equiv_idmap +E s)))^).
   apply concat2.
   { simpl.  unfold point. unfold ispointed_finite_types.
     apply inverse.
@@ -366,7 +366,7 @@ Proof.
                                            (sum_finite_types (canon m) (canon n))
                                            (canon (n+m))
                                            (equiv_idmap +E s)
-                                           (fin_resp_sum m n))^).
+                                           (equiv_finsum m n))^).
   apply whiskerR.
   refine (_ @
             ap (fun e => _ (equiv_idmap +E e))

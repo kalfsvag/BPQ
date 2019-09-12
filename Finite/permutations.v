@@ -296,14 +296,14 @@ Defined.
 Section Block_Sum.
 Definition block_sum {m n: nat} (e1 : Fin m <~> Fin m) (e2 : Fin n <~> Fin n) :
   Fin (n+m)%nat <~> Fin (n+m)%nat :=
-  (fin_resp_sum m n) oE (e1 +E e2) oE (equiv_inverse (fin_resp_sum m n)).
+  (equiv_finsum m n) oE (e1 +E e2) oE (equiv_inverse (equiv_finsum m n)).
 
 Definition block_sum_beta_finl {m n : nat} (e1 : Fin m <~> Fin m) (e2 : Fin n <~> Fin n)
            (i : Fin m) :
   block_sum e1 e2 (finl _ _ i) = finl _ _ (e1 i).
 Proof.
   unfold block_sum. ev_equiv.
-  rewrite (eissect (fin_resp_sum m n) (inl i)). reflexivity.
+  rewrite (eissect (equiv_finsum m n) (inl i)). reflexivity.
 Qed.
 
 Definition block_sum_beta_finr {m n : nat} (e1 : Fin m <~> Fin m) (e2 : Fin n <~> Fin n)
@@ -311,7 +311,7 @@ Definition block_sum_beta_finr {m n : nat} (e1 : Fin m <~> Fin m) (e2 : Fin n <~
   block_sum e1 e2 (finr _ _ i) = finr _ _ (e2 i).
 Proof.
   unfold block_sum. ev_equiv.
-  rewrite (eissect (fin_resp_sum m n) (inr i)). reflexivity.
+  rewrite (eissect (equiv_finsum m n) (inr i)). reflexivity.
 Qed.
 
 Definition block_sum_eta {m n : nat} 
@@ -327,9 +327,9 @@ Definition block_sum_eta {m n : nat}
 Proof.
   unfold block_sum. intro j. revert j.
   apply fin_decompose_ind.
-  - simpl. intro i. rewrite (eissect (fin_resp_sum m n) (inl i)).
+  - simpl. intro i. rewrite (eissect (equiv_finsum m n) (inl i)).
     apply eq_l.
-  - simpl. intro i. rewrite (eissect (fin_resp_sum m n) (inr i)).
+  - simpl. intro i. rewrite (eissect (equiv_finsum m n) (inr i)).
     apply eq_r.
 Qed.
 

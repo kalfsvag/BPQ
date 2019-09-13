@@ -327,9 +327,9 @@ Definition block_sum_eta {m n : nat}
 Proof.
   unfold block_sum. intro j. revert j.
   apply fin_decompose_ind.
-  - simpl. intro i. rewrite (eissect (equiv_finsum m n) (inl i)).
+  - intro i. ev_equiv. rewrite (eissect (equiv_finsum m n) (inl i)).
     apply eq_l.
-  - simpl. intro i. rewrite (eissect (equiv_finsum m n) (inr i)).
+  - intro i.  ev_equiv. rewrite (eissect (equiv_finsum m n) (inr i)).
     apply eq_r.
 Qed.
 
@@ -357,11 +357,14 @@ Definition block_sum_plus1 {m n : nat}
 Proof.
   
   apply block_sum_eta.
-  - simpl.
-    intro i. apply (ap inl).
+  - intro i. simpl. 
+    apply (ap inl).
+    change (finsum_inv m n) with (equiv_finsum m n)^-1.
     rewrite (eissect (finsum m n) (inl i)). reflexivity.
   - simpl. intros [i | []].
-    + simpl. rewrite (eissect (finsum m n) (inr i)). reflexivity.
+    + simpl.
+      change (finsum_inv m n) with (equiv_finsum m n)^-1.
+      rewrite (eissect (finsum m n) (inr i)). reflexivity.
     + reflexivity.
 Qed.
 

@@ -101,38 +101,37 @@ Section Equiv_Finsum.
 
   Definition finsum (m n : nat) : Fin m + Fin n -> Fin (n+m).
   Proof.
-    induction n; simpl.
-    - apply sum_empty_r.
-    - exact (functor_sum (IHn) idmap o (equiv_sum_assoc' _ _ _)^-1).
+  (*   induction n; simpl. *)
+  (*   - apply sum_empty_r. *)
+  (*   - exact (functor_sum (IHn) idmap o (equiv_sum_assoc' _ _ _)^-1). *)
+  (* Defined. *)
+    intros [i | j].
+    - exact (finl _ _ i).
+    - exact (finr _ _ j).
   Defined.
-      
-  (*   intros [i | j]. *)
-  (*   - exact (finl _ _ i). *)
-  (*   - exact (finr _ _ j). *)
+
+  (* Definition finsum_l (m n : nat) (x : Fin m) *)
+  (*   : finsum m n (inl x) = finl m n x. *)
+  (* Proof. *)
+  (*   induction n; try reflexivity. *)
+  (*   simpl. exact (ap inl IHn). *)
   (* Defined. *)
 
-  Definition finsum_l (m n : nat) (x : Fin m)
-    : finsum m n (inl x) = finl m n x.
-  Proof.
-    induction n; try reflexivity.
-    simpl. exact (ap inl IHn).
-  Defined.
-
-  Definition finsum_r (m n : nat) (x : Fin n)
-    : finsum m n (inr x) = finr m n x.
-  Proof.
-    induction n; try reflexivity.
-    simpl.
-    destruct x as [x | x]; try reflexivity. simpl.
-    exact (ap inl (IHn x)).
-  Defined.    
+  (* Definition finsum_r (m n : nat) (x : Fin n) *)
+  (*   : finsum m n (inr x) = finr m n x. *)
+  (* Proof. *)
+  (*   induction n; try reflexivity. *)
+  (*   simpl. *)
+  (*   destruct x as [x | x]; try reflexivity. simpl. *)
+  (*   exact (ap inl (IHn x)). *)
+  (* Defined.     *)
              
   
-  (* Definition finsum_succ (m n : nat) *)
-  (*   : finsum m n.+1 == (functor_sum (finsum m n) idmap) o (equiv_sum_assoc _ _ _)^-1. *)
-  (* Proof. *)
-  (*   intros [i | [i | []]]; reflexivity. *)
-  (* Defined. *)
+  Definition finsum_succ (m n : nat)
+    : finsum m n.+1 == (functor_sum (finsum m n) idmap) o (sum_assoc_inv _ _ _).
+  Proof.
+    intros [i | [i | []]]; reflexivity.
+  Defined.
 
   Definition finsum_inv (m n : nat) : Fin (n+m) -> Fin m + Fin n.
   Proof.
@@ -146,7 +145,7 @@ Section Equiv_Finsum.
   Proof.
     apply (isequiv_adjointify (finsum m n) (finsum_inv m n)).
     - intro x.
-      induction n; try reflexivity. simpl.
+      induction n; try reflexivity. simpl. rewrite finsum_succ.
       refine (ap (functor_sum (finsum m n) idmap) 
                  (eissect
                     (equiv_sum_assoc' (Fin m) (Fin n) Unit)
@@ -158,7 +157,7 @@ Section Equiv_Finsum.
       { simpl. destruct x as [x | []]. reflexivity. }
       refine (_ @ eisretr (equiv_sum_assoc' (Fin m) (Fin n) Unit) x).
       simpl. 
-      apply (ap (equiv_sum_assoc _ _ _)).
+      apply (ap (equiv_sum_assoc _ _ _)). rewrite finsum_succ.
       generalize ((sum_assoc_inv (Fin m) (Fin n) Unit x)). clear x. intro x.
       destruct x as [x | x]; try reflexivity.
       simpl. exact (ap inl (IHn x)).

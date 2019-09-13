@@ -344,18 +344,22 @@ Section Determinant.
       apply (ap (determinant m)).
       apply path_equiv. apply path_arrow. intro.
       apply (block_sum_beta_finl e1 e2 x).
-    - simpl.
-      change (finsum m n.+1 (functor_sum e1 e2 (_^-1 (inr tt))))
-             with
-             (block_sum e1 e2 (inr tt)).
-      rewrite (block_sum_beta_finr e1 e2 (inr tt)).
+    - simpl. 
+      (* change (finsum m n.+1 (functor_sum e1 e2 (_^-1 (inr tt)))) *)
+      (*        with *)
+      (*        (block_sum e1 e2 (inr tt)). *)
+      
+      (* rewrite (block_sum_beta_finr e1 e2 (inr tt)). *)
       rewrite (path_equiv (path_forall _ _ (transpose_and_restrict_block_sum e1 e2))).
       rewrite (IHn (transpose_and_restrict e2)).
       refine (ecompose_e_ee _ _ _ @ _).
       apply (ap (fun g =>
                    g oE determinant n (transpose_and_restrict e2) oE
                      determinant m e1)).
-      destruct (e2 (inr tt)); reflexivity.
+      cut (forall x : Fin n.+1,
+              det_transpose (functor_sum (finr m n) idmap x) = det_transpose x).
+      { intro H. apply H. }
+      intros [x | x]; reflexivity.
   Qed.
   
   (* Fixpoint block_sum_lid (m : nat) (n : nat) (e : Fin n <~> Fin n) : *)

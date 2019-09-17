@@ -132,7 +132,7 @@ Section Finite_Subsets.
     B1 = B2.
   Proof.
     srapply @path_sigma.
-    - apply (path_finite_types_fix k). exact e.
+    - apply (path_finite_types k). exact e.
     - apply path_sigma_hprop. refine (_ @ h). destruct B1 as [B1 [f1 emb1]]. destruct B2 as [B2 [f2 emb2]]. cbn in *.
       refine (_ @ transport_exp_finite_fix k e f1). cbn.
       apply (ap pr1 (transport_sigma (A := Finite_Types k) (B := fun B => B -> A) (C := fun B f => IsEmbedding f)

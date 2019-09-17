@@ -13,9 +13,9 @@ Definition iso_loop_symgrp (m : nat) :
   Proof.
     srapply @Build_Grp_Iso'.
     - simpl. unfold point. unfold ispointed_finite_types.
-      apply (equiv_path_finite_types_fix m (canon m) (canon m)).
+      apply (equiv_path_finite_types m (canon m) (canon m)).
     - intros e1 e2. simpl in e1, e2.
-      apply (path_finite_types_fix_compose m (canon m) (canon m) (canon m) e1 e2).
+      apply (path_finite_types_compose m (canon m) (canon m) (canon m) e1 e2).
   Defined.
 Section loop_BSigma.
 
@@ -160,7 +160,7 @@ Section loop_BSigma.
     srapply @Build_pMap.
     - intros [A B]. apply (sum_finite_types A B).
     - simpl.  unfold point. unfold ispointed_finite_types.
-      apply path_finite_types_fix.
+      apply path_finite_types.
       apply equiv_finsum.
   Defined.
 
@@ -177,49 +177,49 @@ Section loop_BSigma.
     destruct x as [s t]. simpl.
     unfold block_sum.
     apply moveR_Vp.
-    refine (_ @ path_finite_types_fix_compose _ _ _ _ _ _).
+    refine (_ @ path_finite_types_compose _ _ _ _ _ _).
     apply moveR_pM.
     refine (_ @ (ap (fun p => _ @ p)
-                    (path_finite_types_fix_inv
+                    (path_finite_types_V
                        (sum_finite_types (canon m) (canon n)) (canon (n + m))
                        (equiv_finsum m n)))).
-    refine (_ @ path_finite_types_fix_compose _ _ _ _ _ _).
+    refine (_ @ path_finite_types_compose _ _ _ _ _ _).
     transitivity
-      (path_finite_types_fix
+      (path_finite_types
          (n + m)
          (sum_finite_types (canon m) (canon n))
          (sum_finite_types (canon m) (canon n))
          (s +E t)).
     - refine (_ @
                 (ap011 (fun g h =>
-                          path_finite_types_fix
+                          path_finite_types
                             (n + m)
                             (sum_finite_types (canon m) (canon n))
                             (sum_finite_types (canon m) (canon n))
                             (g +E h))
-                       (eissect (equiv_path_finite_types_fix m (canon m) (canon m)) s)
-                       (eissect (equiv_path_finite_types_fix n (canon n) (canon n)) t))).
-      change ((equiv_path_finite_types_fix ?m (canon ?m) (canon ?m)) ?s) with
-      ((path_finite_types_fix m (canon m) (canon m)) s).
-      generalize ((path_finite_types_fix m (canon m) (canon m)) s). clear s. intro s.
-      generalize ((path_finite_types_fix n (canon n) (canon n)) t). clear t. intro t.
+                       (eissect (equiv_path_finite_types m (canon m) (canon m)) s)
+                       (eissect (equiv_path_finite_types n (canon n) (canon n)) t))).
+      change ((equiv_path_finite_types ?m (canon ?m) (canon ?m)) ?s) with
+      ((path_finite_types m (canon m) (canon m)) s).
+      generalize ((path_finite_types m (canon m) (canon m)) s). clear s. intro s.
+      generalize ((path_finite_types n (canon n) (canon n)) t). clear t. intro t.
       revert s t.
       cut (forall (A : Finite_Types m) (B: Finite_Types n)
                   (s : canon m = A) (t : canon n = B),
               ap (fun X : Finite_Types m * Finite_Types n => sum_finite_types (fst X) (snd X))
                  (path_prod (canon m, canon n) (A, B) s t) =
-              path_finite_types_fix (n + m) (sum_finite_types (canon m) (canon n))
+              path_finite_types (n + m) (sum_finite_types (canon m) (canon n))
                                     (sum_finite_types A B)
-                                    ((equiv_path_finite_types_fix m (canon m) A)^-1 s
-                                     +E (equiv_path_finite_types_fix n (canon n) B)^-1 t)).
+                                    ((equiv_path_finite_types m (canon m) A)^-1 s
+                                     +E (equiv_path_finite_types n (canon n) B)^-1 t)).
       { intro H. apply H. }
       intros A B [] []. simpl. 
       apply inverse.
-      refine (_ @ path_finite_types_fix_id _ _).
-      apply (ap (path_finite_types_fix _ _ _)).
+      refine (_ @ path_finite_types_id _ _).
+      apply (ap (path_finite_types _ _ _)).
       apply path_equiv. apply path_arrow. intros [x | x]; reflexivity.                       
                        
-    - apply (ap (path_finite_types_fix _ _ _ )).
+    - apply (ap (path_finite_types _ _ _ )).
       apply path_equiv. apply path_arrow. intro x.
       apply inverse. ev_equiv.
       refine (eissect (equiv_finsum m n) ((s +E t) ((equiv_finsum m n)^-1 ((equiv_finsum m n) x))) @ _).
@@ -350,9 +350,9 @@ Proof.
   change (Build_GrpHom ?f _ ?x) with (f x). unfold block_sum.
   change ((?f oH ?g oH ?h) s) with (f (g (h s))).
   apply moveR_equiv_V.
-  change ((iso_loop_symgrp ?n) ?x) with (path_finite_types_fix n (canon n) (canon n) x).
+  change ((iso_loop_symgrp ?n) ?x) with (path_finite_types n (canon n) (canon n) x).
   change ((functor_loop _ _ ?f) ?p) with ((point_eq f)^ @ (ap f p @ point_eq f)).
-  refine (_ @ (path_finite_types_fix_compose (n+m) (canon (n+m))
+  refine (_ @ (path_finite_types_compose (n+m) (canon (n+m))
                                              (sum_finite_types (canon m) (canon n))
                                              (canon (n+m))
                                              _
@@ -360,8 +360,8 @@ Proof.
   apply concat2.
   { simpl.  unfold point. unfold ispointed_finite_types.
     apply inverse.
-    apply path_finite_types_fix_inv. }
-  refine (_ @ (path_finite_types_fix_compose (n+m)
+    apply path_finite_types_V. }
+  refine (_ @ (path_finite_types_compose (n+m)
                                            (sum_finite_types (canon m) (canon n))
                                            (sum_finite_types (canon m) (canon n))
                                            (canon (n+m))
@@ -370,22 +370,22 @@ Proof.
   apply whiskerR.
   refine (_ @
             ap (fun e => _ (equiv_idmap +E e))
-            (eissect (equiv_path_finite_types_fix n (canon n) (canon n)) s)).
-  change (equiv_path_finite_types_fix n (canon n) (canon n) s) with
-  (path_finite_types_fix n (canon n) (canon n) s).
-  generalize (path_finite_types_fix n (canon n) (canon n) s). clear s. intro s.
+            (eissect (equiv_path_finite_types n (canon n) (canon n)) s)).
+  change (equiv_path_finite_types n (canon n) (canon n) s) with
+  (path_finite_types n (canon n) (canon n) s).
+  generalize (path_finite_types n (canon n) (canon n) s). clear s. intro s.
   revert s.
   cut (forall (A : Finite_Types n) (s : canon n = A),
           ap (add_canon m n) s =
-          path_finite_types_fix (n + m)
+          path_finite_types (n + m)
                                 (sum_finite_types (canon m) (canon n))
                                 (sum_finite_types (canon m) A)
-                                (equiv_idmap +E (equiv_path_finite_types_fix _ _ _)^-1 s)).
+                                (equiv_idmap +E (equiv_path_finite_types _ _ _)^-1 s)).
   { intro H. apply H. }
   intros A []. simpl.
   apply inverse.
-  refine (_ @ path_finite_types_fix_id _ _).
-  apply (ap (path_finite_types_fix _ _ _)).
+  refine (_ @ path_finite_types_id _ _).
+  apply (ap (path_finite_types _ _ _)).
   apply path_equiv. apply path_arrow.
   intros [x | x]; reflexivity.
 Defined.

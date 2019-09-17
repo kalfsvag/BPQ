@@ -252,35 +252,35 @@ End Finite_Types.
 Section Path_Finite_Types.
 
   (* Path types in various "types of finite types" *)
-  Definition path_finite_types_fix (n : nat) (s t : Finite_Types n)
+  Definition path_finite_types (n : nat) (s t : Finite_Types n)
     : (s <~> t) -> s = t
     :=  path_sigma_hprop _ _ o path_universe_uncurried.
 
-  Lemma path_finite_types_fix_id (m : nat) (A : Finite_Types m) :
-    path_finite_types_fix m A A equiv_idmap = idpath.
+  Lemma path_finite_types_id (m : nat) (A : Finite_Types m) :
+    path_finite_types m A A equiv_idmap = idpath.
   Proof.
-    unfold path_finite_types_fix. apply moveR_equiv_M.
+    unfold path_finite_types. apply moveR_equiv_M.
     simpl. unfold path_universe_uncurried.
     apply moveR_equiv_V.
     apply path_equiv. reflexivity.
   Defined.
   
 
-  Definition inv_path_finite_types_fix (n : nat) (s t : Finite_Types n)
+  Definition inv_path_finite_types (n : nat) (s t : Finite_Types n)
     : (s = t) -> (s <~> t).
   Proof.
     intros []. exact equiv_idmap.
   Defined.
 
-  Global Instance isequiv_path_finite_types_fix (n : nat) (s t : Finite_Types n)
-    : IsEquiv (path_finite_types_fix n s t).
+  Global Instance isequiv_path_finite_types (n : nat) (s t : Finite_Types n)
+    : IsEquiv (path_finite_types n s t).
   Proof.
     srapply @isequiv_adjointify.
-    - apply inv_path_finite_types_fix.
-    - intros []. apply path_finite_types_fix_id.
+    - apply inv_path_finite_types.
+    - intros []. apply path_finite_types_id.
     - unfold Sect. simpl.
-      intro f. unfold path_finite_types_fix.
-      assert (h : inv_path_finite_types_fix n s t  ==
+      intro f. unfold path_finite_types.
+      assert (h : inv_path_finite_types n s t  ==
                   (equiv_inverse (equiv_path_universe s t))
                     o  ((equiv_inverse (equiv_path_sigma_hprop s t)) )).
       { intros []. reflexivity. }
@@ -291,20 +291,20 @@ Section Path_Finite_Types.
   Defined.
   (* := isequiv_compose (f := path_universe_uncurried) (g := path_sigma_hprop _ _). *)
 
-  Definition equiv_path_finite_types_fix (n : nat) (s t : Finite_Types n)
+  Definition equiv_path_finite_types (n : nat) (s t : Finite_Types n)
     : (s <~> t) <~> (s = t)
-    := BuildEquiv _ _ (path_finite_types_fix n s t) (isequiv_path_finite_types_fix n s t).
+    := BuildEquiv _ _ (path_finite_types n s t) (isequiv_path_finite_types n s t).
 
 
-  (* Global Instance isequiv_path_finite_types_fix (n : nat) (s t : Finite_Types n) *)
-  (*   : IsEquiv (path_finite_types_fix n s t) *)
+  (* Global Instance isequiv_path_finite_types (n : nat) (s t : Finite_Types n) *)
+  (*   : IsEquiv (path_finite_types n s t) *)
   (*   := isequiv_compose (f := path_universe_uncurried) (g := path_sigma_hprop _ _). *)
 
-  (* Definition equiv_path_finite_types_fix (n : nat) (s t : Finite_Types n) *)
+  (* Definition equiv_path_finite_types (n : nat) (s t : Finite_Types n) *)
   (*   : (s <~> t) <~> (s = t) *)
-  (*   := BuildEquiv _ _ (path_finite_types_fix n s t) (isequiv_path_finite_types_fix n s t). *)
+  (*   := BuildEquiv _ _ (path_finite_types n s t) (isequiv_path_finite_types n s t). *)
 
-  Definition equiv_path_finite_types (s t : {A : Type & Finite A}) :
+  Definition equiv_path_finite_types' (s t : {A : Type & Finite A}) :
     (s.1 <~> t.1) <~> s = t :=
     equiv_path_sigma_hprop _ _ oE equiv_path_universe _ _.
 
@@ -313,12 +313,12 @@ Section Path_Finite_Types.
   Proof.
     refine ((equiv_ap fin_decompose s t)^-1 oE _).
     destruct s as [m [A eA]]. destruct t as [n [B eB]]. simpl.
-    exact (equiv_path_finite_types (A; finite_finite_type (A; eA)) (B; finite_finite_type (B; eB))).
+    exact (equiv_path_finite_types' (A; finite_finite_type (A; eA)) (B; finite_finite_type (B; eB))).
   Defined.
   
   Definition transport_exp_finite_fix (n : nat) {X : Type} {A B : Finite_Types n}
              (e : A <~> B) (x : A -> X)
-    : transport (fun I : Finite_Types n => I -> X) (path_finite_types_fix n A B e) x = x o e^-1.
+    : transport (fun I : Finite_Types n => I -> X) (path_finite_types n A B e) x = x o e^-1.
   Proof.
     refine (ap10 (transport_pr1_path_sigma_uncurried (pr1^-1 (path_universe_uncurried e))
                                                      (fun A : Type => A -> X)) x @ _).
@@ -326,10 +326,10 @@ Section Path_Finite_Types.
   Defined.
 
 
-  Definition path_finite_types_fix_inv {m : nat} (A B : Finite_Types m) (e : A <~> B)
-    : path_finite_types_fix m B A (equiv_inverse e) = (path_finite_types_fix m A B e)^.
+  Definition path_finite_types_V {m : nat} (A B : Finite_Types m) (e : A <~> B)
+    : path_finite_types m B A (equiv_inverse e) = (path_finite_types m A B e)^.
   Proof.
-    unfold path_finite_types_fix.
+    unfold path_finite_types.
     refine (ap (path_sigma_hprop B A)
                (path_universe_V_uncurried e) @ _).
     apply path_sigma_hprop_V.
@@ -340,7 +340,7 @@ Section Path_Finite_Types.
   Definition transport_exp_finite_sum {X : Type} {A B : {A : Type & Finite A}}
              (e : A.1 <~> B.1) (x : A.1 -> X)
     : transport (fun I : {A : Type & Finite A} => I.1 -> X)
-                (equiv_path_finite_types A B e) x = x o e^-1.
+                (equiv_path_finite_types' A B e) x = x o e^-1.
   Proof.
     refine (ap10 (transport_pr1_path_sigma_uncurried (pr1^-1 (path_universe_uncurried e))
                                                      (fun A : Type => A -> X)) x @ _).
@@ -361,21 +361,21 @@ Section Path_Finite_Types.
     apply (concat2 (path_sigma_hprop_1 (x1; x2)) (path_sigma_hprop_1 (x1; x2))).
   Defined.
 
-  (* Lemma path_finite_types_fix_id (m : nat) (A : Finite_Types m) : *)
-  (*   path_finite_types_fix m A A equiv_idmap = idpath. *)
+  (* Lemma path_finite_types_id (m : nat) (A : Finite_Types m) : *)
+  (*   path_finite_types m A A equiv_idmap = idpath. *)
   (* Proof. *)
-  (*   unfold path_finite_types_fix. apply moveR_equiv_M. *)
+  (*   unfold path_finite_types. apply moveR_equiv_M. *)
   (*   simpl. unfold path_universe_uncurried. *)
   (*   apply moveR_equiv_V. *)
   (*   apply path_equiv. reflexivity. *)
   (* Defined. *)
   
-  Lemma path_finite_types_fix_compose (m : nat) (A B C : Finite_Types m)
+  Lemma path_finite_types_compose (m : nat) (A B C : Finite_Types m)
         (e1 : A <~> B) (e2 : B <~> C) :
-    path_finite_types_fix m _ _ (e2 oE e1) =
-    (path_finite_types_fix m _ _ e1) @ (path_finite_types_fix m _ _ e2).
+    path_finite_types m _ _ (e2 oE e1) =
+    (path_finite_types m _ _ e1) @ (path_finite_types m _ _ e2).
   Proof.
-    unfold path_finite_types_fix. simpl.
+    unfold path_finite_types. simpl.
     refine (ap (path_sigma_hprop A C) (path_universe_compose e1 e2) @ _).
     apply path_sigma_hprop_compose.
   Defined.
@@ -387,7 +387,7 @@ Proof.
   intros x y.
   change (IsTrunc_internal 0) with IsHSet.
   apply (trunc_equiv' (x <~> y)).
-  - apply equiv_path_finite_types_fix.
+  - apply equiv_path_finite_types.
   - apply istrunc_equiv.
 Qed.
 
@@ -396,7 +396,7 @@ Qed.
 Definition sum_finite_types_canon {m n : nat} :
   sum_finite_types (canon m) (canon n) = canon (n + m).
 Proof.
-  apply path_finite_types_fix. simpl.
+  apply path_finite_types. simpl.
   apply equiv_finsum.
 Defined.
   
@@ -406,7 +406,7 @@ Lemma isconn_finite_types (m : nat) :
     merely (canon m = x).
 Proof.
   intros [A fA]. strip_truncations.
-  apply tr. apply inverse. apply path_finite_types_fix.
+  apply tr. apply inverse. apply path_finite_types.
   exact fA.
 Qed.
 

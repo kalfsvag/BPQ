@@ -194,18 +194,6 @@ Section Finite_Types.
   Global Instance finite_finite_type {n : nat} (A : Finite_Types n) : Finite A := 
     Build_Finite A.1 n A.2.
 
-  Definition fin_decompose :
-    {n : nat & Finite_Types n} <~> {A : Type & Finite A}.
-  Proof.
-    srapply @equiv_adjointify.
-    - intros [n A]. exists A. exact _.
-    - intros [A [n e]]. exact (n; (A; e)).
-    - intros [A [n e]]. simpl.
-      apply path_sigma_hprop. reflexivity.
-    - intros [n A]. simpl. reflexivity.
-  Defined.
-    
-  
 
   (* Canonical finite types *)
   Global Instance canon (n : nat) : IsPointed (Finite_Types n) := (Fin n; tr equiv_idmap).    

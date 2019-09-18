@@ -7,16 +7,28 @@ From GC Require Import pointed_lemmas finite_lemmas nat_lemmas trunc_lemmas (* m
 Section BSigma.
     
   (*This type corresponds to the category of finite sets and isomorphisms*)
-  Definition BSigma :=
-    {m : nat & Finite_Types m}.
+  Record BSigma :=
+    {card_BSigma : nat ; fintype_of_BSigma :> Finite_Types card_BSigma}.
+    (* {m : nat & Finite_Types m}. *)
     (* { S : Type & Finite S}. *)
-  Definition type_of_fin : BSigma -> Type := (fun A => A.2.1).
-  Coercion type_of_fin : BSigma  >-> Sortclass.
+  (* Definition type_of_fin : BSigma -> Type := (fun A => A.2.1). *)
+  (* Coercion type_of_fin : BSigma  >-> Sortclass. *)
+
+  Definition issig_BSigma :
+    BSigma <~> {A : Type & Finite A}.
+  Proof.
+    srapply @equiv_adjointify.
+    - intros [n A]. exists A. exact _.
+    - intros [A [n e]]. exact (Build_BSigma n (A; e)).
+    - intros [A [n e]]. simpl.
+      apply path_sigma_hprop. reflexivity.
+    - intros [n A]. simpl. reflexivity.
+  Defined.
 
   Global Instance istrunc_BSigma : IsTrunc 1 BSigma.
   Proof.
     apply (trunc_equiv' {S : Type & Finite S}).
-    - apply equiv_inverse. apply fin_decompose.
+    - apply equiv_inverse. apply issig_BSigma.
     - apply trunc_sigma'.
       +  intro A. exact _.
       +  intros A B.
@@ -24,12 +36,12 @@ Section BSigma.
          apply isset_Finite. exact B.2.
   Defined.
 
-  Definition fin_to_BSigma (n : nat)
+  Definition fin_to_BSigma {n : nat}
     : Finite_Types n -> BSigma
-    := fun A => (n; A).
+    := Build_BSigma n.
 
   (*Canonical objects in BSigma*)
-  Definition canon_BSigma (n : nat) : BSigma := fin_to_BSigma _ (canon n).
+  Definition canon_BSigma (n : nat) : BSigma := fin_to_BSigma (canon n).
 
   Lemma finite_types_eqcard {m n : nat} (A : Finite_Types m) (B : Finite_Types n) :
     A <~> B -> m = n.
@@ -44,7 +56,7 @@ Section BSigma.
   (* (* Describing the path type of BSigma *) *)
   (* Definition path_BSigma {A B : BSigma} : A <~> B -> A = B. *)
   (* Proof. *)
-  (*   refine ((equiv_ap fin_decompose A B)^-1 o _). *)
+  (*   refine ((equiv_ap issig_BSigma A B)^-1 o _). *)
   (*   destruct A as [m [A eA]]. destruct B as [n [B eB]]. simpl. *)
   (*   exact (equiv_path_finite_types' (A; finite_finite_type (A; eA)) (B; finite_finite_type (B; eB))). *)
   (* Defined. *)
@@ -65,7 +77,7 @@ Section BSigma.
   Definition equiv_path_BSigma (A B : BSigma) :
     (A <~> B) <~> A = B.
   Proof.
-    refine ((equiv_ap fin_decompose A B)^-1 oE _).
+    refine ((equiv_ap issig_BSigma A B)^-1 oE _).
     destruct A as [m [A eA]]. destruct B as [n [B eB]]. simpl.
     exact (equiv_path_finite_types' (A; finite_finite_type (A; eA)) (B; finite_finite_type (B; eB))).
   Defined.
@@ -116,16 +128,19 @@ Section BSigma.
   Defined.
 
   Definition pft_to_pbs {m : nat} {A B : Finite_Types m}
-    : A = B -> (fin_to_BSigma _ A) = (fin_to_BSigma _ B) 
-    := ap (fin_to_BSigma m).
+    : A = B -> (fin_to_BSigma A) = (fin_to_BSigma B) 
+    := ap (fin_to_BSigma).
     (* : A = B -> (m;A) = (m;B) :> BSigma *)
     (* := fun p => path_sigma Finite_Types (m; A) (m; B) idpath p. *)
 
   Definition path_BSigma_fix {m : nat} (A B : Finite_Types m) (e : A <~> B)
     : pft_to_pbs (path_finite_types m A B e)
-      = @path_BSigma (m;A) (m;B) e.
+      = @path_BSigma (fin_to_BSigma A) (fin_to_BSigma B) e.
   Proof.
-    refine (_ @ ap (@path_BSigma (m;A) (m;B)) (eissect (path_finite_types m A B) e)).
+    refine (_ @ ap (@path_BSigma
+                      (fin_to_BSigma _)
+                      (fin_to_BSigma _))
+              (eissect (path_finite_types m A B) e)).
     generalize (path_finite_types m A B e).
     intros []. simpl.
     refine ((path_BSigma_1 _)^).
@@ -135,7 +150,9 @@ Section BSigma.
     : IsEquiv (@pft_to_pbs m A B).
   Proof.
     assert (H : @pft_to_pbs m A B
-            = equiv_path_BSigma (m;A) (m;B) oE (equiv_path_finite_types m A B)^-1).
+            = equiv_path_BSigma
+                (fin_to_BSigma A) (fin_to_BSigma B)
+                oE (equiv_path_finite_types m A B)^-1).
     { apply path_arrow. intros []. ev_equiv.
       apply inverse.
       refine (path_BSigma_1 _). }
@@ -162,8 +179,7 @@ Section BSigma.
   Definition sum_BSigma : BSigma -> BSigma -> BSigma.
   Proof.
     intros [m A] [n B].
-    exists (n + m)%nat.
-    exact (sum_finite_types A B).
+    exact (fin_to_BSigma (sum_finite_types A B)).
   Defined.
 
   Definition BSigma_id : BSigma := canon_BSigma 0.
@@ -370,11 +386,11 @@ Section BSigma.
   (* Now we prove that associativity of sum_BSigma on canonical finite types correspond to*)
   (* associativity of natural numbers. *)
   (* move to better place? *)
-  Lemma ap_pr1_assoc (A B C : BSigma)
-    : (ap pr1 (BSigma_assoc A B C))^ = (plus_assoc (pr1 C) (pr1 B) (pr1 A)).
-  Proof.
-    apply hset_nat.
-  Qed.
+  (* Lemma ap_pr1_assoc (A B C : BSigma) *)
+  (*   : (ap pr1 (BSigma_assoc A B C))^ = (plus_assoc (pr1 C) (pr1 B) (pr1 A)). *)
+  (* Proof. *)
+  (*   apply hset_nat. *)
+  (* Qed. *)
 
   Definition equiv_sum_assoc_Fin (j k l : nat)
     : (Fin l + Fin k) + Fin j <~>

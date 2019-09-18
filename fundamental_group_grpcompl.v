@@ -591,69 +591,66 @@ Section GrpCompl_To_Fin2.
         destruct (path_finite_types m1 A1 B1 e1).
         destruct (path_finite_types m2 A2 B2 e2). reflexivity. }
       rewrite H. clear H.
+      
         
         
       
-        unfold pft_to_pbs.
-        
-        refine ((ap_compose pft_to_pbs BDet_uncurry)^ @ _).
-                     
-
-      apply moveL_pV. apply moveL_pV.
-      repeat rewrite concat_pp_p.
-      apply moveR_Vp. apply moveR_Mp. apply moveR_Mp.
-      rewrite inv_pp.
-      rewrite <- (ap_V BDet_uncurry (canonsum_BSigma a1 a2)).
-      rewrite <- (ap_V BDet_uncurry (canonsum_BSigma (a1 + s) (a2 + s))).
-      rewrite <- (ap_V BDet_uncurry (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2))).
-      repeat refine (_ @ concat_p_pp _ _ _).
-      apply moveL_Vp.
-      repeat refine (_ @ concat_pp_p _ _ _).
-      rewrite <-
-              (ap_pp BDet_uncurry
-                     (canonsum_BSigma a1 a2)^ (ap011 sum_BSigma (pft_to_pbs q) (pft_to_pbs r))).
-      rewrite <- (ap_pp BDet_uncurry
-                        ((canonsum_BSigma a1 a2)^ @ ap011 sum_BSigma (pft_to_pbs q) (pft_to_pbs r))
-                        (canonsum_BSigma a1 a2)).
-      apply moveR_Mp.
-      repeat refine (concat_pp_p _ _ _ @ _).
-      apply moveR_Vp.
-      repeat refine (concat_p_pp _ _ _ @ _).
-      rewrite <-
-              (ap_pp BDet_uncurry
-                     (canonsum_BSigma (a1 + s) (a2 + s))^
-                     (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2))^).
-      rewrite <-
-              (ap_pp BDet_uncurry
-                     ((canonsum_BSigma (a1 + s) (a2 + s))^
-                      @ (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2))^)
-                     (ap011 sum_BSigma (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs q))
-          (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs r)))).
-      rewrite <-
-              (ap_pp BDet_uncurry
-                     (((canonsum_BSigma (a1 + s) (a2 + s))^
-                       @ (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2))^)
-                        @ ap011 sum_BSigma (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs q))
-                        (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs r)))
-                     (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2))
-              ).
-      rewrite <-
-              (ap_pp BDet_uncurry
-                     ((((canonsum_BSigma (a1 + s) (a2 + s))^ @
-        (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2))^) @
-       ap011 sum_BSigma (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs q))
-         (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs r))) @
-      ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2))
-                     (canonsum_BSigma (a1 + s) (a2 + s))).
-      apply moveL_Mp.
+      
+      (* apply moveL_pV. apply moveL_pV. *)
+      (* repeat rewrite concat_pp_p. *)
+      (* apply moveR_Vp. apply moveR_Mp. apply moveR_Mp. *)
+      (* rewrite inv_pp. *)
+      (* rewrite <- (ap_V BDet_uncurry (canonsum_BSigma a1 a2)). *)
+      (* rewrite <- (ap_V BDet_uncurry (canonsum_BSigma (a1 + s) (a2 + s))). *)
+      (* rewrite <- (ap_V BDet_uncurry (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2))). *)
+      (* repeat refine (_ @ concat_p_pp _ _ _). *)
+      (* apply moveL_Vp. *)
+      (* repeat refine (_ @ concat_pp_p _ _ _). *)
+      (* rewrite <- *)
+      (*         (ap_pp BDet_uncurry *)
+      (*                (canonsum_BSigma a1 a2)^ (ap011 sum_BSigma (pft_to_pbs q) (pft_to_pbs r))). *)
+      (* rewrite <- (ap_pp BDet_uncurry *)
+      (*                   ((canonsum_BSigma a1 a2)^ @ ap011 sum_BSigma (pft_to_pbs q) (pft_to_pbs r)) *)
+      (*                   (canonsum_BSigma a1 a2)). *)
+      (* apply moveR_Mp. *)
+      (* repeat refine (concat_pp_p _ _ _ @ _). *)
+      (* apply moveR_Vp. *)
+      (* repeat refine (concat_p_pp _ _ _ @ _). *)
+      (* rewrite <- *)
+      (*         (ap_pp BDet_uncurry *)
+      (*                (canonsum_BSigma (a1 + s) (a2 + s))^ *)
+      (*                (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2))^). *)
+      (* rewrite <- *)
+      (*         (ap_pp BDet_uncurry *)
+      (*                ((canonsum_BSigma (a1 + s) (a2 + s))^ *)
+      (*                 @ (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2))^) *)
+      (*                (ap011 sum_BSigma (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs q)) *)
+      (*     (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs r)))). *)
+      (* rewrite <- *)
+      (*         (ap_pp BDet_uncurry *)
+      (*                (((canonsum_BSigma (a1 + s) (a2 + s))^ *)
+      (*                  @ (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2))^) *)
+      (*                   @ ap011 sum_BSigma (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs q)) *)
+      (*                   (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs r))) *)
+      (*                (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2)) *)
+      (*         ). *)
+      (* rewrite <- *)
+      (*         (ap_pp BDet_uncurry *)
+      (*                ((((canonsum_BSigma (a1 + s) (a2 + s))^ @ *)
+      (*   (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2))^) @ *)
+      (*  ap011 sum_BSigma (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs q)) *)
+      (*    (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs r))) @ *)
+      (* ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2)) *)
+      (*                (canonsum_BSigma (a1 + s) (a2 + s))). *)
+      (* apply moveL_Mp. *)
       
                      
-      refine (whiskerR (concat_p_pp _ _ _) _).
+      (* refine (whiskerR (concat_p_pp _ _ _) _). *)
       
       
       
-      rewrite <- (ap_V BDet_uncurry (path_BSigma (a2 + s + (a1 + s); sum_finite_types (canon (a1 + s)) (canon (a2 + s)))
-         (a2 + s + (a1 + s); canon (a2 + s + (a1 + s))) (equiv_finsum (a1 + s) (a2 + s)))).
+      (* rewrite <- (ap_V BDet_uncurry (path_BSigma (a2 + s + (a1 + s); sum_finite_types (canon (a1 + s)) (canon (a2 + s))) *)
+      (*    (a2 + s + (a1 + s); canon (a2 + s + (a1 + s))) (equiv_finsum (a1 + s) (a2 + s)))). *)
       
       apply moveL_pV. apply moveL_pV.
       repeat rewrite <- concat_p_pp.

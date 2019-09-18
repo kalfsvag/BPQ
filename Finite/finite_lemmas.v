@@ -308,13 +308,6 @@ Section Path_Finite_Types.
     (s.1 <~> t.1) <~> s = t :=
     equiv_path_sigma_hprop _ _ oE equiv_path_universe _ _.
 
-  Definition equiv_path_BSigma (s t : {n : nat & Finite_Types n}) :
-    (s.2 <~> t.2) <~> s = t.
-  Proof.
-    refine ((equiv_ap fin_decompose s t)^-1 oE _).
-    destruct s as [m [A eA]]. destruct t as [n [B eB]]. simpl.
-    exact (equiv_path_finite_types' (A; finite_finite_type (A; eA)) (B; finite_finite_type (B; eB))).
-  Defined.
   
   Definition transport_exp_finite_fix (n : nat) {X : Type} {A B : Finite_Types n}
              (e : A <~> B) (x : A -> X)

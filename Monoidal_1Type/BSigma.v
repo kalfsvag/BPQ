@@ -24,8 +24,12 @@ Section BSigma.
          apply isset_Finite. exact B.2.
   Defined.
 
+  Definition fin_to_BSigma (n : nat)
+    : Finite_Types n -> BSigma
+    := fun A => (n; A).
+
   (*Canonical objects in BSigma*)
-  Definition canon_BSigma (n : nat) : BSigma := (n; canon n).
+  Definition canon_BSigma (n : nat) : BSigma := fin_to_BSigma _ (canon n).
 
   Lemma finite_types_eqcard {m n : nat} (A : Finite_Types m) (B : Finite_Types n) :
     A <~> B -> m = n.
@@ -57,7 +61,14 @@ Section BSigma.
   (*   - intros []. simpl. *)
   (*     unfold path_BSigma. *)
 
-
+  
+  Definition equiv_path_BSigma (A B : BSigma) :
+    (A <~> B) <~> A = B.
+  Proof.
+    refine ((equiv_ap fin_decompose A B)^-1 oE _).
+    destruct A as [m [A eA]]. destruct B as [n [B eB]]. simpl.
+    exact (equiv_path_finite_types' (A; finite_finite_type (A; eA)) (B; finite_finite_type (B; eB))).
+  Defined.
   
   Definition path_BSigma (A B : BSigma) : A <~> B -> A = B
        := equiv_path_BSigma A B.
@@ -105,8 +116,10 @@ Section BSigma.
   Defined.
 
   Definition pft_to_pbs {m : nat} {A B : Finite_Types m}
-    : A = B -> (m;A) = (m;B) :> BSigma
-    := fun p => path_sigma Finite_Types (m; A) (m; B) idpath p.
+    : A = B -> (fin_to_BSigma _ A) = (fin_to_BSigma _ B) 
+    := ap (fin_to_BSigma m).
+    (* : A = B -> (m;A) = (m;B) :> BSigma *)
+    (* := fun p => path_sigma Finite_Types (m; A) (m; B) idpath p. *)
 
   Definition path_BSigma_fix {m : nat} (A B : Finite_Types m) (e : A <~> B)
     : pft_to_pbs (path_finite_types m A B e)

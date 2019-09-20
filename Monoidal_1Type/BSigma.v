@@ -246,7 +246,7 @@ Section BSigma.
   Proof.
     intros S1 S2 S3.
     apply path_BSigma.
-    apply equiv_sum_assoc. 
+    apply equiv_sum_assoc'. 
   Defined.
 
   Definition BSigma_lid : left_identity_mult sum_BSigma (canon_BSigma 0).

@@ -158,6 +158,14 @@ Defined.
 
 Local Definition Z := cquot (group_completion_BSigma).
 Require Import Category.Core.
+Definition Fin_to_Z {a b : nat}
+  : Finite_Types a -> Finite_Types b -> Z.
+  intros A B. apply ccl.
+  exact (fin_to_BSigma A, fin_to_BSigma B).
+Defined.
+           
+
+
 Section BSigma_set_ind.
   Definition cquot_rec' {C : PreCategory} (Y : Type)
              (cclY : C -> Y)
@@ -179,46 +187,60 @@ Section BSigma_set_ind.
     
 
   
-Definition fin_resp_sum_id (m n : nat) :
+Definition finsum_id (m n : nat) :
   sum_finite_types (canon m) (canon n) = canon (n+m) :=
   path_finite_types (n+m) (sum_finite_types (canon m) (canon n)) (canon (n+m)) (equiv_finsum m n).
 
-(* Define this in a bit of a roundabout manner so that it uses fin_resp_sum_id *)
+
 Definition canon_grpclBSigma_sum (m1 m2 n1 n2 : nat) :
-  ccl (group_completion_BSigma)
-      (functor_prod (sum_BSigma (canon_BSigma m1)) (sum_BSigma (canon_BSigma m2)) (canon_BSigma n1, canon_BSigma n2)) =
-  ccl (group_completion_BSigma)
-      (canon_BSigma (n1+m1), (canon_BSigma (n2+m2))).
+  Fin_to_Z (sum_finite_types (canon m1) (canon n1)) (sum_finite_types (canon m2) (canon n2)) =
+  Fin_to_Z (canon (n1 + m1)) (canon (n2 + m2)).
 Proof.
-  apply (ap (ccl group_completion_BSigma)). unfold sum_BSigma. simpl.
-  unfold functor_prod. simpl. unfold canon_BSigma.
-  exact (ap (fun x : Finite_Types (n1 + m1) * Finite_Types (n2+m2) =>
-               (fin_to_BSigma (fst x), (fin_to_BSigma (snd x))))
-        (path_prod (_,_) (_,_) (fin_resp_sum_id m1 n1) (fin_resp_sum_id m2 n2)))%nat.
+  apply (ap011 Fin_to_Z); apply finsum_id.
 Defined.
+  
+  (* ccl (group_completion_BSigma) *)
+  (*     (functor_prod (sum_BSigma (canon_BSigma m1)) (sum_BSigma (canon_BSigma m2)) (canon_BSigma n1, canon_BSigma n2)) = *)
+  (* ccl (group_completion_BSigma) *)
+  (*     (canon_BSigma (n1+m1), (canon_BSigma (n2+m2))). *)
+(* Proof. *)
+(*   apply (ap (ccl group_completion_BSigma)). unfold sum_BSigma. simpl. *)
+(*   unfold functor_prod. simpl. unfold canon_BSigma. *)
+(*   exact (ap (fun x : Finite_Types (n1 + m1) * Finite_Types (n2+m2) => *)
+(*                (fin_to_BSigma (fst x), (fin_to_BSigma (snd x)))) *)
+(*         (path_prod (_,_) (_,_) (finsum_id m1 n1) (finsum_id m2 n2)))%nat. *)
+(* Defined. *)
 
-Definition ccleq_canon (m n s : nat) :
-  (ccl (group_completion_BSigma) ((canon_BSigma m), (canon_BSigma n))) =
-  (ccl (group_completion_BSigma) ((canon_BSigma (m+s)), (canon_BSigma (n+s)))) :=
-  (ccleq group_completion_BSigma (canon_BSigma s; idpath)) @ canon_grpclBSigma_sum s s m n.
+Definition lcancel_Z {s a b : nat} (S : Finite_Types s) (A : Finite_Types a) (B : Finite_Types b)
+  : Fin_to_Z A B = Fin_to_Z (sum_finite_types S A) (sum_finite_types S B) :=
+  ccleq group_completion_BSigma (Build_BSigma s S; idpath).
 
-(* Auxillary stuff. Move? *)
-Definition double_transport {A B : Type} (P : A -> B -> Type) {a1 a2 : A} {b1 b2 : B} :
-  a1 = a2 -> b1 = b2 -> P a1 b1 -> P a2 b2.
-Proof.
-  intros [] []. exact idmap.
-Defined.
+Definition lcancel_canon (m n s : nat) :
+  Fin_to_Z (canon m) (canon n) =
+  Fin_to_Z (canon (m+s)) (canon (n + s))
+  := lcancel_Z _ _ _ @ canon_grpclBSigma_sum _ _ _ _.
+  (* := *)
+  (* (ccl (group_completion_BSigma) ((canon_BSigma m), (canon_BSigma n))) = *)
+  (* (ccl (group_completion_BSigma) ((canon_BSigma (m+s)), (canon_BSigma (n+s)))) := *)
+  (* (ccleq group_completion_BSigma (canon_BSigma s; idpath)) @ canon_grpclBSigma_sum s s m n. *)
 
-Definition double_apD {A B : Type} (P : A -> B -> Type)
-           (f : forall (a : A) (b : B), P a b)
-           {a1 a2 : A} {b1 b2 : B}
-           (p : a1 = a2) (q : b1 = b2) :
-  double_transport P p q (f a1 b1) = f a2 b2.
-Proof.
-  destruct p. destruct q. reflexivity.
-Defined.
+(* (* Auxillary stuff. Move? *) *)
+(* Definition double_transport {A B : Type} (P : A -> B -> Type) {a1 a2 : A} {b1 b2 : B} : *)
+(*   a1 = a2 -> b1 = b2 -> P a1 b1 -> P a2 b2. *)
+(* Proof. *)
+(*   intros [] []. exact idmap. *)
+(* Defined. *)
 
-Definition double_uncurry {A B : Type} (P : A -> B -> Type) :
+(* Definition double_apD {A B : Type} (P : A -> B -> Type) *)
+(*            (f : forall (a : A) (b : B), P a b) *)
+(*            {a1 a2 : A} {b1 b2 : B} *)
+(*            (p : a1 = a2) (q : b1 = b2) : *)
+(*   double_transport P p q (f a1 b1) = f a2 b2. *)
+(* Proof. *)
+(*   destruct p. destruct q. reflexivity. *)
+(* Defined. *)
+
+Definition uncurry_forall {A B : Type} (P : A -> B -> Type) :
   (forall (a : A) (b : B), P a b) -> (forall ab : A*B, P (fst ab) (snd ab)).
 Proof.
   intro f.
@@ -238,17 +260,17 @@ Definition grp_compl_BSigma_rec
                = act_add S A1 A2 @ act_add T (sum_BSigma S A1) (sum_BSigma S A2))
   : Z -> P.
 Proof.
-  set (uncurry_f :=
-         fun x : BSigma * BSigma =>
-           match x with
-             (A1, A2) => f A1 A2 end).
+  (* set (uncurry_f := *)
+  (*        fun x : BSigma * BSigma => *)
+  (*          match x with *)
+  (*            (A1, A2) => f A1 A2 end). *)
   srapply @cquot_rec'.
   - simpl. intros [A1 A2]. exact (f A1 A2).
   - simpl. intros [A1 A2]. intro B.
     unfold monoidal_action_morphism.
     intros [S p]. simpl in p.
     refine (act_add S _ _ @ _).
-    apply (ap uncurry_f p).
+    apply (ap (uncurry f) p).
   - intros [A1 A2]. intros B C.
     intros [S p]. intros [T q]. 
     destruct q. destruct p. simpl. repeat rewrite concat_p1.
@@ -259,7 +281,7 @@ Proof.
     cut (forall (B1 B2 : BSigma)
                 (p : sum_BSigma (sum_BSigma T S) A1 = B1)
                 (q : sum_BSigma (sum_BSigma T S) A2 = B2),
-            ap uncurry_f
+            ap (uncurry f)
                (path_prod
                   (functor_prod
                      (sum_BSigma (sum_BSigma T S)) (sum_BSigma (sum_BSigma T S)) (A1, A2))
@@ -269,114 +291,176 @@ Proof.
     intros B1 B2. intros [] []. reflexivity.
 Defined.
 
+Definition double_pathover {A B : Type} (P : A -> B -> Type)
+           {a a' : A} (p : a = a')
+           {b b' : B} (q : b = b')
+           (c : P a b) (c' : P a' b') : Type.
+Proof.
+  destruct p,q. exact (c = c').
+Defined.
 
-(* change to only one act? *)
+Definition double_pathover_to_path {A B : Type} (P : A -> B -> Type)
+           {a a' : A} (p : a = a')
+           {b b' : B} (q : b = b')
+           (c : P a b) (c' : P a' b')
+  : double_pathover P p q c c' ->
+    transport (uncurry P) (path_prod (a,b) (a',b') p q) c = c'.
+Proof.
+  destruct p, q. exact idmap.
+Defined.
+
+Definition apd_po011
+           (A B : Type) (C : A -> B -> Type) (f : forall (a : A) (b : B), C a b)
+           (a1 a2 : A) (b1 b2 : B)
+           (p : a1 = a2) (q : b1 = b2)
+  : double_pathover C p q (f a1 b1) (f a2 b2).
+Proof.
+  destruct p. destruct q. reflexivity.
+Defined.
+
+
+(* Auxillary stuff for the next result *)
+Local Definition grp_compl_BSigma_ind_set_Fin {a b : nat}
+      {P : Z -> hSet}
+      {f : forall (m n : nat),
+          P (Fin_to_Z (canon m) (canon n))}
+          (* P (ccl (group_completion_BSigma) ((canon_BSigma m), (canon_BSigma n)))} *)
+      {base_change
+              : forall (a b : nat) (alpha : canon a = canon a) (betta : canon b = canon b),
+          double_pathover (fun (x : Finite_Types a) (y : Finite_Types b) =>  P (Fin_to_Z x y))
+                          alpha betta (f a b) (f a b)}
+  : forall (x : Finite_Types a) (y : Finite_Types b),
+    P (Fin_to_Z x y).
+      (* (ccl group_completion_BSigma (fin_to_BSigma x, fin_to_BSigma y)). *)
+Proof.
+  apply (deloop_double_ind_set'
+             (pFin a) (pFin b)
+             (fun x y => P (Fin_to_Z x y)) (f a b)).
+    intros alpha betta.
+    apply (double_pathover_to_path
+             (fun (x : pFin a) (y : pFin b) =>
+                P (Fin_to_Z x y))
+             alpha betta (f a b) (f a b)).
+    apply base_change.
+Defined.
+
+(* Set induction for the group completion of BSigma *)
+(* Could relatively easily be generalized to 1-type induction *)
 Definition grp_compl_BSigma_ind_set
            (P : Z -> hSet)
-           (f : forall (m n : nat), P (ccl (group_completion_BSigma) ((canon_BSigma m), (canon_BSigma n))))
-           (act_r :
-              forall (m n : nat) (σ : canon n = canon n),
-                transport
-                  (fun x : (Finite_Types n) =>
-                     P (ccl (group_completion_BSigma)
-                            ((canon_BSigma m), (fin_to_BSigma x)))) σ (f m n) = (f m n))
-           (act_l :
-              forall (m n : nat) (σ : canon m = canon m),
-                transport
-                  (fun x : (Finite_Types m) =>
-                     P (ccl (group_completion_BSigma) ((fin_to_BSigma x), (canon_BSigma n)))) σ (f m n) = (f m n))
-  
+           (f : forall (m n : nat),
+               P (Fin_to_Z (canon m) (canon n)))
+           (base_change
+              : forall (a b : nat) (alpha : canon a = canon a) (betta : canon b = canon b),
+               double_pathover (fun (x : Finite_Types a) (y : Finite_Types b) => P (Fin_to_Z x y))
+
+                               alpha betta (f a b) (f a b))
+               (* transport *)
+               (*   (fun p : Finite_Types a * Finite_Types b => *)
+               (*      uncurry *)
+               (*        (fun (x : Finite_Types a) (y : Finite_Types b) => *)
+               (*           P (ccl group_completion_BSigma (fin_to_BSigma x, fin_to_BSigma y))) p) *)
+               (*   (path_prod (canon a, canon b) (canon a, canon b) alpha betta) *)
+               (*   (f a b) = f a b) *)
            (act_add :
               (forall (m n : nat) (s : nat),
-                transport P (ccleq_canon m n s) (f m n) = f (m+s)%nat (n+s)%nat))
+                path_over P (lcancel_canon m n s) (f m n) (f (m+s)%nat (n+s)%nat)))
            : forall z : Z, P z.
-  Proof.
-    srapply @cquot_ind_set.
-    - simpl.
-      intros [[m x] [n y]]. revert x y.
-      change (?a; ?A) with (fin_to_BSigma a A).
-      srefine (deloop_double_ind_set
-               (pFin m) 
-               (pFin n)
-               _
-               (f m n)
-               _ _
-               
-             ).
-      + intro.
-        simpl. apply act_r. 
-      + simpl.
-        apply act_l.
-    - simpl. unfold monoidal_action_morphism.
-      intros [[m a1] [n a2]] b [s p].  destruct p. simpl.
-      revert a2.
-      srefine (deloop_ind_prop
-               (pFin n) 
+Proof.
+  srapply @cquot_ind_set.
+  - simpl.
+    intros [[a x] [b y]]. 
+    change (ccl group_completion_BSigma
+                ({| card_BSigma := a; fintype_of_BSigma := x |},
+                 {| card_BSigma := b; fintype_of_BSigma := y |}))
+    with (Fin_to_Z x y).
+    revert x y.
+    (* change {| card_BSigma := ?a; fintype_of_BSigma := ?A |} with (fin_to_BSigma A). *)
+    apply (@grp_compl_BSigma_ind_set_Fin a b P f base_change).
+  - simpl. unfold monoidal_action_morphism.
+    intros [[a A] [b B]] C [S p].  destruct p. simpl.
+    revert B.
+    srefine (deloop_ind_prop
+               (pFin b) 
                _ _).
-      revert a1.
-      srefine (deloop_ind_prop
-               (pFin m)
+    revert A.
+    srefine (deloop_ind_prop
+               (pFin a)
                _ _).
-      destruct s as [s x]. revert x.
+    destruct S as [s S]. revert S.
       srefine (deloop_ind_prop
                (pFin s)
                _ _).
       simpl.
-      rewrite deloop_double_ind_set_beta_pt.
-      (* endre til transport bla bla = transport ble ble *)
+      assert (H : (ccleq group_completion_BSigma
+                     ({| card_BSigma := s; fintype_of_BSigma := point (Finite_Types s) |}; idpath)) =
+              (lcancel_canon a b s) @ (canon_grpclBSigma_sum s s a b)^).
+      { unfold lcancel_canon.
+        destruct (canon_grpclBSigma_sum s s a b). repeat rewrite concat_p1. reflexivity. }
+      rewrite H. clear H.
       
-      set (g := double_uncurry _
-                  (deloop_double_ind_set
-                     (pFin (m + s))
-                     (pFin (n + s))
-                     (fun (x1 : Finite_Types (m + s)) (x2 : Finite_Types (n + s)) =>
-                        P (ccl group_completion_BSigma
-                               (fin_to_BSigma x1, fin_to_BSigma x2)))
-                     (f (m + s) (n + s))
-                     (fun ω : canon (n + s) = canon (n + s) =>
-                        act_r (m + s) (n + s) ω) (act_l (m + s) (n + s)))%nat).
-      unfold point. 
-      change (deloop_double_ind_set (pFin (m + s)) 
-                                    (pFin (n + s)) 
-       (fun (x1 : Finite_Types (m + s)) (x2 : Finite_Types (n + s)) =>
-        P (ccl group_completion_BSigma
-               ({| card_BSigma := m + s; fintype_of_BSigma := x1 |},
-             {| card_BSigma := n + s; fintype_of_BSigma := x2 |})
-               ))
-       (f (m + s) (n + s))
-       (fun ω : canon (n + s) = canon (n + s) => act_r (m + s) (n + s) ω) (act_l (m + s) (n + s))
-       (sum_finite_types (canon s) (canon m)) (sum_finite_types (canon s) (canon n)))%nat
-             with
-             (g (sum_finite_types (canon s) (canon m), sum_finite_types (canon s) (canon n))).
-      rewrite <-
-              (apD g (path_prod (_,_) (_,_) (fin_resp_sum_id s m) (fin_resp_sum_id s n))^).
-      unfold g. unfold double_uncurry.
-      rewrite deloop_double_ind_set_beta_pt. clear g.
-      apply path_to_path_over.
-      rewrite <- act_add.
-      refine (_ @
-                (transport_compose
-                   P (fun ab : Finite_Types (m + s) * Finite_Types (n + s) =>
-                        (ccl group_completion_BSigma
-                             (* ((m + s; fst ab), (n + s; snd ab))%nat)) *)
-                             (fin_to_BSigma (fst ab), fin_to_BSigma (snd ab))))
-                   ((path_prod
-                      (sum_finite_types (canon s) (canon m), sum_finite_types (canon s) (canon n))
-                      (canon (m + s), canon (n + s)) (fin_resp_sum_id s m) (fin_resp_sum_id s n))^)
-                   (transport (fun x : Z => P x) (ccleq_canon m n s) (f m n)))^).
-      change (cquot group_completion_BSigma) with Z.
-      refine (_ @ transport_pp P _ _ _).
-      apply (ap (fun p => transport P p (f m n))). 
-      unfold ccleq_canon.
-      unfold canon_grpclBSigma_sum.
-      refine (_ @ concat_p_pp _ _ _).
-      refine ((concat_p1 _)^ @ _).
-      apply whiskerL. apply moveL_pM.
-      refine (concat_1p _ @ _).
-      refine ((ap inverse (ap_V _ _ )@ _)).
-      refine (inv_V _ @ _).
-      refine ((ap_compose _ _ _)).
-  Defined.
+      srapply @path_over_concat; simpl.
+      + apply (grp_compl_BSigma_ind_set_Fin (base_change := base_change)).
+        (* apply f. *)
+      + (* apply path_to_path_over. *)
+        unfold grp_compl_BSigma_ind_set_Fin.
+        rewrite (deloop_double_ind_set_beta_pt').
+        rewrite (deloop_double_ind_set_beta_pt').        
+        apply act_add.
+      + unfold canon_grpclBSigma_sum.
+        change (point (Finite_Types ?a)) with (canon a).
+        destruct (finsum_id s a). destruct (finsum_id s b). simpl.
+        apply path_over_id.
+        (* apply path_over_inv. *)
+        (* change (grp_compl_BSigma_ind_set_Fin (base_change := base_change) ?x ?y) with *)
+        (* (uncurry_forall _ (grp_compl_BSigma_ind_set_Fin (base_change := base_change)) (x,y)). *)
+        (* apply *)
+        (*   (apd_po *)
+        (*      (uncurry_forall (fun (x : Finite_Types (a + s)) (y : Finite_Types (b + s)) => *)
+        (*                         P (ccl group_completion_BSigma (fin_to_BSigma x, fin_to_BSigma y))) *)
+        (*                      (grp_compl_BSigma_ind_set_Fin (base_change := base_change))) *)
+        (*      (a₁ := (sum_finite_types (canon s) (canon a), sum_finite_types (canon s) (canon b))) *)
+        (*      (a₂ := (canon (a + s), canon (b + s)))). *)
+        
+        (* generalize to some version of apd: *)
+        (* cut (forall (A A' : Finite_Types (a + s)) (B B' : Finite_Types (b + s)) *)
+        (*             (p : A = A') (q : B = B'), *)
+        (*         path_over *)
+        (*           P *)
+        (*           (ap (ccl group_completion_BSigma) *)
+        (*               (ap *)
+        (*                  (fun x : Finite_Types (a + s) * Finite_Types (b + s) => *)
+        (*                     (fin_to_BSigma (fst x), fin_to_BSigma (snd x))) *)
+        (*   (path_prod (A, B) (A', B') p q))) *)
+        (*           (grp_compl_BSigma_ind_set_Fin (base_change := base_change) A B) *)
+        (*           (grp_compl_BSigma_ind_set_Fin (base_change := base_change) A' B')). *)
+        (* { intro H. apply H. } *)
+        (* intros. destruct p. destruct q. simpl. apply path_over_id. *)
+Defined.
+    
+    
+
+(* (* change to only one act? *) *)
+(* Definition grp_compl_BSigma_ind_set *)
+(*            (P : Z -> hSet) *)
+(*            (f : forall (m n : nat), *)
+(*                P (ccl (group_completion_BSigma) ((canon_BSigma m), (canon_BSigma n)))) *)
+(*            (act_r : *)
+(*               forall (m n : nat) (σ : canon n = canon n), *)
+(*                 transport *)
+(*                   (fun x : (Finite_Types n) => *)
+(*                      P (ccl (group_completion_BSigma) *)
+(*                             ((canon_BSigma m), (fin_to_BSigma x)))) σ (f m n) = (f m n)) *)
+(*            (act_l : *)
+(*               forall (m n : nat) (σ : canon m = canon m), *)
+(*                 transport *)
+(*                   (fun x : (Finite_Types m) => *)
+(*                      P (ccl (group_completion_BSigma) ((fin_to_BSigma x), (canon_BSigma n)))) σ (f m n) = (f m n)) *)
+  
+(*            (act_add : *)
+(*               (forall (m n : nat) (s : nat), *)
+(*                 transport P (ccleq_canon m n s) (f m n) = f (m+s)%nat (n+s)%nat)) *)
+(*            : forall z : Z, P z. *)
 
 End BSigma_set_ind.
 
@@ -403,7 +487,7 @@ Section GrpCompl_To_Fin2.
     apply invol_SymGrp2.
   Qed.
 
-  (* make these theri own lemmas because they don't need to get unfolded later *)
+  (* make these their own lemmas because they don't need to get unfolded later *)
   (* Definition BDet_sum_sum (s a1 a2 : nat) *)
   (*   : BDet _ (sum_finite_types (sum_finite_types (canon s) (canon a1)) *)
   (*                              (sum_finite_types (canon s) (canon a2))) *)
@@ -588,36 +672,6 @@ Section GrpCompl_To_Fin2.
       
       rewrite ap_fst_path_prod. unfold BDet_SASB_canon.
       unfold BDet_sum_canon2. unfold BDet_sum2.
-      (* assert ( *)
-      (*     H : forall (m : nat) (A B : Finite_Types m) (e : A <~> B), *)
-      (*       ap BDet_uncurry (path_BSigma (m; A) (m; B) e) = ap (BDet m) (path_finite_types m A B e)). *)
-      (* { intros. *)
-      (*   refine (ap (ap BDet_uncurry) (path_BSigma_fix A B e)^ @ _). *)
-      (*   destruct (path_finite_types m A B e). reflexivity. } *)
-      (* rewrite H. rewrite H. clear H. *)
-      (* assert ( *)
-      (*     H : forall (m1 m2 : nat) *)
-      (*                (A1 B1 : Finite_Types m1) *)
-      (*                (A2 B2 : Finite_Types m2) *)
-      (*                (e1 : A1 <~> B1) *)
-      (*                (e2 : A2 <~> B2), *)
-      (*       ap BDet_uncurry (ap011 sum_BSigma *)
-      (*                              (path_BSigma (m1; A1) (m1; B1) e1) *)
-      (*                              (path_BSigma (m2; A2) (m2; B2) e2)) *)
-      (*       = ap (BDet _) (ap011 sum_finite_types *)
-      (*                            (path_finite_types m1 A1 B1 e1) *)
-      (*                            (path_finite_types m2 A2 B2 e2))). *)
-      (* { intros. *)
-      (*   rewrite <- (path_BSigma_fix A1 B1 e1). *)
-      (*   rewrite <- (path_BSigma_fix A2 B2 e2). *)
-      (*   destruct (path_finite_types m1 A1 B1 e1). *)
-      (*   destruct (path_finite_types m2 A2 B2 e2). reflexivity. } *)
-      (* rewrite H. clear H. *)
-      
-        
-        
-      
-      
       apply moveL_pV. apply moveL_pV.
       repeat rewrite concat_pp_p.
       apply moveR_Vp. apply moveR_Mp. apply moveR_Mp.
@@ -639,78 +693,6 @@ Section GrpCompl_To_Fin2.
       rewrite <- (ap_pp (BDet (_ + _)%nat)).
       rewrite <- (ap_pp (BDet (_ + _)%nat)).
       apply moveL_pV.
-      
-      (* rew *)
-      (* rewrite <- *)
-      (*         (ap_pp BDet_uncurry *)
-      (*                (canonsum_BSigma a1 a2)^ (ap011 sum_BSigma (pft_to_pbs q) (pft_to_pbs r))). *)
-      (* rewrite <- (ap_pp BDet_uncurry *)
-      (*                   ((canonsum_BSigma a1 a2)^ @ ap011 sum_BSigma (pft_to_pbs q) (pft_to_pbs r)) *)
-      (*                   (canonsum_BSigma a1 a2)). *)
-      (* apply moveR_Mp. *)
-      (* repeat refine (concat_pp_p _ _ _ @ _). *)
-      (* apply moveR_Vp. *)
-      (* repeat refine (concat_p_pp _ _ _ @ _). *)
-      (* rewrite <- *)
-      (*         (ap_pp BDet_uncurry *)
-      (*                (canonsum_BSigma (a1 + s) (a2 + s))^ *)
-      (*                (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2))^). *)
-      (* rewrite <- *)
-      (*         (ap_pp BDet_uncurry *)
-      (*                ((canonsum_BSigma (a1 + s) (a2 + s))^ *)
-      (*                 @ (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2))^) *)
-      (*                (ap011 sum_BSigma (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs q)) *)
-      (*     (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs r)))). *)
-      (* rewrite <- *)
-      (*         (ap_pp BDet_uncurry *)
-      (*                (((canonsum_BSigma (a1 + s) (a2 + s))^ *)
-      (*                  @ (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2))^) *)
-      (*                   @ ap011 sum_BSigma (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs q)) *)
-      (*                   (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs r))) *)
-      (*                (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2)) *)
-      (*         ). *)
-      (* rewrite <- *)
-      (*         (ap_pp BDet_uncurry *)
-      (*                ((((canonsum_BSigma (a1 + s) (a2 + s))^ @ *)
-      (*   (ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2))^) @ *)
-      (*  ap011 sum_BSigma (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs q)) *)
-      (*    (ap011 sum_BSigma (pft_to_pbs p) (pft_to_pbs r))) @ *)
-      (* ap011 sum_BSigma (canonsum_BSigma s a1) (canonsum_BSigma s a2)) *)
-      (*                (canonsum_BSigma (a1 + s) (a2 + s))). *)
-      (* apply moveL_Mp. *)
-      
-                     
-      (* refine (whiskerR (concat_p_pp _ _ _) _). *)
-      
-      
-      
-      (* (* rewrite <- (ap_V BDet_uncurry (path_BSigma (a2 + s + (a1 + s); sum_finite_types (canon (a1 + s)) (canon (a2 + s))) *) *)
-      (* (*    (a2 + s + (a1 + s); canon (a2 + s + (a1 + s))) (equiv_finsum (a1 + s) (a2 + s)))). *) *)
-      
-      (* apply moveL_pV. apply moveL_pV. *)
-      (* repeat rewrite <- concat_p_pp. *)
-      (* apply moveR_Vp. apply moveR_Mp. apply moveR_Mp. *)
-      (* rewrite (inv_pp). rewrite <- ap_V. *)
-      (* rewrite <- ap_V. *)
-      (* rewrite <- (ap_V (BDet (a2 + a1)%nat) sum_finite_types_canon). *)
-      (* rewrite <- ap_pp. *)
-      
-      (* rewrite <- (ap_V BDet_uncurry (canonsum_BSigma _ _)). *)
-      (* rewrite <- (ap_V BDet_uncurry (canonsum_BSigma a1 a2)). *)
-      (* repeat rewrite concat_p_pp. *)
-      (* repeat refine (_ @ whiskerR (concat_p_pp _ _ _) _). *)
-      (* repeat (refine (whiskerR (concat_pp_p _ _ _) _ @ _)). *)
-      
-      
-      
-
-      
-      (* refine (_ @ whiskerR (whiskerL _ (whiskerL _ (ap_pp BDet_uncurry _ _))) _). *)
-      
-      (* rewrite X. *)
-      (* rewrite <- (ap_pp BDet_uncurry). *)
-      
-      
       refine (_ @ (deloop_fin_loop _ _ _ _)^).
       refine (deloop_fin_loop _ _ _ _ @ _). simpl.
       apply (ap (path_finite_types 2 _ _)).
@@ -797,7 +779,7 @@ Section GrpCompl_To_Fin2.
       (* exact (BDet (a2 + a1) (sum_finite_types A1 A2)). *)
     - simpl. intros [s S] [a1 A1] [a2 A2].
       apply BDet_SASB.
-    - intros [s S] [t T] [a1 A1] [a2 A2].
+    - intros [s S] [t T] [a1 A1] [a2 A2]. 
       
       change {| card_BSigma := ?m; fintype_of_BSigma := ?A |} with (fin_to_BSigma A).
       revert A1.
@@ -827,7 +809,7 @@ Section GrpCompl_To_Fin2.
                                  (* (ap (fun x => sum_finite_types (sum_finite_types x A) *)
                                  (*                                (sum_finite_types x B)) p))^). *)
       { intros. destruct p. refine (concat_p1 _)^. }
-      rewrite (H _ _ _ _ _ _ _ (fin_resp_sum_id t s)). clear H.
+      rewrite (H _ _ _ _ _ _ _ (finsum_id t s)). clear H.
       assert (H :
                 forall (x m n : nat)
                        (S S': Finite_Types x) (A A' : Finite_Types m) (B B' : Finite_Types n)
@@ -842,9 +824,9 @@ Section GrpCompl_To_Fin2.
         refine (_ @ (concat_p1 _)^).
         refine (concat_1p _)^. }
       rewrite (H _ _ _ _ _ _ _ _ _
-                 idpath (fin_resp_sum_id s a1) (fin_resp_sum_id s a2)).
+                 idpath (finsum_id s a1) (finsum_id s a2)).
       (* rewrite (H _ _ _ _ _ _ _ _ _ *)
-      (*            (fin_resp_sum_id t s) idpath idpath). *)
+      (*            (finsum_id t s) idpath idpath). *)
       clear H.
       (* rewrite (BDet_SASB_canon_id s a1 a2). *)
       rewrite BDet_SASB_canon_id.
@@ -852,7 +834,7 @@ Section GrpCompl_To_Fin2.
       rewrite BDet_SASB_canon_id.
       unfold BDet_SASB_canon.
       change (ap (BDet (a2 + s + (a1 + s)))
-                 (ap011 sum_finite_types (fin_resp_sum_id s a1) (fin_resp_sum_id s a2)))
+                 (ap011 sum_finite_types (finsum_id s a1) (finsum_id s a2)))
       with (BDet_sum2 s a1 a2).
       repeat rewrite (concat_pp_p (BDet_sum_canon2 a1 a2)). apply whiskerL.
       (* rewrite <- (inv_V (BDet_sum_canon2 a1 a2)). *)
@@ -914,9 +896,9 @@ Section GrpCompl_To_Fin2.
       refine (_ @ ap011_pp_pp sum_BSigma _ _ _ _).
       cut (forall (a : nat),
               BSigma_assoc (canon_BSigma t) (canon_BSigma s) (canon_BSigma a) @
-                           ap fin_to_BSigma (ap011 sum_finite_types 1 (fin_resp_sum_id s a) @
+                           ap fin_to_BSigma (ap011 sum_finite_types 1 (finsum_id s a) @
                                                    sum_finite_types_canon) =
-              ap fin_to_BSigma (ap011 sum_finite_types (fin_resp_sum_id t s) 1 @
+              ap fin_to_BSigma (ap011 sum_finite_types (finsum_id t s) 1 @
                                        sum_finite_types_canon) @
                   ap canon_BSigma (nat_lemmas.plus_assoc a s t)^).
       { intro H.
@@ -1042,11 +1024,315 @@ Section GrpCompl_To_Fin2.
   Defined.
 
 
+End GrpCompl_To_Fin2.
 
 
+Section IsEquiv_GrpCompl_To_Fin2.
+    (* move? *)
+  Definition transpose_last_two_is_block_sum (a : nat)
+    : fin_transpose_last_two a = (block_sum equiv_idmap twist2).
+  Proof.
+    apply path_equiv. apply path_arrow.
+    intros [[x | []] | []]; reflexivity.
+  Defined.
+
+  Definition block_sum_is_id (m n : nat)
+    : equiv_idmap (Fin (n + m)) = block_sum (equiv_idmap (Fin m)) (equiv_idmap (Fin n)).
+  Proof.
+    unfold block_sum.
+    assert (p : equiv_idmap (Fin m) +E equiv_idmap (Fin n) = equiv_idmap ((Fin m) + (Fin n))).
+    { apply path_equiv. apply path_arrow. intros [x | x]; reflexivity. }
+    rewrite p.
+    rewrite ecompose_e1. apply inverse. apply ecompose_eV.
+  Qed.
+
+  
+  (* We want to show that the map above induces and equivalence on the component of cardinality 2 *)
+  (* First we connect all the canonical points in this component *)
+
+  (* Definition path_card_0 {a : nat} (A : Finite_Types a) *)
+  (* : Fin_to_Z (canon 0) (canon 0) = Fin_to_Z A A. *)
+  (* Proof. *)
+  (*   refine (lcancel_Z A _ _ @ _). *)
+  (*   apply (ap011 Fin_to_Z); apply path_finite_types; apply sum_empty_r. *)
+  (* Defined. *)
+
+  (* Definition path_card_0_sum {a b : nat} (A : Finite_Types a) (B : Finite_Types b) *)
+  (*   : path_card_0 (sum_finite_types A B) = *)
+  (*     path_card_0 B @ lcancel_Z A B B. *)
+  (* Proof. *)
+  (*   unfold path_card_0. *)
+
+  (* Definition twist2_Z : Fin_to_Z (canon 2) (canon 2) = Fin_to_Z (canon 2) (canon 2). *)
+  (* Proof. *)
+  (*   apply (ap (fun x : Finite_Types 2 => Fin_to_Z x (canon 2))). *)
+  (*   exact (path_finite_types _ (canon 2) (canon 2) twist2). *)
+  (* Defined. *)
+
+  (* Definition twist2_Z0 : Fin_to_Z (canon 0) (canon 0) = Fin_to_Z (canon 0) (canon 0) *)
+  (*   := path_card_0 (canon 2) @ twist2_Z @ (path_card_0 (canon 2))^. *)
+
+  (* (* A path that is a transposition on the left side and the identity on the right side *) *)
+  (* Definition transpose_Z (a : nat) (i : Fin (a)) *)
+  (*   : Fin_to_Z (canon (1 + a)) (canon (1 + a)) = Fin_to_Z (canon (1 + a)) (canon (1 +a)). *)
+  (*   (* use ap011 to make this easier down below. . . *) *)
+  (*   apply (ap011 Fin_to_Z). *)
+  (*   - apply path_finite_types. *)
+  (*     apply (fin_transpose_last_with (a)). exact (inl i). *)
+  (*   - exact idpath.             (*  *) *)
+  (* Defined. *)
 
 
+  (* Definition transpose_last_two_is_twist2_Z0 (a : nat) *)
+  (*   : (* ap (fun x : Finite_Types a.+2 => Fin_to_Z x (canon a.+2)) *) *)
+  (*     ap011 Fin_to_Z *)
+  (*           (path_finite_types a.+2 (canon a.+2) (canon a.+2) (fin_transpose_last_two a)) idpath = *)
+  (*     ((path_card_0 (canon a.+2))^ @ twist2_Z0) @ path_card_0 (canon a.+2). *)
+  (* Proof. *)
+  (*   rewrite transpose_last_two_is_block_sum. *)
+  (*   rewrite <- path_finite_types_id. *)
+  (*   rewrite (block_sum_is_id a 2). *)
+  (*   unfold block_sum. *)
+  (*   rewrite (path_finite_types_compose (a.+2) _ (sum_finite_types (canon a) (canon 2))). *)
+  (*   rewrite (path_finite_types_compose (a.+2) _ (sum_finite_types (canon a) (canon 2))). *)
+  (*   rewrite (path_finite_types_compose (a.+2) _ (sum_finite_types (canon a) (canon 2))). *)
+  (*   rewrite (path_finite_types_compose (a.+2) _ (sum_finite_types (canon a) (canon 2))). *)
+  (*   rewrite path_finite_types_V. *)
+  (*   change *)
+  (*     (path_finite_types a.+2 (sum_finite_types (canon a) (canon 2)) (canon a.+2) (equiv_finsum a 2)) *)
+  (*     with *)
+  (*     (finsum_id a 2). *)
+    
+  (*   assert (H : forall (A A' : Finite_Types (a.+2)) (p : A = A'), *)
+  (*              path_card_0 A' = *)
+  (*              path_card_0 A @ (ap011 Fin_to_Z p p)). *)
+  (*   { destruct p. apply inverse. apply concat_p1. } *)
+  (*   rewrite (H _ _ (finsum_id a 2)). clear H. *)
+    
 
+  (*   rewrite (ap011_pp_pp Fin_to_Z _ _ _ _). *)
+  (*   rewrite (ap011_pp_pp Fin_to_Z _ _ _ _). *)
+  (*   rewrite inv_pp. *)
+  (*   repeat refine (concat_p_pp _ _ _ @ _). *)
+  (*   refine (_ @ concat_pp_p _ _ _). apply whiskerR. *)
+  (*   refine (_ @ concat_p_pp _ _ _). *)
+  (*   refine (_ @ concat_p_pp _ _ _). *)
+  (*   apply concat2. *)
+  (*   { apply inverse. apply ap011_VV. } *)
+  (*   unfold twist2_Z0. unfold path_card_0. *)
+
+  (*   apply whiskerR. *)
+  (*   repeat rewrite concat_p_pp. apply whiskerR. *)
+  (*   repeat rewrite concat_pp_p. apply whiskerL. *)
+    
+
+  (*   reflexivity. *)
+  (*     change (a.+2) with (1 + (1 + a))%nat. unfold canon. *)
+  (*     apply path_sigma_hprop. simpl. *)
+  (*     rewrite <- (nat_lemmas.plus_assoc 1 1 a). *)
+  (*     unfold canon. apply (ap (fun x : nat => (Fin x; tr 1))). *)
+  (*     apply (ap (fun a : nat => canon a)). *)
+  (*   rewrite (H (sum_finite_types (canon a) (canon 2)) *)
+
+  (* Definition transpose_is_twist_Z (a : nat) (i : Fin a) *)
+  (*   : transpose_Z a i = *)
+  (*     (path_card_0 _)^ @ twist2_Z0 @ (path_card_0 _). *)
+  (* Proof. *)
+  (*   induction a. *)
+  (*   {destruct i. } *)
+  (*   simpl. *)
+  (*   unfold transpose_Z. simpl. destruct i as [i | []]; simpl. *)
+  (*   - admit. *)
+  (*   -  unfold twist2_Z0. rewrite transpose_last_two_is_block_sum. *)
+  (*     unfold block_sum. *)
+      
+  (*     unfold twist2_Z. *)
+      
+  (*     refine (ap (fun y : (Fin 2) <~> (Fin 2) => *)
+  (*                   ap (fun x : Finite_Types a.+2 => Fin_to_Z x (canon a.+2)) *)
+  (*                      (path_finite_types a.+2 (canon a.+2) (canon a.+2) (block_sum equiv_idmap y))) *)
+  (*                (eissect (equiv_path_finite_types 2 (canon 2) (canon 2)) twist2)^ @ _). *)
+  (*     simpl. *)
+  (*     refine (ap (fun y : (Fin a) <~> (Fin a) => *)
+  (*                   ap (fun x : Finite_Types a.+2 => Fin_to_Z x (canon a.+2)) *)
+  (*                      (path_finite_types a.+2 (canon a.+2) (canon a.+2) *)
+  (*                           (block_sum *)
+  (*                              y *)
+  (*                              (inv_path_finite_types 2 (canon 2) (canon 2) *)
+  (*                                                     (path_finite_types 2 (canon 2) (canon 2) *)
+  (*                                                                        twist2))))) *)
+  (*                (eissect (equiv_path_finite_types a (canon a) (canon a)) equiv_idmap)^ @ _). *)
+  (*     simpl. *)
+  (*     rewrite blocksum_is_ap011. *)
+  (*     rewrite path_finite_types_id. *)
+  (*     change (pft_inv ?x) with ((equiv_path_finite_types (a.+2) (canon _) (canon _))^-1 x). *)
+  (*     change (path_finite_types ?x ?y ?y ?z) with (equiv_path_finite_types x y y z). *)
+  (*     rewrite (eisretr (equiv_path_finite_types (a.+2) (canon _) (canon _)) (sum_finite_types_canon^ @ *)
+  (*          (ap011 sum_finite_types 1 (path_finite_types 2 (canon 2) (canon 2) twist2) @ *)
+  (*           sum_finite_types_canon))). *)
+                 
+  (*     destruct (path_finite_types 2 (canon 2) (canon 2) twist2). *)
+      
+  (*     rewrite (eissect (equiv_path_finite_types 2 (canon 2) (canon 2)) twist2) *)
+
+  (*     unfold fin_transpose_last_two. *)
+  (*   assert *)
+  (*     (fin_transpose_last_with a.+1 (inl i) = *)
+  (*      (fin_transpose_last_two a oE (fin_transpose_last_with a i +E equiv_idmap) oE *)
+  (*                              (fin_transpose_last_two a))). *)
+  (*   { destruct i as [i | []]; try reflexivity. *)
+  (*     simpl. *)
+      
+
+                 
+
+
+  
+
+  
+  (* ________ *)
+    
+  (* Definition path_card_2 {a : nat} (A : Finite_Types a) *)
+  (* :  Fin_to_Z (canon 2) (canon 0) = Fin_to_Z (sum_finite_types A (canon 2)) A. *)
+  (* Proof. *)
+  (*   refine (lcancel_Z A (canon 2) (canon 0) @ _). *)
+  (*   apply (ap (Fin_to_Z (sum_finite_types A (canon 2)))). *)
+  (*   apply path_finite_types. apply sum_empty_r. (* make its own lemma? *) *)
+  (* Defined. *)
+
+  Definition path_card_2 (a : nat)
+    :  Fin_to_Z (canon 2) (canon 0) = Fin_to_Z (canon (2 + a)) (canon a) .
+  Proof.
+    refine (lcancel_Z (canon a) (canon 2) (canon 0) @ _).
+    apply (ap011 Fin_to_Z); apply finsum_id.
+  Defined.
+
+  Definition lcancel_succ (a b : nat)
+    : Fin_to_Z (canon a) (canon b) = Fin_to_Z (canon a.+1) (canon b.+1).
+             (* {a b : nat} (A : Finite_Types a) (B : Finite_Types b) *)
+    (* : Fin_to_Z A B = Fin_to_Z (add_one A) (add_one B). *)
+  Proof.
+    refine (lcancel_Z (canon 1) _ _ @ _).
+    unfold Fin_to_Z.
+    apply (ap (ccl group_completion_BSigma)).
+    change (fin_to_BSigma (sum_finite_types (canon 1) ?A))
+    with (sum_BSigma (fin_to_BSigma (canon 1)) (fin_to_BSigma A)).
+    rewrite (BSigma_symmetric (fin_to_BSigma (canon 1)) (fin_to_BSigma _)).
+    rewrite (BSigma_symmetric (fin_to_BSigma (canon 1)) (fin_to_BSigma _)).
+    apply path_prod; apply path_BSigma;
+      apply equiv_functor_sum_l; apply sum_empty_l.
+  Qed.
+
+    
+  Definition path_card_2_succ (a : nat)
+    : path_card_2 (a.+1) = path_card_2 a @ (lcancel_succ (a.+2) a).
+  Proof.
+    
+
+  Definition twist2_Z : Fin_to_Z (canon 2) (canon 0) = Fin_to_Z (canon 2) (canon 0).
+  Proof.
+    apply (ap011 Fin_to_Z).
+    - exact (path_finite_types _ (canon 2) (canon 2) twist2).
+    - exact idpath.
+  Defined.
+
+  Definition transpose_Z (a : nat) (i : Fin (a.+1))
+    : Fin_to_Z (canon (a.+2)) (canon a) = Fin_to_Z (canon (a.+2)) (canon a).
+    apply (ap011 Fin_to_Z).
+    - apply path_finite_types.
+      apply (fin_transpose_last_with (a.+1) (inl i)).
+    - exact idpath.
+  Defined.
+  
+  Definition transpose_last_two_is_twist_Z (a : nat)
+        : ap011 Fin_to_Z
+                (path_finite_types a.+2 (canon a.+2) (canon a.+2) (fin_transpose_last_two a)) 1 =
+          ((path_card_2 a)^ @ twist2_Z) @ path_card_2 a.
+  Proof.
+    rewrite transpose_last_two_is_block_sum.
+    rewrite <- path_finite_types_id.
+    rewrite (ap (path_finite_types a (canon a) (canon a)) (block_sum_is_id a 0)).
+    unfold block_sum.
+    rewrite (path_finite_types_compose (a.+2) _ (sum_finite_types (canon a) (canon 2))).
+    rewrite (path_finite_types_compose (a.+2) _ (sum_finite_types (canon a) (canon 2))).
+    rewrite (path_finite_types_compose (a) _ (sum_finite_types (canon a) (canon 0))).
+    rewrite (path_finite_types_compose (a) _ (sum_finite_types (canon a) (canon 0))).
+    rewrite ap011_pp_pp. rewrite ap011_pp_pp.
+    unfold path_card_2. 
+    rewrite path_finite_types_V.
+    rewrite path_finite_types_V.
+    change (path_finite_types
+              _
+              (sum_finite_types (canon a) (canon (0)))
+              (canon (a)) (equiv_finsum a 0)) with (finsum_id a 0).
+    change (path_finite_types
+              _
+              (sum_finite_types (canon a) (canon (2)))
+              (canon (a.+2)) (equiv_finsum a 2)) with (finsum_id a 2).
+    rewrite inv_pp.
+    rewrite <- ap011_VV. 
+    repeat refine (_ @ concat_p_pp _ _ _).
+    apply whiskerL.
+    repeat refine (_ @ concat_pp_p _ _ _). apply whiskerR.
+    unfold twist2_Z.
+    rewrite (path_finite_types_sum (canon a) (canon 2)).
+    rewrite (path_finite_types_sum (canon a) (canon 0)).
+    rewrite path_finite_types_id. rewrite path_finite_types_id.
+    change (ap011 sum_finite_types (idpath (canon a)) (idpath (canon 0)))
+    with (idpath (sum_finite_types (canon a) (canon 0))).
+    destruct (path_finite_types 2 (canon 2) (canon 2) twist2).
+    rewrite concat_p1. rewrite concat_Vp. reflexivity.
+  Qed.    
+
+  Fixpoint transpose_is_twist_Z (a : nat) (i : Fin (a.+1))
+    : transpose_Z a i =
+      (path_card_2 a)^ @ twist2_Z @ (path_card_2 a).
+  Proof.
+    destruct i as [i | []].
+    - induction a. {destruct i. }
+      unfold transpose_Z. simpl. 
+      rewrite (path_finite_types_compose _ _ (canon a.+3)).
+      rewrite (path_finite_types_compose _ _ (canon a.+3)).      
+      rewrite (ap011_pp_pp Fin_to_Z _ _ idpath idpath).
+      rewrite (ap011_pp_pp Fin_to_Z _ _ idpath idpath).
+      rewrite transpose_last_two_is_twist_Z.
+      refine (concat_p_pp _ _ _ @ _).
+      refine (concat_p_pp _ _ _ @ _). apply whiskerR.
+      refine (concat_pp_p _ _ _ @ _).
+      refine (concat_pp_p _ _ _ @ _).
+      refine (concat_pp_p _ _ _ @ _). apply whiskerL.
+      assert (twist2_Z @ twist2_Z = idpath).
+      { unfold twist2_Z.
+        rewrite <- ap011_pp_pp.
+        rewrite <- path_finite_types_compose.
+        assert (twist2 oE twist2 = equiv_idmap).
+        { apply path_equiv. apply path_arrow.
+          intros [[[] | []] | []]; reflexivity. } rewrite X. clear X.
+        rewrite path_finite_types_id. reflexivity. }
+      refine (_ @ (concat_p1 _)).
+      rewrite <- X. clear X.
+      apply whiskerL.
+      refine (concat_p_pp _ _ _ @ _).
+      refine (concat_p_pp _ _ _ @ _). apply whiskerR.
+      
+      unfold path_card_2.
+      apply whiskerR.
+      
+        apply (ap 
+      
+            refine (concat_p_pp _ _ _ @ _).
+      
+      
+      
+      repeat rewrite concat_p_pp.
+      
+      rewrite (transpose_is_twist_Z a (inl i)).
+      
+      
+      
+      
+    - apply transpose_last_two_is_twist_Z.
+      
       
       
 
@@ -1058,4 +1344,5 @@ Section GrpCompl_To_Fin2.
 
 
 
-Definition Tr1
+
+

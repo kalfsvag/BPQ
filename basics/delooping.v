@@ -584,6 +584,39 @@ Section deloop_double_ind_set.
     
 End deloop_double_ind_set.
 
+Section deloop_double_ind_set'.
+  Context (X1 : Conn_pType).
+  Context (X2 : Conn_pType).
+
+  Context (Y : X1 -> X2 -> 0-Type)
+          (y0 : Y (point X1) (point X2))
+          (fl_fr : forall (ω1 : (point X1) = (point X1)) (ω2 : (point X2) = (point X2)),
+              transport (uncurry Y) (path_prod (_,_) (_,_) ω1 ω2) y0 = y0).
+
+  
+  Definition deloop_double_ind_set' : forall (x1 : X1) (x2 : X2), Y x1 x2.
+  Proof.
+    intros x1 x2.
+    simple refine (deloop_ind_set (conn_ptype_prod X1 X2) (uncurry Y) y0 _ (x1, x2)).
+    unfold point. simpl.
+    apply (equiv_functor_forall_pb (equiv_path_prod (point X1, point X2) (point X1, point X2))).
+    intros [ω1 ω2]. simpl in ω1, ω2.
+    apply fl_fr.
+  Defined.
+
+  Definition deloop_double_ind_set_beta_pt' :
+    deloop_double_ind_set' (point X1) (point X2) = y0.
+  Proof.
+    unfold deloop_double_ind_set'. unfold deloop_ind_set. simpl.
+    change (point X1, point X2) with (point (conn_ptype_prod X1 X2)).
+    apply (deloop_ind_beta_pt (conn_ptype_prod X1 X2) (uncurry Y) y0).
+  Defined.
+
+End deloop_double_ind_set'.
+  
+
     
-
-
+(* todo: replace transport with pathover above, and write out deloop_double_ind *)
+(* this should replace the two above *)
+(* Section deloop_double_ind. *)
+  

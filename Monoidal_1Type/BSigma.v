@@ -73,17 +73,49 @@ Section BSigma.
   (*   - intros []. simpl. *)
   (*     unfold path_BSigma. *)
 
-  
+  (* Definition path_BSigma (A B : BSigma) : *)
+  (*   (A <~> B) -> A = B. *)
+  (* Proof. *)
+  (*   refine (equiv_inverse (equiv_ap issig_BSigma A B) o _). *)
+  (*   intro e. *)
+  (*   apply equiv_path_finite_types'. exact e. *)
+  (* Defined. *)
+
+  (* Definition path_BSigma_id (A : BSigma) : *)
+  (*   path_BSigma A A (equiv_idmap) = idpath. *)
+  (* Proof. *)
+  (*   unfold path_BSigma. *)
+  (*   apply moveR_equiv_V. simpl. *)
+  (*   apply (moveR_equiv_M). simpl. *)
+  (*   apply (moveR_equiv_M). simpl. reflexivity. *)
+  (* Defined. *)
+
+  Definition inv_path_BSigma {A B : BSigma}
+    : A = B -> A <~> B.
+  Proof.
+    intros []. exact equiv_idmap.
+  Defined.
+
+
+
   Definition equiv_path_BSigma (A B : BSigma) :
     (A <~> B) <~> A = B.
   Proof.
     refine ((equiv_ap issig_BSigma A B)^-1 oE _).
-    destruct A as [m [A eA]]. destruct B as [n [B eB]]. simpl.
-    exact (equiv_path_finite_types' (A; finite_finite_type (A; eA)) (B; finite_finite_type (B; eB))).
+    exact (equiv_path_finite_types' (issig_BSigma A) (issig_BSigma B) ).
   Defined.
-  
+
+
+  Definition inv_equiv_path_BSigma (A B : BSigma) : 
+    (equiv_path_BSigma A B)^-1 == inv_path_BSigma.
+  Proof.
+    intros []. reflexivity.
+  Defined.
+
   Definition path_BSigma (A B : BSigma) : A <~> B -> A = B
-       := equiv_path_BSigma A B.
+    := equiv_path_BSigma A B.
+
+    
   (* Proof. *)
   (*   destruct A as [m A]. destruct B as [n B]. simpl. *)
   (*   intro e. *)
@@ -110,10 +142,10 @@ Section BSigma.
   Definition path_BSigma_1 (A : BSigma) :
     path_BSigma _ _ (equiv_idmap A) = idpath.
   Proof.
-    refine (ap (path_BSigma A A) (eissect (@path_BSigma A A) equiv_idmap)^ @ _).
-    apply moveR_equiv_M.
-    refine (eissect _ _ @ _). simpl.
-    reflexivity.
+    unfold path_BSigma. unfold equiv_path_BSigma. ev_equiv.
+    apply moveR_equiv_V. unfold equiv_path_finite_types'. ev_equiv.
+    apply moveR_equiv_M. simpl.
+    apply moveR_equiv_M. reflexivity.
   Defined.
 
   Definition path_BSigma_V {A B : BSigma} (e : A <~> B)

@@ -37,18 +37,18 @@ Qed.
 
 (*For now, define pathovers just as notation. *)
 
-Notation "'pathover' B p a b" := (transport B p a = b) (at level 20) : pathover_scope.
-Notation "a =[ p ] b" := (transport _ p a = b)
-                           (at level 20, format "a  =[ p ]  b") : pathover_scope.
-Notation "a =^ ( B ) [ p ] b" := (transport B p a = b)
-                               (at level 20, format "a  =^ ( B ) [ p ]  b") : pathover_scope.
+(* Notation "'pathover' B p a b" := (transport B p a = b) (at level 20) : pathover_scope. *)
+(* Notation "a =[ p ] b" := (transport _ p a = b) *)
+(*                            (at level 20, format "a  =[ p ]  b") : pathover_scope. *)
+(* Notation "a =^ ( B ) [ p ] b" := (transport B p a = b) *)
+(*                                (at level 20, format "a  =^ ( B ) [ p ]  b") : pathover_scope. *)
 
-(*Make another scope where the explicit notation is parsing only*)
-Notation "'pathover' B p a b" := (transport B p a = b) (at level 20) : implicit_pathover_scope.
-Notation "a =[ p ] b" := (transport _ p a = b)
-                           (at level 20, format "a  =[ p ]  b") : implicit_pathover_scope.
-Notation "a =^ B [ p ] b" := (transport B p a = b)
-                               (at level 20, only parsing, format "a  =^ B [ p ]  b") : implicit_pathover_scope.
+(* (*Make another scope where the explicit notation is parsing only*) *)
+(* Notation "'pathover' B p a b" := (transport B p a = b) (at level 20) : implicit_pathover_scope. *)
+(* Notation "a =[ p ] b" := (transport _ p a = b) *)
+(*                            (at level 20, format "a  =[ p ]  b") : implicit_pathover_scope. *)
+(* Notation "a =^ B [ p ] b" := (transport B p a = b) *)
+(*                                (at level 20, only parsing, format "a  =^ B [ p ]  b") : implicit_pathover_scope. *)
 
 
 (*This is already defined as [transport_apD_transportD], but I like this name better. . .*)
@@ -62,7 +62,7 @@ Defined.
 
 
 Section Dependent_paths.
-  Open Scope pathover_scope.
+
 
   Definition apD_composeD {A : Type} {B : Type} {C : B -> Type}
              (f : forall b : B, C b)
@@ -108,20 +108,20 @@ Section Dependent_paths.
 
   
   
-  Definition concat_over {A : Type} (B : A -> Type) {a1 a2 a3 : A} (p : a1 = a2) (q : a2 = a3)
-             {b1 : B a1} {b2 : B a2} {b3 : B a3} : 
+  (* Definition concat_over {A : Type} (B : A -> Type) {a1 a2 a3 : A} (p : a1 = a2) (q : a2 = a3) *)
+  (*            {b1 : B a1} {b2 : B a2} {b3 : B a3} :  *)
     
-    b1 =[p] b2 -> b2 =[q] b3 -> b1 =[p @ q] b3
-    := fun over_p over_q => (transport_pp B p q b1 @ ap (transport B q) over_p @ over_q).
+  (*   b1 =[p] b2 -> b2 =[q] b3 -> b1 =[p @ q] b3 *)
+  (*   := fun over_p over_q => (transport_pp B p q b1 @ ap (transport B q) over_p @ over_q). *)
 
-  Notation "r @[ p , q ] s" := (concat_over _ p q r s) (at level 20, format "r  @[ p , q ]  s").
+  (* Notation "r @[ p , q ] s" := (concat_over _ p q r s) (at level 20, format "r  @[ p , q ]  s"). *)
 
-  Definition apD_pp {A : Type} {B : A -> Type} (f : forall a : A, B a)
-             {a1 a2 a3 : A} (p : a1 = a2) (q : a2 = a3) : 
-    apD f (p @ q) = (apD f p @[p, q] apD f q).
-  Proof.
-    destruct p. destruct q. reflexivity.
-  Qed.
+  (* Definition apD_pp {A : Type} {B : A -> Type} (f : forall a : A, B a) *)
+  (*            {a1 a2 a3 : A} (p : a1 = a2) (q : a2 = a3) :  *)
+  (*   apD f (p @ q) = (apD f p @[p, q] apD f q). *)
+  (* Proof. *)
+  (*   destruct p. destruct q. reflexivity. *)
+  (* Qed. *)
 
   (* Definition transport_PQ {A : Type} {P : A -> Type} {Q : A -> Type} (h : P == Q) *)
   (*            {a b : A} (pth : a = b) *)

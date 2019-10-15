@@ -459,14 +459,22 @@ Section Homomorphism.
   Definition issig_hom (M N : Monoid) :
     {f : M -> N &  ishom f} <~> Homomorphism M N.
   Proof.
-    equiv_via {f : M -> N &
-                          sig (fun _ : (f (mon_id) = mon_id) =>
-                                 (forall m1 m2 : M, f (m1 + m2) = f m1 + f m2) )}.
-    - refine (equiv_functor_sigma_id _).
-      intro f.
-      apply equiv_inverse.
-      exact (equiv_sigma_prod0 _ _).
-    - issig (Build_Homomorphism M N) (@hom_map M N) (@preserve_id M N) (@preserve_mult M N).
+    srapply @equiv_adjointify.
+    - intros [f [f_id f_mult]].
+      apply (Build_Homomorphism _ _ f f_id f_mult).
+    - intros [f f_id f_mult].
+      exact (f; (f_id, f_mult)).
+    - intros [f f_id f_mult]. reflexivity.
+    - intros [f [f_id f_mult]]. reflexivity.
+    
+    (* equiv_via {f : M -> N & *)
+    (*                       sig (fun _ : (f (mon_id) = mon_id) => *)
+    (*                              (forall m1 m2 : M, f (m1 + m2) = f m1 + f m2) )}. *)
+    (* - refine (equiv_functor_sigma_id _). *)
+    (*   intro f. *)
+    (*   apply equiv_inverse. *)
+    (*   exact (equiv_sigma_prod0 _ _). *)
+    (* - issig (Build_Homomorphism M N) (@hom_map M N) ( @preserve_id M N) ( @preserve_mult M N). *)
   Defined.
 
   Definition prop_ishom {M N : Monoid} :

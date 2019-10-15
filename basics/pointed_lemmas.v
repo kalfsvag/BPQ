@@ -9,7 +9,7 @@ Definition ptype_prod (X Y : pType) : pType
 
 
 Definition isconn (X : pType) := forall (x : X), merely (point X = x).
-Record Conn_pType := {X :> pType ; isconn_conn_ptype : isconn X}.
+Record Conn_pType := {ptype_conn_ptype :> pType ; isconn_conn_ptype : isconn ptype_conn_ptype}.
 
 Definition conn_ptype_prod (X Y : Conn_pType) : Conn_pType.
 Proof.

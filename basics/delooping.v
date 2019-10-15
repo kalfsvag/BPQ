@@ -422,7 +422,7 @@ End functor_deloop.
 
   Lemma functor_loop_id (X : Conn_pType) 
         `{istrunc_X : IsTrunc 1 X} :
-    functor_loop X X (pmap_idmap X) == idhom.
+    functor_loop X X (@pmap_idmap X) == idhom.
   Proof.
     unfold functor_loop. simpl. intros []. reflexivity.
   Defined.
@@ -445,7 +445,7 @@ End functor_deloop.
 Section functor_deloop_id.
   Context (X : Conn_pType)  `{istrunc_X : IsTrunc 1 X}.
   Definition functor_deloop_id :
-    (functor_deloop X X idhom) = pmap_idmap X.
+    (functor_deloop X X idhom) = @pmap_idmap X.
   Proof.
     apply (equiv_inj (functor_loop X X)).
     refine (eisretr (functor_loop X X) idhom @ _).

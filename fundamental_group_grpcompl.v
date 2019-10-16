@@ -358,27 +358,36 @@ Definition lcancel_canon_path (s a b : nat)
                             (path_BSigma (canon_BSigma b) (canon_BSigma b) betta)
       @ lcancel_canon s a b.
 Proof.
-  rewrite (path_BSigma_compose (B := sum_BSigma (canon_BSigma s) (canon_BSigma a))).
-  rewrite (path_BSigma_compose (B := sum_BSigma (canon_BSigma s) (canon_BSigma a))).
-  rewrite (path_BSigma_compose (B := sum_BSigma (canon_BSigma s) (canon_BSigma b))).
-  rewrite (path_BSigma_compose (B := sum_BSigma (canon_BSigma s) (canon_BSigma b))). 
-  rewrite <- path_BSigma_V. rewrite <- path_BSigma_V.
   unfold lcancel_canon.
-  rewrite inv_pp. 
-  change (path_BSigma (sum_BSigma (canon_BSigma s) (canon_BSigma ?x)) (canon_BSigma (?x + s))
-        (equiv_finsum s ?x))
-         with (finsum_id s x).
-  destruct (finsum_id s a). destruct (finsum_id s b).
-  rewrite concat_1p. rewrite concat_1p. rewrite concat_1p.
-  rewrite concat_p1. rewrite concat_p1. rewrite concat_p1.
-  rewrite path_BSigma_sum. rewrite path_BSigma_sum.
-  
+  rewrite inv_pp.
+  repeat refine (_ @ concat_p_pp _ _ _).
+  apply moveL_Vp.
+  rewrite <- ap011_pp_pp.
+  repeat refine (_ @  (concat_pp_p _ _ _)).
+  apply moveL_pM.
+  rewrite ap011_VV.
+  rewrite <- ap011_pp_pp.
+  assert (H : forall (x : nat) (e : Fin x <~> Fin x),
+             (finsum_id s x @
+                         path_BSigma (canon_BSigma (x + s)) (canon_BSigma (x + s)) (block_sum 1 e))
+               @ (finsum_id s x)^ = 
+             path_BSigma (sum_BSigma (canon_BSigma s) (canon_BSigma x))
+                         (sum_BSigma (canon_BSigma s) (canon_BSigma x))
+                         (equiv_functor_sum_l e)).
+  { intros.
+    unfold block_sum.
+    rewrite <- path_BSigma_compose.
+    rewrite path_BSigma_V.
+    rewrite <- path_BSigma_compose.
+    apply (ap (path_BSigma _ _)).
+    repeat rewrite ecompose_ee_e.
+    rewrite ecompose_V_ee. rewrite ecompose_Ve.
+    rewrite ecompose_e1. reflexivity. }
+  rewrite H. rewrite H. clear H.
+  rewrite <- natural_path_BSigma_r. rewrite <- natural_path_BSigma_r.
   destruct (path_BSigma (canon_BSigma a) (canon_BSigma a) alpha).
   destruct (path_BSigma (canon_BSigma b) (canon_BSigma b) betta).
-  rewrite path_BSigma_1. rewrite concat_p1. rewrite concat_Vp.
-  reflexivity.
-
-  
+  rewrite concat_p1. rewrite concat_Vp. reflexivity.
 Defined.
   
   

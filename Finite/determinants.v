@@ -158,7 +158,7 @@ Section Determinant.
     intro x.
     refine (equiv_restrict_eta _ _ _ @ _).
     refine (swap_last_blocksum e1 e2 _ @ _).
-    refine ((block_sum_compose equiv_idmap e1 (swap_last e2) e2 x)^ @ _).
+    refine ((block_sum_compose' equiv_idmap e1 (swap_last e2) e2 x)^ @ _).
     rewrite (ecompose_1e).
     refine (_ @ (block_sum_plus1 _ _ x)).
     apply (ap (fun g => ((block_sum (n:=n.+1) e1 g) x))).

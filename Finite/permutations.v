@@ -294,79 +294,111 @@ Proof.
 Defined.
 
 Section Block_Sum.
-Definition block_sum {m n: nat} (e1 : Fin m <~> Fin m) (e2 : Fin n <~> Fin n) :
-  Fin (n+m)%nat <~> Fin (n+m)%nat :=
-  (equiv_finsum m n) oE (e1 +E e2) oE (equiv_inverse (equiv_finsum m n)).
+  (* First a more general definition *)
+  Definition fin_equiv_sum {a b c d : nat} (e : (Fin a + Fin b) <~> (Fin c + Fin d))
+    : Fin (b + a) <~> Fin (d + c) :=
+    (equiv_finsum c d) oE e oE (equiv_inverse (equiv_finsum a b)).
 
-Definition block_sum_beta_finl {m n : nat} (e1 : Fin m <~> Fin m) (e2 : Fin n <~> Fin n)
-           (i : Fin m) :
-  block_sum e1 e2 (finl _ _ i) = finl _ _ (e1 i).
-Proof.
-  unfold block_sum. ev_equiv.
-  rewrite (eissect (equiv_finsum m n) (inl i)). reflexivity.
-Qed.
-
-Definition block_sum_beta_finr {m n : nat} (e1 : Fin m <~> Fin m) (e2 : Fin n <~> Fin n)
-           (i : Fin n) :
-  block_sum e1 e2 (finr _ _ i) = finr _ _ (e2 i).
-Proof.
-  unfold block_sum. ev_equiv.
-  rewrite (eissect (equiv_finsum m n) (inr i)). reflexivity.
-Qed.
-
-Definition block_sum_eta {m n : nat} 
-           (e1 : Fin m <~> Fin m) (e2 : Fin n <~> Fin n)
-           (g : Fin (n + m) <~> Fin (n + m))
-           (eq_l : forall i : Fin m,
-               finl _ _(e1 i)
-               = g (finl _ _ i))
-           (eq_r : forall i : Fin n,
-               (finr _ _ (e2 i)
-                = g (finr _ _ i)))
-  : block_sum e1 e2 == g .
-Proof.
-  unfold block_sum. intro j. revert j.
-  apply fin_decompose_ind.
-  - intro i. ev_equiv. rewrite (eissect (equiv_finsum m n) (inl i)).
-    apply eq_l.
-  - intro i.  ev_equiv. rewrite (eissect (equiv_finsum m n) (inr i)).
-    apply eq_r.
-Qed.
-
-Definition block_sum_compose {m n : nat}
-           (e1 g1 : Fin m <~> Fin m)
-           (e2 g2 : Fin n <~> Fin n) :
-  block_sum (e1 oE g1) (e2 oE g2) ==
-  (block_sum e1 e2) oE (block_sum g1 g2).
-Proof.
-  apply block_sum_eta.
-  - intro i. ev_equiv.
-    rewrite block_sum_beta_finl.
-    rewrite block_sum_beta_finl.
+  Definition fin_equiv_sum_compose {a b c d e f : nat}
+             (e1 : (Fin a + Fin b) <~> (Fin c + Fin d))
+             (e2 : (Fin c + Fin d) <~> (Fin e + Fin f))
+    : fin_equiv_sum (e2 oE e1) =
+      fin_equiv_sum e2 oE fin_equiv_sum e1.
+  Proof.
+    unfold fin_equiv_sum.
+    apply path_equiv. apply path_arrow. intro x.
+    ev_equiv.
+    rewrite (eissect (equiv_finsum c d)).
     reflexivity.
-  - intro i. ev_equiv.
-    rewrite block_sum_beta_finr.
-    rewrite block_sum_beta_finr.
-    reflexivity.
-Qed.
-
-Definition block_sum_plus1 {m n : nat}
-           (e1 : Fin m <~> Fin m)
-           (e2 : Fin n <~> Fin n) :
-  block_sum (n := n.+1) e1 (e2 +E (equiv_idmap Unit)) == (block_sum e1 e2) +E (equiv_idmap Unit).
-Proof.
+  Defined.                            
   
-  apply block_sum_eta.
-  - intro i. simpl. 
-    apply (ap inl).
-    change (finsum_inv m n) with (equiv_finsum m n)^-1.
-    rewrite (eissect (finsum m n) (inl i)). reflexivity.
-  - simpl. intros [i | []].
-    + simpl.
+  Definition block_sum {m n: nat} (e1 : Fin m <~> Fin m) (e2 : Fin n <~> Fin n) :
+    Fin (n+m)%nat <~> Fin (n+m)%nat :=
+    fin_equiv_sum (e1 +E e2).
+    (* (equiv_finsum m n) oE (e1 +E e2) oE (equiv_inverse (equiv_finsum m n)). *)
+
+  Definition block_sum_beta_finl {m n : nat} (e1 : Fin m <~> Fin m) (e2 : Fin n <~> Fin n)
+             (i : Fin m) :
+    block_sum e1 e2 (finl _ _ i) = finl _ _ (e1 i).
+  Proof.
+    unfold block_sum. unfold fin_equiv_sum. ev_equiv.
+    rewrite (eissect (equiv_finsum m n) (inl i)). reflexivity.
+  Qed.
+
+  Definition block_sum_beta_finr {m n : nat} (e1 : Fin m <~> Fin m) (e2 : Fin n <~> Fin n)
+             (i : Fin n) :
+    block_sum e1 e2 (finr _ _ i) = finr _ _ (e2 i).
+  Proof.
+    unfold block_sum. unfold fin_equiv_sum. ev_equiv.
+    rewrite (eissect (equiv_finsum m n) (inr i)). reflexivity.
+  Qed.
+
+  Definition block_sum_eta {m n : nat} 
+             (e1 : Fin m <~> Fin m) (e2 : Fin n <~> Fin n)
+             (g : Fin (n + m) <~> Fin (n + m))
+             (eq_l : forall i : Fin m,
+                 finl _ _(e1 i)
+                 = g (finl _ _ i))
+             (eq_r : forall i : Fin n,
+                 (finr _ _ (e2 i)
+                  = g (finr _ _ i)))
+    : block_sum e1 e2 == g .
+  Proof.
+    unfold block_sum. unfold fin_equiv_sum. intro j. revert j.
+    apply fin_decompose_ind.
+    - intro i. ev_equiv. rewrite (eissect (equiv_finsum m n) (inl i)).
+      apply eq_l.
+    - intro i.  ev_equiv. rewrite (eissect (equiv_finsum m n) (inr i)).
+      apply eq_r.
+  Qed.
+
+  Definition block_sum_compose {m n : nat}
+             (e1 g1 : Fin m <~> Fin m)
+             (e2 g2 : Fin n <~> Fin n) :
+    block_sum (e1 oE g1) (e2 oE g2) =
+    (block_sum e1 e2) oE (block_sum g1 g2).
+  Proof.
+    refine (_ @ fin_equiv_sum_compose _ _).
+    apply (ap fin_equiv_sum).
+    apply path_equiv. apply path_arrow.
+    intros [x | x]; reflexivity.
+  Defined.
+    
+
+  Definition block_sum_compose' {m n : nat}
+             (e1 g1 : Fin m <~> Fin m)
+             (e2 g2 : Fin n <~> Fin n) :
+    block_sum (e1 oE g1) (e2 oE g2) ==
+    (block_sum e1 e2) oE (block_sum g1 g2).
+  Proof.
+    apply block_sum_eta.
+    - intro i. ev_equiv.
+      rewrite block_sum_beta_finl.
+      rewrite block_sum_beta_finl.
+      reflexivity.
+    - intro i. ev_equiv.
+      rewrite block_sum_beta_finr.
+      rewrite block_sum_beta_finr.
+      reflexivity.
+  Qed.
+
+  Definition block_sum_plus1 {m n : nat}
+             (e1 : Fin m <~> Fin m)
+             (e2 : Fin n <~> Fin n) :
+    block_sum (n := n.+1) e1 (e2 +E (equiv_idmap Unit)) == (block_sum e1 e2) +E (equiv_idmap Unit).
+  Proof.
+    
+    apply block_sum_eta.
+    - intro i. simpl. 
+      apply (ap inl).
       change (finsum_inv m n) with (equiv_finsum m n)^-1.
-      rewrite (eissect (finsum m n) (inr i)). reflexivity.
-    + reflexivity.
-Qed.
+      rewrite (eissect (finsum m n) (inl i)). reflexivity.
+    - simpl. intros [i | []].
+      + simpl.
+        change (finsum_inv m n) with (equiv_finsum m n)^-1.
+        rewrite (eissect (finsum m n) (inr i)). reflexivity.
+      + reflexivity.
+  Qed.
 
 End Block_Sum.
 
@@ -386,7 +418,7 @@ Section Block_Sum_Hom.
     - simpl. apply path_equiv. apply path_arrow.
       apply block_sum_eta; reflexivity.
     - simpl. intros [s1 s2] [t1 t2].
-      apply path_equiv. apply path_arrow.
+      (* apply path_equiv. apply path_arrow. *)
       apply block_sum_compose.
   Defined.
 End Block_Sum_Hom.

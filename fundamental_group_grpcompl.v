@@ -8,6 +8,8 @@ From GR Require Import cquot cquot_principles.
 From GC Require Import finite_lemmas (* path_finite_types *) monoids_and_groups path_lemmas
                        group_complete_1type BSigma delooping permutations determinants pointed_lemmas.
 
+Notation "a +' b" := (Peano.plus b a) (at level 50).
+
 Definition iso_path_finite_types (m n: nat)
   : Isomorphism (SymGrp m) (loopGroup (Finite_Types m) (canon m)).
 Proof.
@@ -278,13 +280,38 @@ Definition lcancel_Z (S A B : BSigma)
   : BSigma_to_Z A B = BSigma_to_Z (sum_BSigma S A) (sum_BSigma S B) :=
   path_Z S idpath idpath.
 
+Definition lcancel_Z_fr (A B S : BSigma)
+  : BSigma_to_Z A B = BSigma_to_Z (sum_BSigma A S) (sum_BSigma B S).
+Proof.
+  apply (path_Z S); apply BSigma_symmetric.
+  (* refine (lcancel_Z S A B @ _); *)
+  (* apply (ap011 BSigma_to_Z); apply BSigma_symmetric. *)
+Defined.
+
+Definition path_Z_pp {A1 B1 A2 B2 A2' B2'} (S : BSigma)
+           (p1 : sum_BSigma S A1 = A2) (p2 : sum_BSigma S B1 = B2)
+           (q1 : A2 = A2') (q2 : B2 = B2')
+  : path_Z S (p1 @ q1) (p2 @ q2) =
+    path_Z S p1 p2 @ (ap011 BSigma_to_Z q1 q2).
+Proof.
+  destruct q1. destruct q2. destruct p1. destruct p2. simpl.
+  rewrite concat_p1. reflexivity.
+Defined.
+  
+
 Definition path_is_lcancel {A1 B1 A2 B2} (S : BSigma)
            (p : sum_BSigma S A1 = A2) (q : sum_BSigma S B1 = B2)
   : path_Z S p q = lcancel_Z S A1 B1 @ ap011 BSigma_to_Z p q.
 Proof.
-  destruct p. destruct q. rewrite concat_p1.
+  unfold lcancel_Z.
+  refine (_ @ path_Z_pp S idpath idpath p q).
+  rewrite concat_1p. rewrite concat_1p.
   reflexivity.
 Defined.
+(* Proof. *)
+(*   destruct p. destruct q. rewrite concat_p1. *)
+(*   reflexivity. *)
+(* Defined. *)
 
 (* move *)
 (* Arguments Build_BSigma {card_BSigma}. *)
@@ -318,41 +345,70 @@ Proof.
   repeat rewrite concat_p1. destruct (BSigma_assoc T S A). destruct (BSigma_assoc T S B).
   apply concat_p1.
 Defined.
-(*   unfold lcancel_Z. *)
-(*   apply moveL_pV. *)
-(*   refine (_ @ cconcat group_completion_BSigma _ _). *)
-(*   simpl. *)
-(*   rewrite concat_p1. rewrite concat_p1.  *)
-(*   change (functor_prod ?f ?g (?x, ?y)) with (f x, g y). *)
-(*   change (functor_prod ?f ?g (?x, ?y)) with (f x, g y). *)
-(*   apply inverse. *)
-(*   refine (_ @ *)
-(*             ccleq_concat_Z *)
-(*             (sum_BSigma T S) A B _ _ idpath *)
-(*             (path_prod (sum_BSigma (sum_BSigma T S) A, sum_BSigma (sum_BSigma T S) B) *)
-(*                        (sum_BSigma T (sum_BSigma S A), sum_BSigma T (sum_BSigma S B)) *)
-(*                        (BSigma_assoc T S A) *)
-(*                        (BSigma_assoc T S B)) @ _). *)
-(*   { rewrite concat_1p. reflexivity. } *)
-(*   apply whiskerL. *)
-(*   destruct (BSigma_assoc T S A).  destruct (BSigma_assoc T S B). reflexivity. *)
-(* Qed. *)
+
+Definition lcancel_Z_fr_compose (A B S T: BSigma) 
+  : lcancel_Z_fr A B (sum_BSigma T S) =
+    lcancel_Z_fr A B T @ (lcancel_Z_fr _ _ S) @
+                 (ap011 BSigma_to_Z (BSigma_assoc A T S) (BSigma_assoc B T S)).
+Proof.
+  unfold lcancel_Z_fr.
+  apply moveL_pM.
+  refine (_ @ (path_Z_compose T S _ _ _ _)^).
+  assert (H : forall (s s' a1 b1 a2 b2 : BSigma) (p : s' = s)
+                 (q1 : sum_BSigma s a1 = a2)
+                 (q2 : sum_BSigma s b1 = b2),
+             path_Z s q1 q2 =
+             path_Z s' (ap011 sum_BSigma p idpath @ q1)
+                       (ap011 sum_BSigma p idpath @ q2)).
+  { intros. destruct p. rewrite concat_1p. rewrite concat_1p. reflexivity. }
+  rewrite (H _ _ _ _ _ _ (BSigma_symmetric S T)). clear H.
+  rewrite ap011_VV. rewrite <- path_Z_pp.
+  apply (ap011 (path_Z (sum_BSigma S T))).
+  - rewrite <- path_BSigma_1.
+    rewrite <- path_BSigma_sum.
+    rewrite <- path_BSigma_1.
+    rewrite <- path_BSigma_sum.
+    rewrite <- path_BSigma_compose.
+    rewrite <- path_BSigma_compose.
+    rewrite <- path_BSigma_compose.
+    rewrite path_BSigma_V.
+    rewrite <- path_BSigma_compose.
+    apply (ap (path_BSigma _ _)).
+    apply path_equiv. apply path_arrow.
+    intro x. repeat destruct x as [x | x]; reflexivity.
+  - rewrite <- path_BSigma_1.
+    rewrite <- path_BSigma_sum.
+    rewrite <- path_BSigma_1.
+    rewrite <- path_BSigma_sum.
+    rewrite <- path_BSigma_compose.
+    rewrite <- path_BSigma_compose.
+    rewrite <- path_BSigma_compose.
+    rewrite path_BSigma_V.
+    rewrite <- path_BSigma_compose.
+    apply (ap (path_BSigma _ _)).
+    apply path_equiv. apply path_arrow.
+    intro x. repeat destruct x as [x | x]; reflexivity.
+Defined.               
+  
 
 Definition lcancel_canon (s m n : nat) :
   BSigma_to_Z (canon_BSigma m) (canon_BSigma n) =
-  BSigma_to_Z (canon_BSigma (m+s)) (canon_BSigma (n + s)).
+  BSigma_to_Z (canon_BSigma (m + s)) (canon_BSigma (n + s)).
 Proof.
-  refine (lcancel_Z (canon_BSigma s) _ _@ _).
+  refine (lcancel_Z (canon_BSigma s) _ _ @ _).
   apply (ap011 BSigma_to_Z); apply finsum_id.
   (* apply (path_Z (canon_BSigma s)); *)
   (*   apply finsum_id. *)
 Defined.
 
+
+
 Definition lcancel_canon_path (s a b : nat)
+           (sigma : Fin s <~> Fin s)
            (alpha : Fin a <~> Fin a) (betta : Fin b <~> Fin b) 
   : ap011 BSigma_to_Z
-          (path_BSigma (canon_BSigma (a+s)) (canon_BSigma (a+s)) (block_sum equiv_idmap alpha))
-          (path_BSigma (canon_BSigma (b+s)) (canon_BSigma (b+s)) (block_sum equiv_idmap betta)) =
+          (path_BSigma (canon_BSigma (a + s)) (canon_BSigma (a + s)) (block_sum sigma alpha))
+          (path_BSigma (canon_BSigma (b + s)) (canon_BSigma (b + s)) (block_sum sigma betta)) =
     (lcancel_canon s a b)^ @
           ap011 BSigma_to_Z (path_BSigma (canon_BSigma a) (canon_BSigma a) alpha)
                             (path_BSigma (canon_BSigma b) (canon_BSigma b) betta)
@@ -367,13 +423,23 @@ Proof.
   apply moveL_pM.
   rewrite ap011_VV.
   rewrite <- ap011_pp_pp.
-  assert (H : forall (x : nat) (e : Fin x <~> Fin x),
+  
+  (* assert (H : forall (x : nat) (e : Fin x <~> Fin x), *)
+  (*            (finsum_id x s @ *)
+  (*                        path_BSigma (canon_BSigma (x +' s)) (canon_BSigma (x +' s)) *)
+  (*                        (block_sum e sigma )) *)
+  (*              @ (finsum_id x s)^ =  *)
+  (*            path_BSigma (sum_BSigma (canon_BSigma x) (canon_BSigma s)) *)
+  (*                        (sum_BSigma (canon_BSigma x) (canon_BSigma s)) *)
+  (*                        (e +E sigma)). *)
+    assert (H : forall (x : nat) (e : Fin x <~> Fin x),
              (finsum_id s x @
-                         path_BSigma (canon_BSigma (x + s)) (canon_BSigma (x + s)) (block_sum 1 e))
+                         path_BSigma (canon_BSigma (x + s)) (canon_BSigma (x + s))
+                         (block_sum sigma e))
                @ (finsum_id s x)^ = 
              path_BSigma (sum_BSigma (canon_BSigma s) (canon_BSigma x))
                          (sum_BSigma (canon_BSigma s) (canon_BSigma x))
-                         (equiv_functor_sum_l e)).
+                         (sigma +E e)).
   { intros.
     unfold block_sum.
     rewrite <- path_BSigma_compose.
@@ -383,13 +449,58 @@ Proof.
     repeat rewrite ecompose_ee_e.
     rewrite ecompose_V_ee. rewrite ecompose_Ve.
     rewrite ecompose_e1. reflexivity. }
-  rewrite H. rewrite H. clear H.
-  rewrite <- natural_path_BSigma_r. rewrite <- natural_path_BSigma_r.
-  destruct (path_BSigma (canon_BSigma a) (canon_BSigma a) alpha).
-  destruct (path_BSigma (canon_BSigma b) (canon_BSigma b) betta).
-  rewrite concat_p1. rewrite concat_Vp. reflexivity.
+    rewrite H. rewrite H. clear H.
+    rewrite path_BSigma_sum. rewrite path_BSigma_sum.
+    (* rewrite <- natural_path_BSigma_r. rewrite <- natural_path_BSigma_r. *)
+    destruct (path_BSigma (canon_BSigma a) (canon_BSigma a) alpha).
+    destruct (path_BSigma (canon_BSigma b) (canon_BSigma b) betta).
+    destruct (path_BSigma (canon_BSigma s) (canon_BSigma s) sigma).
+    rewrite concat_p1. rewrite concat_Vp. reflexivity.
 Defined.
-  
+
+
+(* Definition lcancel_canon_path (s a b : nat) *)
+(*            (alpha : Fin a <~> Fin a) (betta : Fin b <~> Fin b) *)
+(*   : ap011 BSigma_to_Z *)
+(*           (path_BSigma (canon_BSigma (a+s)) (canon_BSigma (a+s)) (block_sum equiv_idmap alpha)) *)
+(*           (path_BSigma (canon_BSigma (b+s)) (canon_BSigma (b+s)) (block_sum equiv_idmap betta)) = *)
+(*     (lcancel_canon s a b)^ @ *)
+(*           ap011 BSigma_to_Z (path_BSigma (canon_BSigma a) (canon_BSigma a) alpha) *)
+(*                             (path_BSigma (canon_BSigma b) (canon_BSigma b) betta) *)
+(*       @ lcancel_canon s a b. *)
+(* Proof. *)
+(*   unfold lcancel_canon. *)
+(*   rewrite inv_pp. *)
+(*   repeat refine (_ @ concat_p_pp _ _ _). *)
+(*   apply moveL_Vp. *)
+(*   rewrite <- ap011_pp_pp. *)
+(*   repeat refine (_ @  (concat_pp_p _ _ _)). *)
+(*   apply moveL_pM. *)
+(*   rewrite ap011_VV. *)
+(*   rewrite <- ap011_pp_pp. *)
+(*   assert (H : forall (x : nat) (e : Fin x <~> Fin x), *)
+(*              (finsum_id s x @ *)
+(*                          path_BSigma (canon_BSigma (x + s)) (canon_BSigma (x + s)) (block_sum 1 e)) *)
+(*                @ (finsum_id s x)^ = *)
+(*              path_BSigma (sum_BSigma (canon_BSigma s) (canon_BSigma x)) *)
+(*                          (sum_BSigma (canon_BSigma s) (canon_BSigma x)) *)
+(*                          (equiv_functor_sum_l e)). *)
+(*   { intros. *)
+(*     unfold block_sum. *)
+(*     rewrite <- path_BSigma_compose. *)
+(*     rewrite path_BSigma_V. *)
+(*     rewrite <- path_BSigma_compose. *)
+(*     apply (ap (path_BSigma _ _)). *)
+(*     repeat rewrite ecompose_ee_e. *)
+(*     rewrite ecompose_V_ee. rewrite ecompose_Ve. *)
+(*     rewrite ecompose_e1. reflexivity. } *)
+(*   rewrite H. rewrite H. clear H. *)
+(*   rewrite <- natural_path_BSigma_r. rewrite <- natural_path_BSigma_r. *)
+(*   destruct (path_BSigma (canon_BSigma a) (canon_BSigma a) alpha). *)
+(*   destruct (path_BSigma (canon_BSigma b) (canon_BSigma b) betta). *)
+(*   rewrite concat_p1. rewrite concat_Vp. reflexivity. *)
+(* Defined. *)
+
   
                                                                                      
   
@@ -415,12 +526,12 @@ Definition lcancel_canon_compose (m n s t : nat)
                   @ (ap011 BSigma_to_Z (canon_BSigma_assoc _ _ _) (canon_BSigma_assoc _ _ _))^.
 Proof.
   unfold lcancel_canon.
-  assert (H : lcancel_Z (canon_BSigma (s + t)) (canon_BSigma m) (canon_BSigma n) =
-              lcancel_Z (sum_BSigma (canon_BSigma t) (canon_BSigma s))
-                        (canon_BSigma m) (canon_BSigma n)
-              @ ap011 BSigma_to_Z
+  assert (H : lcancel_Z  (canon_BSigma (s + t)) (canon_BSigma m) (canon_BSigma n)  =
+              lcancel_Z  (sum_BSigma (canon_BSigma t) (canon_BSigma s))
+                         (canon_BSigma m) (canon_BSigma n)
+              @ (ap011 BSigma_to_Z
                       (ap011 sum_BSigma (finsum_id _ _) idpath)
-                      (ap011 sum_BSigma (finsum_id _ _) idpath)).
+                      (ap011 sum_BSigma (finsum_id _ _) idpath))).
   { destruct (finsum_id t s). apply inverse. apply concat_p1. }
   rewrite H. clear H.
   rewrite lcancel_Z_compose.
@@ -456,7 +567,7 @@ Proof.
     destruct (path_BSigma A B e). reflexivity. }
   rewrite H. rewrite H. clear H.
   assert (H : forall (A B C : BSigma) (e : B <~> C),
-             ap011 sum_BSigma (idpath A) (path_BSigma B C e) 
+             ap011 sum_BSigma (idpath A) (path_BSigma B C e)
              = path_BSigma (sum_BSigma A B) (sum_BSigma A C)
                            (equiv_functor_sum_l e)).
   { intros. refine (_ @ natural_path_BSigma_r e).
@@ -1389,9 +1500,15 @@ Section GrpCompl_To_Fin2.
 
 
 End GrpCompl_To_Fin2.
+  (* Declare Scope nat2_scope. *)
+
 
 
 Section IsEquiv_GrpCompl_To_Fin2.
+  (* For reasons, it is easier to work with addition on natural numbers defined by induction  *)
+  (* on the right hand element *)
+  (* Open Scope nat2_scope. *)
+  
     (* move? *)
   Definition transpose_last_two_is_block_sum (a : nat)
     : fin_transpose_last_two a = (block_sum equiv_idmap twist2).
@@ -1401,7 +1518,7 @@ Section IsEquiv_GrpCompl_To_Fin2.
   Defined.
 
   Definition block_sum_is_id (m n : nat)
-    : equiv_idmap (Fin (n + m)) = block_sum (equiv_idmap (Fin m)) (equiv_idmap (Fin n)).
+    : equiv_idmap (Fin (m +' n)) = block_sum (equiv_idmap (Fin m)) (equiv_idmap (Fin n)).
   Proof.
     unfold block_sum. unfold fin_equiv_sum.
     assert (p : equiv_idmap (Fin m) +E equiv_idmap (Fin n) = equiv_idmap ((Fin m) + (Fin n))).
@@ -1421,96 +1538,254 @@ Section IsEquiv_GrpCompl_To_Fin2.
   (*   apply (ap011 BSigma_to_Z); apply path_BSigma; apply sum_empty_r. *)
   (* Defined. *)
 
+
+
+  Definition lcancel_succ (a b : nat)
+    : BSigma_to_Z (canon_BSigma a) (canon_BSigma b) =
+      BSigma_to_Z (canon_BSigma a.+1) (canon_BSigma b.+1).
+  Proof.
+    refine (lcancel_Z_fr _ _ (canon_BSigma 1) @ _).
+    apply (ap011 BSigma_to_Z);
+      apply (finsum_id _ 1).
+  Defined.
+
+  Definition lcancel_iter (s a b : nat)
+    : BSigma_to_Z (canon_BSigma a) (canon_BSigma b) =
+      BSigma_to_Z (canon_BSigma (a +' s)) (canon_BSigma (b +' s)).
+  Proof.
+    induction s.
+    - reflexivity.
+      (* apply (ap011 (fun m n => BSigma_to_Z (canon_BSigma m) (canon_BSigma n))); *)
+      (* apply nat_plus_n_O. *)
+    - refine (IHs @ _).
+      apply lcancel_succ.
+  Defined.
+
+  (* move *)
+  Definition block_sum_0 {a : nat} (alpha : Fin a <~> Fin a) (sigma : Fin 0 <~> Fin 0)
+    : block_sum alpha sigma = alpha.
+  Proof.
+    unfold block_sum. unfold fin_equiv_sum.
+    simpl. apply emoveR_eV.
+    apply path_equiv. apply path_arrow.
+    intros [x | []]. reflexivity.
+  Defined.
+    
+
+  (* Definition lcancel_iter_blocksum {s a b : nat} *)
+  (*            (sigma : canon_BSigma s <~> canon_BSigma s) *)
+  (*            (alpha : canon_BSigma a <~> canon_BSigma a) *)
+  (*            (betta : canon_BSigma b <~> canon_BSigma b) *)
+  (*   : ap011 BSigma_to_Z *)
+  (*           (path_BSigma (canon_BSigma (a +' s)) (canon_BSigma (a +' s)) (block_sum alpha sigma)) *)
+  (*           (path_BSigma (canon_BSigma (b +' s)) (canon_BSigma (b +' s)) (block_sum betta sigma)) =  *)
+  (*     (lcancel_iter s a b)^ @ *)
+  (*             ap011 BSigma_to_Z (path_BSigma _ _ alpha) (path_BSigma _ _ betta) *)
+  (*      @ (lcancel_iter s a b). *)
+  (* Proof. *)
+  (*   induction s. *)
+  (*   - simpl. rewrite concat_1p. rewrite concat_p1. *)
+  (*     apply (ap011 (ap011 BSigma_to_Z)); *)
+  (*       apply (ap (path_BSigma _ _)); apply block_sum_0. *)
+  (*   - simpl. change (?x +' s).+1 with (x +' s.+1). *)
+  (*     rewrite inv_pp. *)
+  (*     rewrite (concat_pp_p (lcancel_succ (a +' s) (b +' s))^ _ _). *)
+  (*     rewrite (concat_p_pp _ (lcancel_iter s a b) _). *)
+  (*     rewrite (concat_pp_p _ _ (lcancel_iter s a b)). *)
+  (*     rewrite <- (IHs (transpose_and_restrict sigma)). *)
+      
+      
+
   Definition path_base_2 (a : nat)
     : BSigma_to_Z (canon_BSigma 2) (canon_BSigma 0) =
-      BSigma_to_Z (canon_BSigma (a.+2)) (canon_BSigma a)
-    := lcancel_canon a _ _.
-
-  Definition twist_first_two (a b c : nat)
-    : Fin (a + (b + c)) <~> Fin ((b + a) + c).
+      BSigma_to_Z (canon_BSigma (2 +' a)) (canon_BSigma a).
   Proof.
-    refine (_ oE canon_assoc _ _ _).
-    apply fin_equiv_sum.
-    apply equiv_functor_sum_l.
-    apply fin_equiv_sum.
-    apply equiv_sum_symm.
+    refine (lcancel_Z_fr _ _ (canon_BSigma a) @ _).
+    (* refine (lcancel_Z (canon_BSigma a) _ _ @ _). *)
+    apply (ap011 BSigma_to_Z).
+    - apply finsum_id.
+    - apply path_BSigma.
+      apply sum_empty_l.
   Defined.
 
-  Definition twist_last_two (a b c : nat)
-    : Fin ((a + b) + c) <~> Fin (a + (c + b)).
-  Proof.
-    refine (_ oE (canon_assoc _ _ _ )^-1).
-    apply fin_equiv_sum.
-    apply equiv_functor_sum_r.
-    apply fin_equiv_sum.
-    apply equiv_sum_symm.
-  Defined.
+  (*   refine (lcancel_iter a 2 0 @ _). *)
+  (*   apply (ap011 BSigma_to_Z idpath). *)
+    (* refine ((finsum_id 0 a)^ @ _). *)
 
-  Definition transpose_twist (a : nat) (i : Fin (a.+1)) : Type.
-    : fin_transpose_last_with (a.+2) (inl (inl i)) =
-      (twist_last_two 1 2 a) oE (block_sum
-                                   
-                                   (fin_transpose_last_with (a.+1) (inl i))
-                                   (equiv_idmap (Fin 1))        
-                                           )
-                             oE (twist_last_two 1 2 a)^-1.
+  (* Defined. *)
+    
+    
+  (*   induction a. *)
+  (*   - reflexivity. *)
+  (*   - refine (IHa @ _). apply lcancel_succ. *)
+
+
+  Definition path_base_2_succ (a : nat)
+    : path_base_2 (a.+1) =
+      path_base_2 a @ (lcancel_succ _ _).
+  Proof.
+    unfold path_base_2. unfold lcancel_succ.
+    
+
+    lcancel_Z_fr_compose
+    
+    
+    
+  (*   repeat rewrite concat_pp_p. *)
+      
+    (* := lcancel_canon a _ _. *)
+
+  (* Definition twist_first_two (a b c : nat) *)
+  (*   : Fin (a +' (b +' c)) <~> Fin ((b +' a) +' c). *)
+  (* Proof. *)
+  (*   refine (_ oE (canon_assoc _ _ _ )^-1). *)
+  (*   apply fin_equiv_sum. *)
+  (*   apply equiv_functor_sum_r. *)
+  (*   apply fin_equiv_sum. *)
+  (*   apply equiv_sum_symm. *)
+  (* Defined. *)
+
+    
+  (* Definition twist_last_two (a b c : nat) *)
+  (*   : Fin ((a +' b) +' c) <~> Fin (a +' (c +' b)). *)
+  (* Proof. *)
+  (*   refine (_ oE canon_assoc _ _ _). *)
+  (*   apply fin_equiv_sum. *)
+  (*   apply equiv_functor_sum_l. *)
+  (*   apply fin_equiv_sum. *)
+  (*   apply equiv_sum_symm. *)
+  (* Defined. *)
   
 
-  Definition path_base_diff (a : nat)
-    : BSigma_to_Z (canon_BSigma (a.+2)) (canon_BSigma a) =
-      BSigma_to_Z (canon_BSigma ((a.+1).+2)) (canon_BSigma a.+1).
-  Proof.
-    refine (lcancel_canon 1 _ _ @ _).
-    change (a.+3) with (2 + (1 + a))%nat.
-    change (canon_BSigma (a.+1)) with (canon_BSigma (0 + (1 + a))%nat).
-    change (canon_BSigma (a + 1)) with (canon_BSigma (0 + (a + 1))).
-    change (a.+2) with (2 + a)%nat.
-    apply (ap011 BSigma_to_Z).
-    - apply (path_BSigma). apply twist_last_two.
-    - apply (path_BSigma). apply (twist_last_two 0 a 1).
+(*   Definition transpose_twist (a : nat) (i : Fin (a.+1))  *)
+(*     : fin_transpose_last_with (a.+2) (inl (inl i)) = *)
+(*       (twist_first_two 1 a 2) oE (block_sum *)
+(*                                        (equiv_idmap (Fin 1)) *)
+(*                                        (fin_transpose_last_with (a.+1) (inl i)) *)
+                                           
+(*                                            ) *)
+(*                              oE (twist_first_two 1 a 2)^-1. *)
+(*   Proof. *)
+(*     apply emoveL_eV. *)
+(*     unfold block_sum. unfold fin_equiv_sum. *)
+(*     refine (_ @ ecompose_ee_e _ _ _). apply emoveL_eV. *)
+(*     unfold twist_first_two. unfold canon_assoc. *)
+(*     rewrite einv_eV. rewrite einv_eV. *)
+(*     rewrite einv_ee. rewrite einv_ee. *)
+(*     apply path_equiv. apply path_arrow. *)
+(*     intro x. ev_equiv. rewrite eissect. rewrite eissect. *)
+(*     destruct x as [[[] | []] | x]. *)
+(*     - assert ((fin_equiv_sum (equiv_functor_sum_r (fin_equiv_sum (equiv_sum_symm (Fin 1) (Fin a)))) *)
+(*        (equiv_finsum (1 +' a) 2 *)
+(*           (equiv_functor_sum_r (equiv_finsum 1 a) *)
+(*              ((equiv_sum_assoc' (Fin 1) (Fin a) (Fin 2))^-1 *)
+(*                 ((equiv_functor_sum_l (equiv_finsum a 2))^-1 (inl (inr tt))))))) = *)
+(*               (inl (inr tt))). *)
+(*       { simpl. change (finl ?m ?n ?x) with (equiv_finsum m n (inl x)). *)
+(*         change (finsum_inv ?m ?n ?x) with ((equiv_finsum m n)^-1 x). *)
+(*         rewrite eissect. simpl. *)
 
+(*         rewrite (eissect (equiv_finsum 1 a) (inr tt)). *)
 
-    (* ; apply (ap canon_BSigma); simpl. *)
-    (* - apply (nat_plus_comm a.+2). *)
-    (* - apply (nat_plus_comm a). *)
-    (* apply (ap (fun x => BSigma_to_Z (canon_BSigma (2 + x)) (canon_BSigma (x)))). *)
-    (* (* apply (ap011 BSigma_to_Z); apply (ap canon_BSigma); *) *)
-    (* apply nat_plus_comm. *)
-  Defined.
+(*       change ((?f +E ?g) (?x)) with (functor_sum f g x).       *)
+(*       change (functor_sum (B' := ?B) ?f ?g (inl ?x)) with (inl B (f x)). *)
+(*       change (equiv_idmap _ ?x) with x. *)
+      
+(*       unfold equiv_functor_sum_l. *)
+(*       assert (forall (A B C : Type) (f : A <~> B), *)
+(*                  ((equiv_idmap C) +E f)^-1 = ((equiv_idmap C) +E f^-1)). *)
+(*       { intros. reflexivity. } *)
+(*       (* then why doesn't this work. *) *)
+(*       (* change (((equiv_idmap (Fin 1)) +E equiv_finsum a 2)^-1) with *) *)
+(*       (* ((equiv_idmap (Fin 1)) +E (equiv_finsum a 2)^-1). *) *)
+(*       rewrite X. *)
+(*       change ((?f +E ?g) (?x)) with (functor_sum f g x).       *)
+(*       change (functor_sum (B' := ?B) ?f ?g (inl ?x)) with (inl B (f x)). *)
+      
+(*       simpl. *)
 
+(*       unfold equiv_inv. *)
+(*       change (equiv_functor_sum_l (A := ?A) ?f)^-1 with (functor_sum (fun a : A => A) (f^-1)). *)
+(*       change ((equiv_functor_sum_l (A := ?A) ?f)^-1 (inl ?x)) with (inl (f^-1 x)). *)
+      
+(*       change (equiv_finsum ?m ?n (inl ?x)) with (finl m n x). *)
+(*       (* change (equiv_finsum 1 a.+2 (inl (inr tt))) with (finl 1 (a.+2) (inr tt)). *) *)
+(*       (* change ((finl ?m ?n.+2) ?x) with (inl Unit (inl Unit (finl m n x))). *) *)
+(*       (* change ((finl 1 a.+2) (inr tt)) with (inl Unit (inl Unit (finl 1 a (inr tt)))). *) *)
+(*       change ((equiv_sum_assoc' ?A ?B ?C)^-1 (inl (inl ?x))) with (inl x). *)
+      
+      
+      
+(* simpl. *)
+      
 
-  Definition path_base_succ (a : nat)
-    : path_base_2 (a.+1) =
-      path_base_2 a @ path_base_diff a.
-  Proof.
-    unfold path_base_diff.
-    unfold path_base_2. unfold lcancel_canon.
+      
+(* (*       change ((?f +E ?g) (inl (?x))) with (inl (f x)).
+simpl. *) *)
     
-    assert (H : forall (m n : nat) (p : m = n),
-               lcancel_canon n 2 0 =
-               lcancel_canon m 2 0 @
-                    ap (fun x => BSigma_to_Z (canon_BSigma (2 + x)) (canon_BSigma (0 + x))) p).
-    { intros m n []. apply inverse. apply concat_p1. }
-    rewrite (H _ _ (nat_plus_comm a 1)). clear H.
-    refine (_ @ concat_pp_p _ _ _).
-    apply whiskerR.
-    refine (lcancel_canon_compose _ _ _ _ @ _). (* simpler proof to just prove this here? *)
-    apply moveR_pV. refine ((concat_p1 _)^ @ _). apply whiskerL.
-    change idpath with (ap011 BSigma_to_Z
-                              (idpath (canon_BSigma (2 + (a + 1))))
-                              (idpath (canon_BSigma ((a + 1))))).
-    rewrite <- path_BSigma_1.  rewrite <- path_BSigma_1. 
-    unfold canon_BSigma_assoc. simpl.
-    apply (ap011 (fun f g => ap011 BSigma_to_Z (path_BSigma _ _ f) (path_BSigma _ _ g))).
-    +  unfold canon_assoc.
-       apply emoveL_eV. apply emoveL_eV.
-       apply path_equiv. apply path_arrow.
-       intros [[x | x] | [[[]|x] | x]]; reflexivity.
-    + unfold canon_assoc.
-      apply emoveL_eV. apply emoveL_eV.
-      apply path_equiv. apply path_arrow.
-      intros [[x | x] | []]; reflexivity.
-  Defined.
+(* (* repeat ; try destruct x; simpl. *) *)
+    
+(* simpl. *)
+
+    
+(*     destruct i as [i | []]; simpl. *)
+  
+
+  (* Definition path_base_diff (a : nat) *)
+  (*   : BSigma_to_Z (canon_BSigma (a.+2)) (canon_BSigma a) = *)
+  (*     BSigma_to_Z (canon_BSigma ((a.+1).+2)) (canon_BSigma a.+1). *)
+  (* Proof. *)
+  (*   lcancel_canon 1 _ _ @ _). *)
+  (*   change (a.+3) with (2 + (1 + a))%nat. *)
+  (*   change (canon_BSigma (a.+1)) with (canon_BSigma (0 + (1 + a))%nat). *)
+  (*   change (canon_BSigma (a + 1)) with (canon_BSigma (0 + (a + 1))). *)
+  (*   change (a.+2) with (2 + a)%nat. *)
+  (*   apply (ap011 BSigma_to_Z). *)
+  (*   - apply (path_BSigma). apply twist_last_two. *)
+  (*   - apply (path_BSigma). apply (twist_last_two 0 a 1). *)
+
+
+  (*   (* ; apply (ap canon_BSigma); simpl. *) *)
+  (*   (* - apply (nat_plus_comm a.+2). *) *)
+  (*   (* - apply (nat_plus_comm a). *) *)
+  (*   (* apply (ap (fun x => BSigma_to_Z (canon_BSigma (2 + x)) (canon_BSigma (x)))). *) *)
+  (*   (* (* apply (ap011 BSigma_to_Z); apply (ap canon_BSigma); *) *) *)
+  (*   (* apply nat_plus_comm. *) *)
+  (* Defined. *)
+
+
+  (* Definition path_base_succ (a : nat) *)
+  (*   : path_base_2 (a.+1) = *)
+  (*     path_base_2 a @ path_base_diff a. *)
+  (* Proof. *)
+  (*   unfold path_base_diff. *)
+  (*   unfold path_base_2. unfold lcancel_canon. *)
+    
+  (*   assert (H : forall (m n : nat) (p : m = n), *)
+  (*              lcancel_canon n 2 0 = *)
+  (*              lcancel_canon m 2 0 @ *)
+  (*                   ap (fun x => BSigma_to_Z (canon_BSigma (2 + x)) (canon_BSigma (0 + x))) p). *)
+  (*   { intros m n []. apply inverse. apply concat_p1. } *)
+  (*   rewrite (H _ _ (nat_plus_comm a 1)). clear H. *)
+  (*   refine (_ @ concat_pp_p _ _ _). *)
+  (*   apply whiskerR. *)
+  (*   refine (lcancel_canon_compose _ _ _ _ @ _). (* simpler proof to just prove this here? *) *)
+  (*   apply moveR_pV. refine ((concat_p1 _)^ @ _). apply whiskerL. *)
+  (*   change idpath with (ap011 BSigma_to_Z *)
+  (*                             (idpath (canon_BSigma (2 + (a + 1)))) *)
+  (*                             (idpath (canon_BSigma ((a + 1))))). *)
+  (*   rewrite <- path_BSigma_1.  rewrite <- path_BSigma_1.  *)
+  (*   unfold canon_BSigma_assoc. simpl. *)
+  (*   apply (ap011 (fun f g => ap011 BSigma_to_Z (path_BSigma _ _ f) (path_BSigma _ _ g))). *)
+  (*   +  unfold canon_assoc. *)
+  (*      apply emoveL_eV. apply emoveL_eV. *)
+  (*      apply path_equiv. apply path_arrow. *)
+  (*      intros [[x | x] | [[[]|x] | x]]; reflexivity. *)
+  (*   + unfold canon_assoc. *)
+  (*     apply emoveL_eV. apply emoveL_eV. *)
+  (*     apply path_equiv. apply path_arrow. *)
+  (*     intros [[x | x] | []]; reflexivity. *)
+  (* Defined. *)
 
   (* Definition path_base_2_SS (a : nat) *)
   (*   : BSigma_to_Z (canon_BSigma 2) (canon_BSigma 2) *)
@@ -1667,7 +1942,14 @@ Section IsEquiv_GrpCompl_To_Fin2.
       apply (fin_transpose_last_with (a.+1) (inl i)).
     - exact idpath.
   Defined.
-  
+
+  (* Definition tranpose_Z_is_transpose_last_two (a : nat) (i : Fin a.+1) *)
+  (*   : transpose_Z a i = transpose_Z a (inr tt). *)
+  (* Proof. *)
+  (*   induction a. *)
+  (*   - destruct i as [[] | []]. reflexivity. *)
+  (*   - simpl. unfold transpose_Z in *. simpl.  *)
+
   Definition transpose_last_two_is_twist_Z (a : nat)
         : ap011
             BSigma_to_Z
@@ -1675,8 +1957,18 @@ Section IsEquiv_GrpCompl_To_Fin2.
           (* transpose_Z a (inr tt) = *)
           ((path_base_2 _)^ @ twist2_Z) @ path_base_2 _.
   Proof.
+    induction a.
+    - simpl. rewrite concat_1p. rewrite concat_p1. reflexivity.
+    - simpl.
+      rewrite inv_pp.
+      rewrite (concat_pp_p _ _ twist2_Z).
+      rewrite (concat_pp_p (lcancel_succ a.+2 a)^ _ _).
+      rewrite (concat_p_pp _ (path_base_2 a) _).
+      rewrite <- IHa.
+      
+    
     simpl.
-    refine (_ @ lcancel_canon_path a 2 0 twist2 equiv_idmap @ _).
+    refine (_ @ lcancel_canon_path a 2 0 _ twist2 equiv_idmap @ _).
     {  rewrite transpose_last_two_is_block_sum.
        apply (ap (fun x =>
                 ap011 BSigma_to_Z
@@ -1686,13 +1978,89 @@ Section IsEquiv_GrpCompl_To_Fin2.
     unfold path_base_2. unfold twist2_Z. rewrite path_BSigma_1.
     reflexivity.
   Defined.
-
-  (* Definition add1_BSigma : BSigma -> BSigma *)
-  (*   := fun A => fin_to_BSigma (add_one A). *)
   
-  (* Definition path_BSigma_sum_succ (a b : nat) (f : canon_BSigma a <~> canon_BSigma b) *)
-  (*   : path_BSigma (canon_BSigma a.+1) (canon_BSigma b.+1) (f +E 1) = *)
-  (*     ap add1_BSigma (path_BSigma _ _ f). *)
+  Definition path_BSigma_sum_succ (a b : nat) (f : canon_BSigma a <~> canon_BSigma b)
+    : path_BSigma (canon_BSigma a.+1) (canon_BSigma b.+1) (f +E 1) =
+      (finsum_id a 1)^ @ ap011 sum_BSigma (path_BSigma (canon_BSigma a) (canon_BSigma b) f) idpath
+                         @ (finsum_id b 1).
+  Proof.
+    apply moveL_pM. apply moveL_Vp.
+    unfold finsum_id.
+    rewrite path_BSigma_V.
+    rewrite <- path_BSigma_compose. rewrite <- path_BSigma_compose.
+    refine (_ @ path_BSigma_sum _ _ _ _ f equiv_idmap @ _).
+    { apply (ap (path_BSigma _ _)). apply path_equiv. apply path_arrow.
+      intro x. repeat destruct x as [x | x]; try destruct x; reflexivity. }
+    rewrite path_BSigma_1. reflexivity.
+  Defined.
+    (* assert ( forall (A1 A2 B1  : Type) (e : A1 <~> B1), *)
+    (*            e +E equiv_idmap = *)
+    (*            (equiv_path_universe (A1 + A2) (B1 + A2))^-1 *)
+    (*                                                     (ap011 sum (path_universe e) idpath)). *)
+    (* { intros. *)
+    (*   refine (ap (fun g => g +E 1) (eissect (equiv_path_universe _ _) e)^ @ _). *)
+    (*   change (equiv_path_universe A1 B1 e) with (path_universe e). *)
+    (*   destruct (path_universe e). simpl. *)
+    (*   apply path_equiv. apply path_arrow. intros [x | x]; reflexivity. } *)
+    (* rewrite X. *)
+
+    (* assert ( forall (A1 A2 B1 B2 : Type) (e1 : A1 <~> B1) (e2 : A2 <~> B2), *)
+    (*            e1 +E e2 = *)
+    (*            (equiv_path_universe (A1 + A2) (B1 + B2))^-1 *)
+    (*                           (ap011 sum (path_universe e1) (path_universe e2))). *)
+
+    
+
+  Definition tranpose_Z_is_transpose_last_two (a : nat) (i : Fin a.+1)
+    : transpose_Z a i = transpose_Z a (inr tt).
+  Proof.
+    induction a.
+    - destruct i as [[] | []]. reflexivity.
+    - unfold transpose_Z. simpl.
+      destruct i as [i | []]; try reflexivity.
+      simpl. unfold transpose_Z in IHa.
+      rewrite (path_BSigma_compose (B := canon_BSigma a.+3)).
+      rewrite (path_BSigma_compose (B := canon_BSigma a.+3)).
+      change (idpath (canon_BSigma a.+1)) with
+      (idpath (canon_BSigma a.+1) @ idpath (canon_BSigma a.+1)).
+      rewrite ap011_pp_pp.
+      change (idpath (canon_BSigma a.+1)) with
+      (idpath (canon_BSigma a.+1) @ idpath (canon_BSigma a.+1)).
+      rewrite ap011_pp_pp. simpl.
+      cut (ap011 BSigma_to_Z
+                 (path_BSigma (canon_BSigma a.+3) (canon_BSigma a.+3)
+                              (fin_transpose_last_with a.+1 (inl i) +E 1))
+                 (idpath (canon_BSigma a.+1)) =
+           ap011 BSigma_to_Z (path_BSigma (canon_BSigma a.+3) (canon_BSigma a.+3)
+                                          (fin_transpose_last_two a.+1))
+                 1).
+      { intro p. rewrite p.
+        rewrite <- ap011_pp_pp. rewrite <- ap011_pp_pp.
+        rewrite <- path_BSigma_compose. rewrite <- path_BSigma_compose. simpl.
+        assert (fin_transpose_last_two a.+1 oE fin_transpose_last_two a.+1 = equiv_idmap).
+        { apply path_equiv. apply path_arrow.
+          intro x.
+          repeat destruct x as [x | x]; reflexivity. }
+        rewrite X. rewrite ecompose_1e. reflexivity. }
+
+      rewrite path_BSigma_sum_succ. 
+      rewrite (ap011_pp_pp BSigma_to_Z _ _ idpath idpath).
+      rewrite (ap011_pp_pp BSigma_to_Z _ _ idpath idpath).
+      assert 
+      
+      
+
+      
+      rewrite path_BSigma_sum.
+      change (fin_transpose_last_with a.+1 (inl i) +E 1) with
+      (block_sum (n:= 1) (fin_transpose_last_with a.+1 (inl i)) equiv_idmap).
+      
+      rewrite transpose_last_two_is_block_sum.
+      
+      rewrite transpose_last_two_is_block_sum.
+      
+      
+
 
   Definition path_Z_id {A B : BSigma}
     : path_Z (canon_BSigma O) (BSigma_lid A) (BSigma_lid B) = idpath.

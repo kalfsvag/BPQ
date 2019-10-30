@@ -10,7 +10,7 @@ From GC Require Import finite_lemmas (* path_finite_types *) monoids_and_groups 
 
 Notation "a +' b" := (Peano.plus b a) (at level 50).
 
-Definition iso_path_finite_types (m n: nat)
+Definition iso_path_finite_types (m : nat)
   : Isomorphism (SymGrp m) (loopGroup (Finite_Types m) (canon m)).
 Proof.
   srapply Build_Grp_Iso'.
@@ -19,38 +19,95 @@ Proof.
     apply (path_finite_types_compose m (canon m) (canon m) (canon m) alpha beta).
 Defined.
 
-Definition deloop_fin (m n : nat)
-  : Homomorphism (SymGrp m) (SymGrp n) -> Finite_Types m -> Finite_Types n.
+Definition equiv_functor_hom' {X1 X2 Y1 Y2 : Monoid}
+  : Isomorphism X1 Y1 -> Isomorphism X2 Y2 -> (Homomorphism X1 X2 <~> Homomorphism Y1 Y2).
 Proof.
-  intro f.
-  srefine (deloop_rec (pFin m) (Finite_Types n) (canon n) _ _).
-  - 
-    apply (hom_map (M := loopGroup (Finite_Types m) (canon m))
-                   (N := loopGroup (Finite_Types n) (canon n))).
-    apply (functor_hom
-             (iso_inv (iso_path_finite_types m m))
-             (iso_path_finite_types n n) f).
-  - intros.
-    apply (preserve_mult
-             (functor_hom (iso_inv (iso_path_finite_types m m)) (iso_path_finite_types n n) f)).
+  intros f g. apply equiv_functor_hom.
+  - apply iso_inv. exact f.
+  - exact g.
+Defined.
+
+Definition equiv_functor_hom_compose {X1 X2 Y1 Y2 Z1 Z2 : Monoid}
+           (f1 : Isomorphism X1 Y1) (f2 : Isomorphism X2 Y2)
+           (g1 : Isomorphism Y1 Z1) (g2 : Isomorphism Y2 Z2)
+  : equiv_functor_hom' (iso_compose g1 f1) (iso_compose g2 f2) ==
+    equiv_functor_hom' g1 g2 oE equiv_functor_hom' f1 f2.
+Proof.
+  intro x.
+  refine (_ @ functor_hom_compose _ _ _ _ _).
+  unfold equiv_functor_hom'.
+  apply (ap (fun e => functor_hom e (g2 oH f2) x)).
+  apply path_hom. reflexivity.
+Defined.
+
+Definition equiv_functor_hom_fin (m n : nat)
+  : Homomorphism (SymGrp m) (SymGrp n) <~> Homomorphism (loopGroup (pFin m) (canon m))
+                                                        (loopGroup (pFin n) (canon n)).
+Proof.
+  apply equiv_functor_hom'; apply iso_path_finite_types.
 Defined.  
+
+(* Definition equiv_deloop_fin (m n : nat) *)
+(*   : Homomorphism (SymGrp m) (SymGrp n) <~> pMap (pFin m) (pFin n). *)
+(* Proof. *)
+(*   refine (equiv_functor_deloop' _ _ oE _). *)
+(*   apply (equiv_functor_hom). *)
+(*   - apply iso_inv. *)
+(*     apply iso_path_finite_types. *)
+(*   - apply iso_path_finite_types. *)
+(* Defined. *)   
+
+Definition deloop_fin (m n : nat)
+  : Homomorphism (SymGrp m) (SymGrp n) -> Finite_Types m ->* Finite_Types n.
+Proof.
+(*   intro e. apply (equiv_deloop_fin m n). exact e. *)
+(* Defined. *)
+  
+  intro f. apply (functor_deloop (pFin m) (pFin n)).
+  apply (equiv_functor_hom_fin m n). exact f.
+  (* apply (deloop_rec_uncurried *)
+  (* srefine (deloop_rec (pFin m) (Finite_Types n) (canon n) _ _). *)
+  (* - apply ((equiv_functor_hom_fin m n) f). *)
+  (* - intros. *)
+  (*   apply (preserve_mult *)
+  (*            (functor_hom (iso_inv (iso_path_finite_types m)) (iso_path_finite_types n) f)). *)
+Defined.
 
 Definition deloop_fin_canon (m n : nat) (f : Homomorphism (SymGrp m) (SymGrp n))
   : deloop_fin m n f (canon m) = canon n.
 Proof.
-  unfold deloop_fin.
-  apply deloop_rec_beta_pt.
+  apply (point_eq (deloop_fin m n f)).
+
+  (* unfold deloop_fin. *)
+
+  (* unfold equiv_deloop_fin. ev_equiv. *)
+  (* change (equiv_functor_hom ?e1 ?e2 f) with (functor_hom e1 e2 f). *)
+  (* unfold functor_hom. *)
+  (* unfold equiv_functor_deloop'. ev_equiv. simpl. *)
+  (* unfold deloop_rec_uncurried.  *)
+  (* apply deloop_rec_beta_pt. *)
+Defined.
+
+(* move *)
+Definition functor_deloop_loop
+           (X : Conn_pType) {istrunc_X : IsTrunc 1 X}
+           (Y : pType) {istrunc_Y : IsTrunc 1 Y}
+           (f : Homomorphism (loopGroup X (point X)) (loopGroup Y (point Y)))
+  : loops_functor (functor_deloop X Y f) == f.
+Proof.
+  intro ω. unfold loops_functor. simpl.
+  refine (concat_p_pp _ _ _ @ _). apply deloop_rec_beta_loop.
 Defined.
 
 Definition deloop_fin_loop (m n : nat) (f : Homomorphism (SymGrp m) (SymGrp n))
            (ω : canon m = canon m)
-  : (deloop_fin_canon m n f)^ @ ap (deloop_fin m n f) ω  @ (deloop_fin_canon m n f)
+  : (* (deloop_fin_canon m n f)^ @ ap (deloop_fin m n f) ω  @ (deloop_fin_canon m n f) *)
+    loops_functor (deloop_fin m n f) ω
     = (functor_hom
-         (iso_inv (iso_path_finite_types m m))
-         (iso_path_finite_types n n) f) ω.
-      
-Proof.
-  apply deloop_rec_beta_loop.
+         (iso_inv (iso_path_finite_types m))
+         (iso_path_finite_types n) f) ω.
+Proof.  
+  apply functor_deloop_loop.
 Defined.
 
 Definition dethom (m : nat) : Homomorphism (SymGrp m) (SymGrp 2).
@@ -1163,7 +1220,70 @@ Section GrpCompl_To_Fin2.
     { intro H. apply (H _ _ alpha betta). }
     intros A B [] []. apply path_equiv. apply path_arrow. intros [x | x]; reflexivity.
   Qed.
+
+        (* change BDet to use equiv_functor_deloop' ? *)
+  Definition loops_functor_uncurried {X Y : pType} (f : X -> Y) (p : f (point X) = point Y)
+    : loops X -> loops Y.
+  Proof.
+    apply (@loops_functor X Y).
+    exact (Build_pMap X Y f p).
+  Defined.
+
+    
+  (* If two maps agree on the loop space, they are equal *)
+  (* move? Make variant with f g : pMap X Y, and phomotopy?*)
+  Definition deloop_eq (X: Conn_pType) (Y : pType) {istrunc_y : IsTrunc 1 Y}
+             (f g : X -> Y) (pt_f : f (point X) = point Y) (pt_g : g (point X) = point Y)
+    : loops_functor_uncurried f pt_f == loops_functor_uncurried g pt_g ->
+      f == g.
+  Proof.
+    intro H.
+    intro x.
+    revert x.
+    srapply (deloop_ind_set X); simpl.
+    - exact (pt_f @ pt_g^).
+    - intro.
+      unfold loops_functor_uncurried in H. unfold loops_functor in H. simpl in H.
+      refine (transport_paths_FlFr _ _ @ _).
+      apply moveL_pV. refine (concat_pp_p _ _ _ @ _).
+      refine (concat_pp_p _ _ _ @ _). apply moveR_Vp.
+      refine (concat_pp_p _ _ _ @ _). apply moveR_Mp.
+      apply inverse.
+      apply H.
+  Defined.
+
+  Definition SAB (s a b : nat) := (conn_ptype_prod (pFin s) (conn_ptype_prod (pFin a) (pFin b))).
+
+  Definition pmap_BDetAB (s a b : nat) : pMap (SAB s a b) (pFin 2).
+  Proof.
+    srapply @Build_pMap.
+    - intros [S [A B]].
+      exact (BDet _ (sum_finite_types A B)).
+    - unfold point. apply (BDet_sum_canon2 a b).
+  Defined.
+
+  Definition pmap_BDet_SASB (s a b : nat) : pMap (SAB s a b) (pFin 2).
+  Proof.
+    srapply @Build_pMap.
+    - intros [S [A B]].
+      exact (BDet _ (sum_finite_types (sum_finite_types S A) (sum_finite_types S B))).
+    - unfold point. refine (_ @ BDet_sum_canon2 (s +' a) (s +' b)).
+      apply (ap (BDet _)). apply (ap011 sum_finite_types);
+      apply sum_finite_types_canon.
+  Defined.
+
+  Definition BDet_SASB' (s a b : nat)
+    : pHomotopy (pmap_BDetAB s a b) (pmap_BDet_SASB s a b).
+  Proof.
+    srapply @Build_pHomotopy.
+    - srapply (deloop_eq (SAB s a b) (pFin 2)).
+      + apply (point_eq). + apply point_eq.
+      + unfold loops_functor_uncurried.
+        intro x. 
+        simpl.
       
+
+  
   Definition BDet_SASB (s a1 a2 : nat)
              (S : Finite_Types s) (A1 : Finite_Types a1) (A2 : Finite_Types a2)
   : BDet (a2 + a1) (sum_finite_types A1 A2) =
@@ -1175,9 +1295,18 @@ Section GrpCompl_To_Fin2.
             BDet_uncurry
               (fin_to_BSigma (sum_finite_types (sum_finite_types (fst SA) (fst (snd SA)))
                                                (sum_finite_types (fst SA) (snd (snd SA)))))).
-    { intros H S A1 A2. exact (H (S, (A1, A2))). }    
-    srapply (@deloop_ind_set (conn_ptype_prod (pFin s)
-                                              (conn_ptype_prod (pFin a1) (pFin a2)))).
+    { intros H S A1 A2. exact (H (S, (A1, A2))). }
+
+    (* srapply (deloop_eq (conn_ptype_prod (pFin s) (conn_ptype_prod (pFin a1) (pFin a2))) (pFin 2)). *)
+    (* - simpl. unfold point. unfold BDet_uncurry. *)
+      
+    (*   apply BDet_SASB_canon. *)
+    (*        . *)
+    
+    
+    srapply (@deloop_ind_set
+               (conn_ptype_prod (pFin s) (conn_ptype_prod (pFin a1) (pFin a2)))
+            ).
     + simpl. unfold point.
       apply BDet_SASB_canon.
     + simpl. unfold point. intro.
@@ -2565,19 +2694,79 @@ simpl. *) *)
     - intros alpha1 alpha2. simpl.
       refine (_ @ block_sum_compose _ _ _ _). rewrite ecompose_e1.
       reflexivity.
-  Defined.    
+  Defined.
 
-  Definition deloop_blocksum_is_sum_finite_types (a b : nat)
-    : deloop_fin a _ (blocksum_hom a b) ==
-      fun x => sum_finite_types x (canon b).
+  Definition pmap_sum_canon (a b : nat)
+    : pMap (pFin a) (pFin (a +' b)).
   Proof.
-    intro x. revert x.
+    srapply @Build_pMap.
+    - simpl. intro x.
+      exact (sum_finite_types x (canon b)).
+    - simpl.
+      apply path_finite_types. apply (equiv_finsum).
+  Defined.
 
-  Definition isretr_toZ : forall x : Finite_Types 2,
-      grpcompl_to_fin2 (fin2_to_grpcompl x) = x.
+  Definition pmap_BDet (a : nat)
+    : pMap (pFin a) (pFin 2).
   Proof.
-    intro x. simpl.
-    unfold BDet_uncurry. simpl.  unfold BDet.
+    srapply @Build_pMap.
+    - exact (BDet a).
+    - unfold BDet.
+      apply deloop_fin_canon.
+  Defined.
+
+  (* Definition deloop_blocksum_is_sum_finite_types (a b : nat) *)
+  (*   : deloop_fin a _ (blocksum_hom a b) == *)
+  (*     fun x => sum_finite_types x (canon b). *)
+  (* Proof. *)
+  (*   intro x. revert x. *)
+  (*   srapply (deloop_ind (pFin a)). *)
+  (*   - simpl. unfold point. *)
+  (*     refine (deloop_fin_canon _ _ _ @ _). *)
+  (*     apply inverse. apply (path_finite_types (a +' b)).  apply (equiv_finsum a b). *)
+  (*   - intro. *)
+  (*     refine (transport_paths_FlFr _ _ @ _). *)
+
+      
+
+  Definition isretr_toZ :
+      grpcompl_to_fin2 o fin2_to_grpcompl == idmap.
+  Proof.
+    unfold fin2_to_grpcompl.
+    change (grpcompl_to_fin2 (BSigma_to_Z ?A ?B)) with (BDet_uncurry (sum_BSigma A B)).
+    unfold BDet_uncurry. simpl.
+    change (BDet ?a ?x) with (pmap_BDet a x).
+    change (sum_finite_types ?x (canon 2)) with (pmap_sum_canon 2 2 x).
+    srapply (deloop_eq (pFin 2) (pFin 2) ).
+    - apply (point_eq (pmap_compose (pmap_BDet 4) (pmap_sum_canon 2 2))).
+    - reflexivity.
+    - intro alpha. unfold loops_functor_uncurried.
+      transitivity (loops_functor (pmap_BDet 4) (loops_functor (pmap_sum_canon 2 2) alpha)).
+      { refine (pointed_htpy (loops_functor_compose _ _ ) alpha). }
+      assert (loops_functor {| pointed_fun := idmap; point_eq := 1 |} alpha = alpha).
+      { unfold loops_functor. simpl.
+        rewrite ap_idmap. rewrite concat_p1. rewrite concat_1p. reflexivity. }
+      rewrite X. clear X.
+      
+
+        refine (_ @ (ap10 (path_pmap (loops_functor_compose  (pmap_BDet 4) (pmap_sum_canon 2 2))) alpha)).
+        
+      
+      apply (ap (fun f => loops_functor f alpha)).
+      apply path_pmap.
+      srapply @Build_pHomotopy.
+      + simpl. intro x.
+        
+      simpl.
+
+      apply moveR_Vp. apply moveR_pM. unfold BDet_sum_canon2.
+                            
+    revert x.
+    
+srapply (deloop_eq (pFin 2)).
+    refine (deloop_eq (pFin 2) _ _ _).
+    
+    
 
     
     

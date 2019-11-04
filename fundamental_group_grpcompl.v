@@ -5,7 +5,8 @@ Add Rec LoadPath "~/Coq-projects/groupoids" as GR.
 (* Print LoadPath. *)
 
 From GR Require Import cquot cquot_principles.
-From GC Require Import finite_lemmas (* path_finite_types *) monoids_and_groups path_lemmas
+From GC Require Import finite_lemmas (* path_finite_types *) monoids_and_groups
+                       group_completion_quotient path_lemmas
                        group_complete_1type BSigma delooping permutations determinants pointed_lemmas.
 
 Notation "a +' b" := (Peano.plus b a) (at level 50).
@@ -1272,15 +1273,15 @@ Section GrpCompl_To_Fin2.
       apply sum_finite_types_canon.
   Defined.
 
-  Definition BDet_SASB' (s a b : nat)
-    : pHomotopy (pmap_BDetAB s a b) (pmap_BDet_SASB s a b).
-  Proof.
-    srapply @Build_pHomotopy.
-    - srapply (deloop_eq (SAB s a b) (pFin 2)).
-      + apply (point_eq). + apply point_eq.
-      + unfold loops_functor_uncurried.
-        intro x. 
-        simpl.
+  (* Definition BDet_SASB' (s a b : nat) *)
+  (*   : pHomotopy (pmap_BDetAB s a b) (pmap_BDet_SASB s a b). *)
+  (* Proof. *)
+  (*   srapply @Build_pHomotopy. *)
+  (*   - srapply (deloop_eq (SAB s a b) (pFin 2)). *)
+  (*     + apply (point_eq). + apply point_eq. *)
+  (*     + unfold loops_functor_uncurried. *)
+  (*       intro x.  *)
+  (*       simpl. *)
       
 
   
@@ -1397,8 +1398,9 @@ Section GrpCompl_To_Fin2.
       rewrite <- (ap_pp (BDet (_ + _)%nat)).
       rewrite <- (ap_pp (BDet (_ + _)%nat)).
       rewrite <- (ap_pp (BDet (_ + _)%nat)).
-      apply moveL_pV.
+      apply moveL_pV. refine (_ @ concat_p_pp _ _ _).
       refine (_ @ (deloop_fin_loop _ _ _ _)^).
+      refine (concat_pp_p _ _ _ @ _).
       refine (deloop_fin_loop _ _ _ _ @ _). simpl.
       apply (ap (path_finite_types 2 _ _)).
       refine (_ @ ((det_sasb _ _ _ (pft_inv p) (pft_inv q) (pft_inv r))) @ _);
@@ -2647,44 +2649,75 @@ simpl. *) *)
     apply (Build_BSigma 2 x).
   Defined.
 
-  (* move, and perhaps generalize *)
-  Definition deloop_fin_compose {l m n : nat}
-             (f : Homomorphism (SymGrp l) (SymGrp m))
-             (g : Homomorphism (SymGrp m) (SymGrp n))
-    : deloop_fin _ _ (g oH f) == deloop_fin _ _ g o deloop_fin _ _ f.
+    (* If two maps agree on the loop space, they are equal *)
+  (* move? Make variant with f g : pMap X Y, and phomotopy?*)
+  Definition pt_deloop_eq (X: Conn_pType) (Y : pType) {istrunc_y : IsTrunc 1 Y}
+             (f g : X ->* Y) 
+    : (loops_functor f) == (loops_functor g) ->
+      pHomotopy f g.
   Proof.
-    srapply (deloop_ind_set (pFin l)).
-    - simpl.
-      refine (deloop_fin_canon _ _ _ @ _).
-      apply inverse.
-      refine (ap (deloop_fin m n g) (deloop_fin_canon _ _ f) @ _).
-      apply deloop_fin_canon.
-    - intro.
-      refine (transport_paths_FlFr _ _ @ _).
-      apply moveL_pV.
-      refine (concat_pp_p _ _ _ @ _). refine (concat_pp_p _ _ _ @ _).
-      apply moveR_Vp. refine (concat_pp_p _ _ _ @ _).
-      apply moveR_Mp.
-      refine (_ @ concat_pp_p _ _ _).
-      refine (_ @ (deloop_fin_loop _ _ (g oH f) ω)^). simpl.
-      rewrite inv_pp.
-      rewrite (ap_compose (deloop_fin l m f) (deloop_fin m n g)).
-      rewrite (concat_pp_p (deloop_fin_canon m n g)^).
-      rewrite (concat_p_pp (ap (deloop_fin m n g) (ap (deloop_fin l m f) ω))).
-      rewrite <- ap_pp. rewrite <- ap_V.
-      rewrite (concat_p_pp (ap (deloop_fin m n g) (deloop_fin_canon l m f)^)).
-      rewrite <- ap_pp. rewrite (concat_p_pp (deloop_fin_canon l m f)^).
-      rewrite (deloop_fin_loop _ _ f). simpl.
-      refine (concat_p_pp _ _ _ @ _).
-      refine (deloop_fin_loop _ _ g _ @ _). simpl.
-      
-      generalize (f (inv_path_finite_types l (canon l) (canon l) ω)). clear ω.
-      intro ω.
-      apply (ap (path_finite_types n (canon n) (canon n))). apply (ap g).
-      change (inv_path_finite_types m (canon m) (canon m) ?x) with
-      ((equiv_path_finite_types m (canon m) (canon m))^-1 x).
-      apply (eissect (equiv_path_finite_types m (canon m) (canon m)) (ω)).
+    intro H. srapply @Build_pHomotopy.
+    - 
+      srapply (deloop_ind_set X); simpl.
+      + exact (point_eq f @ (point_eq g)^).
+      +  intro. refine (transport_paths_FlFr _ _ @ _).
+         apply moveL_pV. refine (concat_pp_p _ _ _ @ _).
+         refine (concat_pp_p _ _ _ @ _). apply moveR_Vp.
+         refine (concat_pp_p _ _ _ @ _). apply moveR_Mp.
+         apply inverse. apply H.
+         (* apply (pointed_htpy H). *)
+    - simpl. apply moveR_pM.
+      refine (deloop_ind_beta_pt X (fun x : X => f x = g x) (point_eq f @ (point_eq g)^) _ _ ).
   Defined.
+
+
+  (* move, and perhaps generalize *)
+  (* Definition deloop_fin_compose {l m n : nat} *)
+  (*            (f : Homomorphism (SymGrp l) (SymGrp m)) *)
+  (*            (g : Homomorphism (SymGrp m) (SymGrp n)) *)
+  (*   : pHomotopy (deloop_fin _ _ (g oH f)) (deloop_fin _ _ g o* deloop_fin _ _ f). *)
+  (* Proof. *)
+  (*   apply (pt_deloop_eq (pFin l) (pFin n)). *)
+    
+  (*   transitivity ( *)
+  (*   loops_functor_compose *)
+    
+    
+    
+    
+
+  (*   srapply (deloop_ind_set (pFin l)). *)
+  (*   - simpl. *)
+  (*     refine (deloop_fin_canon _ _ _ @ _). *)
+  (*     apply inverse. *)
+  (*     refine (ap (deloop_fin m n g) (deloop_fin_canon _ _ f) @ _). *)
+  (*     apply deloop_fin_canon. *)
+  (*   - intro. *)
+  (*     refine (transport_paths_FlFr _ _ @ _). *)
+  (*     apply moveL_pV. *)
+  (*     refine (concat_pp_p _ _ _ @ _). refine (concat_pp_p _ _ _ @ _). *)
+  (*     apply moveR_Vp. refine (concat_pp_p _ _ _ @ _). *)
+  (*     apply moveR_Mp. *)
+  (*     refine (_ @ concat_pp_p _ _ _). *)
+  (*     refine (_ @ (deloop_fin_loop _ _ (g oH f) ω)^). simpl. *)
+  (*     rewrite inv_pp. *)
+  (*     rewrite (ap_compose (deloop_fin l m f) (deloop_fin m n g)). *)
+  (*     rewrite (concat_pp_p (deloop_fin_canon m n g)^). *)
+  (*     rewrite (concat_p_pp (ap (deloop_fin m n g) (ap (deloop_fin l m f) ω))). *)
+  (*     rewrite <- ap_pp. rewrite <- ap_V. *)
+  (*     rewrite (concat_p_pp (ap (deloop_fin m n g) (deloop_fin_canon l m f)^)). *)
+  (*     rewrite <- ap_pp. rewrite (concat_p_pp (deloop_fin_canon l m f)^). *)
+  (*     rewrite (deloop_fin_loop _ _ f). simpl. *)
+  (*     refine (concat_p_pp _ _ _ @ _). *)
+  (*     refine (deloop_fin_loop _ _ g _ @ _). simpl. *)
+      
+  (*     generalize (f (inv_path_finite_types l (canon l) (canon l) ω)). clear ω. *)
+  (*     intro ω. *)
+  (*     apply (ap (path_finite_types n (canon n) (canon n))). apply (ap g). *)
+  (*     change (inv_path_finite_types m (canon m) (canon m) ?x) with *)
+  (*     ((equiv_path_finite_types m (canon m) (canon m))^-1 x). *)
+  (*     apply (eissect (equiv_path_finite_types m (canon m) (canon m)) (ω)). *)
+  (* Defined. *)
 
   Definition blocksum_hom (a b : nat) 
     : Homomorphism (SymGrp a) (SymGrp (a +' b)).
@@ -2734,64 +2767,373 @@ simpl. *) *)
   Proof.
     unfold fin2_to_grpcompl.
     change (grpcompl_to_fin2 (BSigma_to_Z ?A ?B)) with (BDet_uncurry (sum_BSigma A B)).
-    unfold BDet_uncurry. simpl.
-    change (BDet ?a ?x) with (pmap_BDet a x).
-    change (sum_finite_types ?x (canon 2)) with (pmap_sum_canon 2 2 x).
-    srapply (deloop_eq (pFin 2) (pFin 2) ).
-    - apply (point_eq (pmap_compose (pmap_BDet 4) (pmap_sum_canon 2 2))).
-    - reflexivity.
-    - intro alpha. unfold loops_functor_uncurried.
-      transitivity (loops_functor (pmap_BDet 4) (loops_functor (pmap_sum_canon 2 2) alpha)).
-      { refine (pointed_htpy (loops_functor_compose _ _ ) alpha). }
-      assert (loops_functor {| pointed_fun := idmap; point_eq := 1 |} alpha = alpha).
-      { unfold loops_functor. simpl.
-        rewrite ap_idmap. rewrite concat_p1. rewrite concat_1p. reflexivity. }
-      rewrite X. clear X.
-      
-
-        refine (_ @ (ap10 (path_pmap (loops_functor_compose  (pmap_BDet 4) (pmap_sum_canon 2 2))) alpha)).
-        
-      
-      apply (ap (fun f => loops_functor f alpha)).
-      apply path_pmap.
-      srapply @Build_pHomotopy.
-      + simpl. intro x.
-        
+    unfold BDet_uncurry.
+    cut (pHomotopy ((BDet 4) o* (pmap_sum_canon 2 2)) pmap_idmap).
+    { intro H. apply (pointed_htpy H). }
+    apply (pt_deloop_eq (pFin 2) (pFin 2)).
+    transitivity (loops_functor (BDet 4) o* loops_functor (pmap_sum_canon 2 2)).
+    { apply loops_functor_compose. }
+    (* assert (loops_functor (BDet 4) == equiv_functor_hom_fin 4 2 (dethom 4)). *)
+    (* { apply (functor_deloop_loop (pFin 4) (pFin 2)). } *)
+    unfold BDet. intro alpha.
+    refine (functor_deloop_loop (pFin 4) (pFin 2) (equiv_functor_hom_fin 4 2 (dethom 4)) _ @ _).
+    assert (loops_functor (pmap_sum_canon 2 2) alpha =
+            (equiv_functor_hom_fin 2 4 (blocksum_hom 2 2)) alpha).
+    { unfold equiv_functor_hom_fin. unfold equiv_functor_hom'. unfold equiv_functor_hom.
       simpl.
+      refine (_ @
+                ap (path_finite_types 4 (canon 4) (canon 4)) (blocksum_is_ap011 2 2 alpha idpath)^).
+      refine (_ @ (eisretr (equiv_path_finite_types 4 (canon 4) (canon 4))
+                (sum_finite_types_canon^ @ (ap011 sum_finite_types alpha (idpath (canon 2)) @ sum_finite_types_canon)))^).
+      apply whiskerL. apply whiskerR.
+      cut (forall (X : pFin 2) (p : canon 2 = X),
+              ap (fun x : Finite_Types 2 => sum_finite_types x (canon 2)) p =
+              ap011 sum_finite_types p idpath).
+      { intro H. apply H. }
+      intros X []. reflexivity. } rewrite X. clear X.
+    apply inverse.
+    refine ((pointed_htpy (loops_functor_idmap (pFin 2)) _ @ _)).
+    change (pmap_idmap alpha) with alpha.
+    assert (equiv_functor_hom_fin_compose :
+              forall (a b c : nat)
+                     (f : Homomorphism (SymGrp a) (SymGrp b))
+                     (g : Homomorphism (SymGrp b) (SymGrp c)),
+                equiv_functor_hom_fin _ _ (g oH f) ==
+                (equiv_functor_hom_fin _ _ g) oH (equiv_functor_hom_fin _ _ f)).
+    { intros.
+      intro sigma. simpl.
+      apply (ap (path_finite_types _ _ _)). apply (ap g).
+      generalize (f (inv_path_finite_types a (canon a) (canon a) sigma)). clear sigma. intro sigma.
+      apply inverse.
+      refine (eissect (equiv_path_finite_types b (canon b) (canon b)) sigma). }
+    refine (_ @ equiv_functor_hom_fin_compose _ _ _ (blocksum_hom 2 2) (dethom 4) alpha).
+    transitivity (equiv_functor_hom_fin 2 2 idhom alpha).
+    { unfold equiv_functor_hom_fin. unfold equiv_functor_hom'.
+      simpl. apply inverse.
+      refine (eisretr (equiv_path_finite_types 2 (canon 2) (canon 2)) alpha). }
+    apply (ap (fun x => equiv_functor_hom_fin 2 2 x alpha)).
+    apply inverse. apply path_hom.  apply path_arrow. intro x.
+    unfold dethom. unfold blocksum_hom.
+    change ((?f oH ?g) x) with (f (g x)).
+    change (Build_GrpHom ?f _ ?x) with (f x).
+    change (Build_GrpHom ?f _ ?x) with (f x).
+    hnf.
+    refine (@det_block_sum 2 2 x (equiv_idmap) @ _).
+    apply path_equiv. apply path_arrow. intro y. ev_equiv.
+    rewrite det2_is_id. rewrite det2_is_id.  reflexivity. 
+  Defined.
 
-      apply moveR_Vp. apply moveR_pM. unfold BDet_sum_canon2.
-                            
-    revert x.
-    
-srapply (deloop_eq (pFin 2)).
-    refine (deloop_eq (pFin 2) _ _ _).
-    
-    
+  Definition Integers : Group.
+  Proof.
+    srapply group_completion_group.
+    - apply (Build_Symmetric_Monoid (nat_monoid)).
+      intros a b. simpl.
+      apply nat_plus_comm.
+    - simpl. intros l m n.
+      intro p.
+      apply (nat_lemmas.nat_plus_cancelL l) .
+      refine (nat_plus_comm _ _ @ p @ nat_plus_comm _ _).
+  Defined.
+
 
     
-    
-    unfold deloop_fin.
-    transitivity (BDet 2 x).
-    - revert x. srapply (deloop_ind_set (pFin 2)).
-      + simpl. unfold BDet.
-        refine (_ @ (deloop_fin_canon 2 2  _)^).
-        apply (BDet_sum_canon2 2 2).
-      + 
 
-      unfold BDet
-    revert x.
-    
-    unfold BDet. 
+  (* The function +1 from nat to the positives *)
+  Definition succ_nat_to_pos : nat -> Pos.
+  Proof.
+    intro a. induction a.
+    - exact Int.one.
+    - exact (succ_pos IHa).
+  Defined.
 
-    - simpl. unfold point.
-      apply (BDet_sum_canon2 2 2).
-    - simpl. unfold point. intro.
-      refine (transport_paths_FlFr ω (BDet_sum_canon2 2 2) @ _).
-      rewrite ap_idmap. unfold BDet_sum_canon2.
-      deloop_fin_loop
+  (* the inclution nat to int *)
+  Definition nat_to_int : nat -> Int.
+  Proof.
+    intro a.
+    destruct a.
+    - exact Int.zero.
+    - exact (pos (succ_nat_to_pos a)).
+  Defined.
+
+  (* the function - on Int *)
+  Definition int_neg : Int -> Int.
+  Proof.
+    intros [n | | p].
+    - exact (pos n).
+    - exact Int.zero.
+    - exact (neg p).
+  Defined.
+
+  (* the function a-b *)
+  Fixpoint nat_int_minus (a b : nat) : Int.
+  Proof.
+    destruct b.
+    (* a-0 = a *)
+    - exact (nat_to_int a).
+    - destruct a.
+      (* 0-(b+1) = -b+1 *)
+      + apply int_neg.
+        exact (nat_to_int b.+1).
+      (* (a+1) - (b+1) = a - b *)
+      + exact (nat_int_minus a b).
+  Defined.
+
+  Definition integers_to_int : Integers -> Int.
+  Proof.
+    srapply @set_quotient.set_quotient_rec; simpl.
+    - intros [a b]. exact (nat_int_minus a b).
+    - intros [a1 b1] [a2 b2].
+      unfold grp_compl_relation.
+      intros [s p]. simpl in s.
+      destruct ((equiv_path_prod (_,_) (_,_))^-1 p) as [pa pb]. clear p.
+      simpl in *. destruct pa. destruct pb.
+      induction s.
+      { reflexivity. }
+      simpl. apply IHs.
+  Defined.
+
+  (* the function -1 from pos to nat *)
+  Definition pred_pos_to_nat : Pos -> nat.
+  Proof.
+    intro p. induction p.
+    - exact 0.
+    - exact (IHp.+1).
+  Defined.
     
+  (* The inclusion of positives in the natural numbers *)
+  Definition pos_to_nat (p : Pos) : nat
+    := (pred_pos_to_nat p).+1.
+  (* Proof. *)
+  (*   destruct p as [ | p]. *)
+  (*   - exact 1. *)
+  (*   - exact (pos_to_nat p).+1. *)
+  (* Defined. *)
+
+  Definition natnat_to_int : nat -> nat -> Integers.
+  Proof.
+    intros a b.
+    unfold Integers. unfold group_completion_group. simpl.
+    apply (to_groupcompletion').
+    - exact a.
+    - exact b.
+    (* unfold group_completion_quotient.group_completion. *)
+    (* apply (set_quotient.Set_Quotient.class_of). *)
+    (* exact (a, b). *)
+  Defined.
+
+  Definition rcancel_integers (s a b : nat) :
+    natnat_to_int a b = natnat_to_int (a +' s) (b +' s).
+  Proof.
+    apply lcancel_group_completion.
+  Defined.
+
+
+  Definition nat_to_integers : nat -> Integers.
+  Proof.
+    intro a. exact (natnat_to_int a 0).
+  Defined.
+
+
+  Definition int_to_natnat : Int -> nat * nat.
+  Proof.
+    intros [n | | p].
+    - exact (0, pos_to_nat n).
+    - exact (0,0).
+    - exact (pos_to_nat p, 0).
+  Defined.
+
+
+  Definition int_to_integers : Int -> Integers.
+  Proof.
+    intro z.
+    apply natnat_to_int.
+    - exact (fst (int_to_natnat z)).
+    - exact (snd (int_to_natnat z)).
+  Defined.
+
+  (*   destruct z as [neg | | pos]. *)
+  (*   - apply grp_inv. apply nat_to_integers. *)
+  (*     exact (pos_to_nat neg). *)
+  (*   - exact (nat_to_integers 0). *)
+  (*   - apply nat_to_integers. *)
+  (*     exact (pos_to_nat pos). *)
+  (* Defined. *)
+
+  Definition succ_pred_nat_pos (p : Pos)
+    : succ_nat_to_pos (pred_pos_to_nat p) = p.
+  Proof.
+    induction p; try reflexivity.
+    exact (ap (succ_pos) IHp).
+  Defined.
+
+  Definition pred_succ_nat_pos (a : nat)
+    : pred_pos_to_nat (succ_nat_to_pos a) = a.
+  Proof.
+    induction a; try reflexivity.
+    apply (ap S IHa).
+  Defined.
+
+  Fixpoint retr_nat (a b : nat)
+    : int_to_integers (integers_to_int (natnat_to_int a b)) = natnat_to_int a b.
+  Proof.
+    destruct a, b; simpl; try reflexivity.
+    - unfold int_to_integers. simpl.
+      apply (ap (natnat_to_int 0)).
+      induction b.
+      { reflexivity. } apply (ap S IHb).
+    - unfold int_to_integers. simpl.
+      refine (ap011 natnat_to_int _ idpath).
+      induction a. { reflexivity. } apply (ap S IHa).
+    - refine (retr_nat a b @ _).
+      apply (rcancel_integers 1).
+  Defined.      
+
+  Definition equiv_integers :
+    Integers <~> Int.
+  Proof.
+    apply (equiv_adjointify integers_to_int int_to_integers).
+    - intro z. simpl. 
+      destruct z as [n | | p]; try reflexivity.
+      + destruct n; try reflexivity.
+        simpl. apply (ap neg).
+        apply (ap succ_pos). apply succ_pred_nat_pos.
+      + simpl.
+        apply (ap pos).
+        apply succ_pred_nat_pos.
+    - intro z. revert z.
+      apply set_quotient.set_quotient_ind_prop.
+        { intro x.
+          refine (set_quotient.Set_Quotient.set_quotient_set _ _ _). }
+        simpl. intros [a b].
+        apply retr_nat.
+  Defined.
+
+  Definition nat_to_int_commute 
+    : equiv_integers o nat_to_integers == nat_to_int.
+  Proof.
+    intro a. simpl.
+    destruct a; reflexivity.
+  Defined.
+
+  (* Definition inj_pred_pos_to_nat (a b : nat) (p : pred_pos_to_nat a = pred_pos_to_nat b) *)
+  (*   : a = b. *)
+
+
+  Definition inj_nat_to_int (a b : nat) (p : nat_to_int a = nat_to_int b) : a = b.
+  Proof.
+    destruct a, b; try reflexivity.
+    - apply Empty_rec.
+      apply (pos_neq_zero p^).
+    - apply Empty_rec.
+      apply (pos_neq_zero p).
+    - apply (ap S).
+      refine ((pred_succ_nat_pos _)^ @ _ @ pred_succ_nat_pos _).
+      apply (ap pred_pos_to_nat). apply pos_injective. exact p.
+  Defined.
+
+  Definition inj_nat_to_integer (a b : nat) (p : nat_to_integers a = nat_to_integers b) : a = b.
+  Proof.
+    apply inj_nat_to_int.
+    rewrite <- (nat_to_int_commute _). rewrite <- (nat_to_int_commute _).
+    apply (ap equiv_integers p).
+  Defined.
+
+  Definition diff_zero (a b : nat) (p : natnat_to_int a b = nat_to_integers 0) : a = b.
+  Proof.
+    apply inverse.
+    apply inj_nat_to_integer.
+    apply grp_moveL_M1. refine (_ @ p).
+    change (grp_inv (nat_to_integers b)) with (natnat_to_int 0 b).
+    unfold nat_to_integers.
+    apply (ap011 natnat_to_int); simpl.
+    - reflexivity.
+    - apply inverse. apply nat_plus_n_O.
+  Defined.
     
+  
+
+  (* Definition inj_nat_to_int (a b : nat) *)
+  (*   : nat_to_int a = nat_to_int b -> a = b. *)
+  (* Proof. *)
+  (*   intro p. *)
+  (*   Check (classes_eq_related p). *)
+  (*   induction a. *)
+  (*   induction a, b. *)
+  (*   - reflexivity. *)
+  (*   - simpl.  *)
     
+   
+      
+  Definition card_Z : Z -> Integers.
+  Proof.
+    srefine (grp_compl_BSigma_rec (BuildTruncType 1 Integers) _ _ _).
+    - intros [a A] [b B]. exact (natnat_to_int a b).
+    - intros [s S] [a A] [b B]. simpl.
+      srefine (lcancel_group_completion _ _ _ _ @ _).
+      { exact s. }
+      simpl. apply (ap011 natnat_to_int);
+               apply nat_plus_comm.
+    - intros. apply set_quotient.set_quotient_path2.
+  Defined.
+
+  (* Definition Z0 := {z : Z & merely (z = BSigma_to_Z (canon_BSigma 2) (canon_BSigma 2))}. *)
+  Definition Z0 := {z : Z & card_Z z = nat_to_int 0}.
+  
+  Definition Z0_to_fin2 : Z0 -> Finite_Types 2.
+  Proof.
+    intros [z  p]. exact (grpcompl_to_fin2 z).
+  Defined.
+
+  
+
+  (* Definition component_card (z : Z) : *)
+  (*   merely (z = BSigma_to_Z (canon_BSigma 2) (canon_BSigma 2)) <~> *)
+  (*          card_Z z = nat_to_int 0. *)
+  (* Proof. *)
+  (*   apply equiv_iff_hprop. *)
+  (*   - intro p. strip_truncations. *)
+  (*     refine (ap card_Z p @ _). simpl. *)
+  (*     apply inverse. *)
+  (*     srefine (lcancel_group_completion _ _ _ _ @ _). {exact 2. } reflexivity. *)
+  (*   - revert z. *)
+  (*     srapply (grp_compl_BSigma_ind_set). *)
+  (*     + simpl. intros a b p. *)
+      
+      
+             
+      
+  
+
+  Definition fin2_to_Z0 : Finite_Types 2 -> Z0.
+  Proof.
+    intro x.
+    exists (fin2_to_grpcompl x). simpl.
+    unfold nat_to_int.
+    apply inverse.
+    srefine (lcancel_group_completion _ _ _ _ @ _).
+    { exact 2. } reflexivity.
+
+    (* assert (merely (canon 2 = x)). *)
+    (* { apply isconn_finite_types. } *)
+    (* strip_truncations. rewrite <- X. *)
+    (* apply tr. reflexivity. *)
+  Defined.
+  
+  Definition issect_toZ : fin2_to_Z0 o Z0_to_fin2 == idmap.
+  Proof.
+    intros [x p]. 
+    unfold fin2_to_Z0. apply path_sigma_hprop. simpl.
+    unfold Z0_to_fin2.
+    unfold fin2_to_grpcompl.
+    change {| card_BSigma := 2; fintype_of_BSigma := ?f ?z |}
+           with (fin_to_BSigma (f z)).
+    srapply (grp_compl_BSigma_ind_set).
+    - simpl. intros.
+      
+      
+    - admit.
+    - admit.
+      
     
   
   
@@ -2824,6 +3166,6 @@ srapply (deloop_eq (pFin 2)).
     (* assert ( forall (A1 A2 B1 B2 : Type) (e1 : A1 <~> B1) (e2 : A2 <~> B2), *)
     (*            e1 +E e2 = *)
     (*            (equiv_path_universe (A1 + A2) (B1 + B2))^-1 *)
-    (*                           (ap011 sum (path_universe e1) (path_universe e2))). *)
+    p(*                           (ap011 sum (path_universe e1) (path_universe e2))). *)
 
     

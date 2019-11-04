@@ -194,6 +194,23 @@ Section Group_Completion_Quotient.
       apply grp_compl_rinv.
   Defined.
 
+  Definition to_groupcompletion' : M -> M -> group_completion.
+  Proof.
+    intros m n. apply class_of.
+    exact (m, n).
+  Defined.
+
+  Definition lcancel_group_completion (s a b : M)
+    : to_groupcompletion' a b =
+      to_groupcompletion' (mon_mult s a) (mon_mult s b).
+  Proof.
+    unfold to_groupcompletion'.
+    apply related_classes_eq. simpl.
+    unfold grp_compl_relation. exists s. simpl.
+    reflexivity.
+  Defined.
+    
+
   Definition to_groupcompletion : Hom M (group_completion_group).
   Proof.
     srapply @Build_Homomorphism.

@@ -2829,11 +2829,73 @@ simpl. *) *)
     - apply (Build_Symmetric_Monoid (nat_monoid)).
       intros a b. simpl.
       apply nat_plus_comm.
-    - simpl. intros l m n.
-      intro p.
-      apply (nat_lemmas.nat_plus_cancelL l) .
-      refine (nat_plus_comm _ _ @ p @ nat_plus_comm _ _).
+    (* - simpl. intros l m n. *)
+    (*   intro p. *)
+    (*   apply (nat_lemmas.nat_plus_cancelL l) . *)
+    (*   refine (nat_plus_comm _ _ @ p @ nat_plus_comm _ _). *)
   Defined.
+
+  Definition nat_to_integer : nat -> Integers.
+  Proof.
+    intro a.
+    apply group_completion_quotient.to_groupcompletion.
+    exact a.
+  Defined.
+
+  Definition integer_to_nat : Integers -> nat.
+  Proof.
+    srapply group_completion_rec.
+    - simpl. intros a b.
+      apply (nat_lemmas.nat_minus b a).
+    - simpl.
+      intros s a b. induction s; try reflexivity.
+      apply IHs.
+  Defined.
+
+  Definition issect_to_groupcompletion (a : nat)
+    : integer_to_nat (nat_to_integer a) = a.
+  Proof.
+    reflexivity.
+  Defined.
+
+  Definition natnat_to_integer : nat -> nat -> Integers.
+  Proof.
+    intros a b.
+    unfold Integers. unfold group_completion_group. simpl.
+    apply (to_groupcompletion').
+    - exact a.
+    - exact b.
+    (* unfold group_completion_quotient.group_completion. *)
+    (* apply (set_quotient.Set_Quotient.class_of). *)
+    (* exact (a, b). *)
+  Defined.
+
+  Definition rcancel_integers (s a b : nat) :
+    natnat_to_integer a b = natnat_to_integer (a +' s) (b +' s).
+  Proof.
+    apply lcancel_to_groupcompletion.
+  Defined.
+
+  Definition inj_nat_to_integer (a b : nat) (p : nat_to_integer a = nat_to_integer b) : a = b.
+  Proof.
+    refine ((issect_to_groupcompletion a)^ @ _ @ issect_to_groupcompletion b).
+    apply (ap integer_to_nat p).
+  Defined.
+
+  Definition diff_zero (a b : nat) (p : natnat_to_integer a b = nat_to_integer 0) : a = b.
+  Proof.
+    refine ((issect_to_groupcompletion a)^ @ _ @ issect_to_groupcompletion b).
+    apply (ap (integer_to_nat)). apply inverse.
+    apply grp_moveL_M1. refine (_ @ p).
+    apply (ap011 natnat_to_integer); simpl.
+    - reflexivity.
+    - apply inverse. apply nat_plus_n_O.
+  Defined.
+
+  
+
+
+    
 
 
     
@@ -2908,24 +2970,6 @@ simpl. *) *)
   (*   - exact 1. *)
   (*   - exact (pos_to_nat p).+1. *)
   (* Defined. *)
-
-  Definition natnat_to_int : nat -> nat -> Integers.
-  Proof.
-    intros a b.
-    unfold Integers. unfold group_completion_group. simpl.
-    apply (to_groupcompletion').
-    - exact a.
-    - exact b.
-    (* unfold group_completion_quotient.group_completion. *)
-    (* apply (set_quotient.Set_Quotient.class_of). *)
-    (* exact (a, b). *)
-  Defined.
-
-  Definition rcancel_integers (s a b : nat) :
-    natnat_to_int a b = natnat_to_int (a +' s) (b +' s).
-  Proof.
-    apply lcancel_group_completion.
-  Defined.
 
 
   Definition nat_to_integers : nat -> Integers.
@@ -3031,24 +3075,6 @@ simpl. *) *)
       apply (ap pred_pos_to_nat). apply pos_injective. exact p.
   Defined.
 
-  Definition inj_nat_to_integer (a b : nat) (p : nat_to_integers a = nat_to_integers b) : a = b.
-  Proof.
-    apply inj_nat_to_int.
-    rewrite <- (nat_to_int_commute _). rewrite <- (nat_to_int_commute _).
-    apply (ap equiv_integers p).
-  Defined.
-
-  Definition diff_zero (a b : nat) (p : natnat_to_int a b = nat_to_integers 0) : a = b.
-  Proof.
-    apply inverse.
-    apply inj_nat_to_integer.
-    apply grp_moveL_M1. refine (_ @ p).
-    change (grp_inv (nat_to_integers b)) with (natnat_to_int 0 b).
-    unfold nat_to_integers.
-    apply (ap011 natnat_to_int); simpl.
-    - reflexivity.
-    - apply inverse. apply nat_plus_n_O.
-  Defined.
     
   
 

@@ -926,7 +926,7 @@ Defined.
 
 (* Auxillary stuff for the next result *)
 Local Definition grp_compl_BSigma_ind_set_Fin {a b : nat}
-      {P : Z -> hSet}
+      (P : Z -> Type) {isset_P : forall z : Z, IsHSet (P z)}
       (f : forall (m n : nat),
           P (Fin_to_Z (canon m) (canon n)))
           (* P (ccl (group_completion_BSigma) ((canon_BSigma m), (canon_BSigma n)))} *)
@@ -940,7 +940,7 @@ Local Definition grp_compl_BSigma_ind_set_Fin {a b : nat}
 Proof.
   apply (deloop_double_ind_set'
              (pFin a) (pFin b)
-             (fun x y => P (Fin_to_Z x y)) (f a b)).
+             (fun x y => BuildTruncType 0 (P (Fin_to_Z x y))) (f a b)).
     intros alpha betta.
     apply (double_pathover_to_path
              (fun (x : pFin a) (y : pFin b) =>
@@ -952,7 +952,7 @@ Defined.
 (* Set induction for the group completion of BSigma *)
 (* Could relatively easily be generalized to 1-type induction *)
 Definition grp_compl_BSigma_ind_set
-           (P : Z -> hSet)
+           (P : Z -> Type) {isset_P : forall z : Z, IsHSet (P z)}
            (f : forall (m n : nat),
                P (Fin_to_Z (canon m) (canon n)))
            (base_change
@@ -981,7 +981,7 @@ Proof.
     with (Fin_to_Z x y).
     revert x y.
     (* change {| card_BSigma := ?a; fintype_of_BSigma := ?A |} with (fin_to_BSigma A). *)
-    apply (@grp_compl_BSigma_ind_set_Fin a b P f base_change).
+    apply (@grp_compl_BSigma_ind_set_Fin a b P _ f base_change).
   - simpl. unfold monoidal_action_morphism.
     intros [[a A] [b B]] C [S p].  destruct p. simpl.
     revert B.
@@ -1020,7 +1020,7 @@ Proof.
       rewrite H. clear H.
       
       srapply @path_over_concat; simpl.
-      + apply (grp_compl_BSigma_ind_set_Fin f base_change).
+      + apply (grp_compl_BSigma_ind_set_Fin P f base_change).
         (* apply f. *)
       + (* apply path_to_path_over. *)
         unfold grp_compl_BSigma_ind_set_Fin.
@@ -1040,8 +1040,8 @@ Proof.
                     (q : sum_finite_types (canon s) (canon b) = B),
                 path_over
                   P (ap011 BSigma_to_Z (pft_to_pbs p) (pft_to_pbs q))^
-                (grp_compl_BSigma_ind_set_Fin f base_change A B)
-                  (grp_compl_BSigma_ind_set_Fin f base_change (sum_finite_types (canon s) (canon a))
+                (grp_compl_BSigma_ind_set_Fin P f base_change A B)
+                  (grp_compl_BSigma_ind_set_Fin P f base_change (sum_finite_types (canon s) (canon a))
                                                 (sum_finite_types (canon s) (canon b)))).
         { intro H. apply H. }
         intros A B [] []. apply path_over_id.
@@ -1071,7 +1071,30 @@ Proof.
         (* { intro H. apply H. } *)
         (* intros. destruct p. destruct q. simpl. apply path_over_id. *)
 Defined.
+
+(* move *)
+Definition path_to_double_pathover {A B : Type} (P : A -> B -> Type)
+           {a a' : A} (p : a = a')
+           {b b' : B} (q : b = b') (c : P a b) (c' : P a' b')
+  : transport (uncurry P) (path_prod (a, b) (a', b') p q) c = c' ->
+    double_pathover P p q c c'.
+Proof.
+  destruct p. destruct q. exact idmap.
+Defined.
     
+
+Definition grp_compl_BSigma_ind_hprop
+           (P : Z -> Type) {hprop_P : forall z : Z, IsHProp (P z)}
+           (f : forall (m n : nat),
+               P (Fin_to_Z (canon m) (canon n)))
+  : forall z : Z, P z.
+Proof.
+  srefine (grp_compl_BSigma_ind_set P f _ _).
+  - intros. apply path_to_double_pathover.
+    apply hprop_P.
+  - intros. apply path_to_path_over.
+    apply hprop_P.
+Defined.
     
 
 (* (* change to only one act? *) *)
@@ -2823,74 +2846,6 @@ simpl. *) *)
     rewrite det2_is_id. rewrite det2_is_id.  reflexivity. 
   Defined.
 
-  Definition Integers : Group.
-  Proof.
-    srapply group_completion_group.
-    - apply (Build_Symmetric_Monoid (nat_monoid)).
-      intros a b. simpl.
-      apply nat_plus_comm.
-    (* - simpl. intros l m n. *)
-    (*   intro p. *)
-    (*   apply (nat_lemmas.nat_plus_cancelL l) . *)
-    (*   refine (nat_plus_comm _ _ @ p @ nat_plus_comm _ _). *)
-  Defined.
-
-  Definition nat_to_integer : nat -> Integers.
-  Proof.
-    intro a.
-    apply group_completion_quotient.to_groupcompletion.
-    exact a.
-  Defined.
-
-  Definition integer_to_nat : Integers -> nat.
-  Proof.
-    srapply group_completion_rec.
-    - simpl. intros a b.
-      apply (nat_lemmas.nat_minus b a).
-    - simpl.
-      intros s a b. induction s; try reflexivity.
-      apply IHs.
-  Defined.
-
-  Definition issect_to_groupcompletion (a : nat)
-    : integer_to_nat (nat_to_integer a) = a.
-  Proof.
-    reflexivity.
-  Defined.
-
-  Definition natnat_to_integer : nat -> nat -> Integers.
-  Proof.
-    intros a b.
-    unfold Integers. unfold group_completion_group. simpl.
-    apply (to_groupcompletion').
-    - exact a.
-    - exact b.
-    (* unfold group_completion_quotient.group_completion. *)
-    (* apply (set_quotient.Set_Quotient.class_of). *)
-    (* exact (a, b). *)
-  Defined.
-
-  Definition rcancel_integers (s a b : nat) :
-    natnat_to_integer a b = natnat_to_integer (a +' s) (b +' s).
-  Proof.
-    apply lcancel_to_groupcompletion.
-  Defined.
-
-  Definition inj_nat_to_integer (a b : nat) (p : nat_to_integer a = nat_to_integer b) : a = b.
-  Proof.
-    refine ((issect_to_groupcompletion a)^ @ _ @ issect_to_groupcompletion b).
-    apply (ap integer_to_nat p).
-  Defined.
-
-  Definition diff_zero (a b : nat) (p : natnat_to_integer a b = nat_to_integer 0) : a = b.
-  Proof.
-    refine ((issect_to_groupcompletion a)^ @ _ @ issect_to_groupcompletion b).
-    apply (ap (integer_to_nat)). apply inverse.
-    apply grp_moveL_M1. refine (_ @ p).
-    apply (ap011 natnat_to_integer); simpl.
-    - reflexivity.
-    - apply inverse. apply nat_plus_n_O.
-  Defined.
 
   
 
@@ -2900,164 +2855,6 @@ simpl. *) *)
 
     
 
-  (* The function +1 from nat to the positives *)
-  Definition succ_nat_to_pos : nat -> Pos.
-  Proof.
-    intro a. induction a.
-    - exact Int.one.
-    - exact (succ_pos IHa).
-  Defined.
-
-  (* the inclution nat to int *)
-  Definition nat_to_int : nat -> Int.
-  Proof.
-    intro a.
-    destruct a.
-    - exact Int.zero.
-    - exact (pos (succ_nat_to_pos a)).
-  Defined.
-
-  (* the function - on Int *)
-  Definition int_neg : Int -> Int.
-  Proof.
-    intros [n | | p].
-    - exact (pos n).
-    - exact Int.zero.
-    - exact (neg p).
-  Defined.
-
-  (* the function a-b *)
-  Fixpoint nat_int_minus (a b : nat) : Int.
-  Proof.
-    destruct b.
-    (* a-0 = a *)
-    - exact (nat_to_int a).
-    - destruct a.
-      (* 0-(b+1) = -b+1 *)
-      + apply int_neg.
-        exact (nat_to_int b.+1).
-      (* (a+1) - (b+1) = a - b *)
-      + exact (nat_int_minus a b).
-  Defined.
-
-  Definition integers_to_int : Integers -> Int.
-  Proof.
-    srapply @set_quotient.set_quotient_rec; simpl.
-    - intros [a b]. exact (nat_int_minus a b).
-    - intros [a1 b1] [a2 b2].
-      unfold grp_compl_relation.
-      intros [s p]. simpl in s.
-      destruct ((equiv_path_prod (_,_) (_,_))^-1 p) as [pa pb]. clear p.
-      simpl in *. destruct pa. destruct pb.
-      induction s.
-      { reflexivity. }
-      simpl. apply IHs.
-  Defined.
-
-  (* the function -1 from pos to nat *)
-  Definition pred_pos_to_nat : Pos -> nat.
-  Proof.
-    intro p. induction p.
-    - exact 0.
-    - exact (IHp.+1).
-  Defined.
-    
-  (* The inclusion of positives in the natural numbers *)
-  Definition pos_to_nat (p : Pos) : nat
-    := (pred_pos_to_nat p).+1.
-  (* Proof. *)
-  (*   destruct p as [ | p]. *)
-  (*   - exact 1. *)
-  (*   - exact (pos_to_nat p).+1. *)
-  (* Defined. *)
-
-
-  Definition nat_to_integers : nat -> Integers.
-  Proof.
-    intro a. exact (natnat_to_int a 0).
-  Defined.
-
-
-  Definition int_to_natnat : Int -> nat * nat.
-  Proof.
-    intros [n | | p].
-    - exact (0, pos_to_nat n).
-    - exact (0,0).
-    - exact (pos_to_nat p, 0).
-  Defined.
-
-
-  Definition int_to_integers : Int -> Integers.
-  Proof.
-    intro z.
-    apply natnat_to_int.
-    - exact (fst (int_to_natnat z)).
-    - exact (snd (int_to_natnat z)).
-  Defined.
-
-  (*   destruct z as [neg | | pos]. *)
-  (*   - apply grp_inv. apply nat_to_integers. *)
-  (*     exact (pos_to_nat neg). *)
-  (*   - exact (nat_to_integers 0). *)
-  (*   - apply nat_to_integers. *)
-  (*     exact (pos_to_nat pos). *)
-  (* Defined. *)
-
-  Definition succ_pred_nat_pos (p : Pos)
-    : succ_nat_to_pos (pred_pos_to_nat p) = p.
-  Proof.
-    induction p; try reflexivity.
-    exact (ap (succ_pos) IHp).
-  Defined.
-
-  Definition pred_succ_nat_pos (a : nat)
-    : pred_pos_to_nat (succ_nat_to_pos a) = a.
-  Proof.
-    induction a; try reflexivity.
-    apply (ap S IHa).
-  Defined.
-
-  Fixpoint retr_nat (a b : nat)
-    : int_to_integers (integers_to_int (natnat_to_int a b)) = natnat_to_int a b.
-  Proof.
-    destruct a, b; simpl; try reflexivity.
-    - unfold int_to_integers. simpl.
-      apply (ap (natnat_to_int 0)).
-      induction b.
-      { reflexivity. } apply (ap S IHb).
-    - unfold int_to_integers. simpl.
-      refine (ap011 natnat_to_int _ idpath).
-      induction a. { reflexivity. } apply (ap S IHa).
-    - refine (retr_nat a b @ _).
-      apply (rcancel_integers 1).
-  Defined.      
-
-  Definition equiv_integers :
-    Integers <~> Int.
-  Proof.
-    apply (equiv_adjointify integers_to_int int_to_integers).
-    - intro z. simpl. 
-      destruct z as [n | | p]; try reflexivity.
-      + destruct n; try reflexivity.
-        simpl. apply (ap neg).
-        apply (ap succ_pos). apply succ_pred_nat_pos.
-      + simpl.
-        apply (ap pos).
-        apply succ_pred_nat_pos.
-    - intro z. revert z.
-      apply set_quotient.set_quotient_ind_prop.
-        { intro x.
-          refine (set_quotient.Set_Quotient.set_quotient_set _ _ _). }
-        simpl. intros [a b].
-        apply retr_nat.
-  Defined.
-
-  Definition nat_to_int_commute 
-    : equiv_integers o nat_to_integers == nat_to_int.
-  Proof.
-    intro a. simpl.
-    destruct a; reflexivity.
-  Defined.
 
   (* Definition inj_pred_pos_to_nat (a b : nat) (p : pred_pos_to_nat a = pred_pos_to_nat b) *)
   (*   : a = b. *)
@@ -3093,68 +2890,367 @@ simpl. *) *)
   Definition card_Z : Z -> Integers.
   Proof.
     srefine (grp_compl_BSigma_rec (BuildTruncType 1 Integers) _ _ _).
-    - intros [a A] [b B]. exact (natnat_to_int a b).
+    - intros [a A] [b B]. exact (natnat_to_integer a b).
     - intros [s S] [a A] [b B]. simpl.
-      srefine (lcancel_group_completion _ _ _ _ @ _).
+      srefine (lcancel_to_groupcompletion _ _ _ _ @ _).
       { exact s. }
-      simpl. apply (ap011 natnat_to_int);
+      simpl. apply (ap011 natnat_to_integer);
                apply nat_plus_comm.
     - intros. apply set_quotient.set_quotient_path2.
   Defined.
 
+  Definition grp_compl_BSigma_rec_set (P : Type) {isset_P : IsHSet P}
+             (f : nat -> nat -> P)
+             (act_add : forall s a b : nat, f a b = f (s +' a) (s+' b))
+    : Z -> P.
+  Proof.
+    srapply @grp_compl_BSigma_ind_set.
+    - exact f.
+    - simpl. intros.
+      apply path_to_double_pathover.
+      refine
+        (transport_const (path_prod (canon a, canon b) (canon a, canon b) alpha betta) (f a b)).
+      (* unfold uncurry.  *)
+      (* apply (ap (transport *)
+      (*              (fun _ : Finite_Types a * Finite_Types b => P) *)
+      (*              (path_prod (canon a, canon b) (canon a, canon b) alpha betta))). *)
+    - intros. apply path_to_path_over.
+      refine (transport_const (lcancel_canon s m n) (f m n) @ act_add s m n).
+  Defined.
+
+  Definition grp_compl_BSigma_ind_set_beta_pt (P : Z -> Type) {isprop_P : forall z : Z, IsHSet (P z)}
+             (f : forall (m n : nat),
+                 P (Fin_to_Z (canon m) (canon n)))
+             (base_change
+              : forall (a b : nat) (alpha : canon a = canon a) (betta : canon b = canon b),
+                 double_pathover (fun (x : Finite_Types a) (y : Finite_Types b) => P (Fin_to_Z x y))
+
+                                 alpha betta (f a b) (f a b))
+             (act_add :
+                (forall (m n : nat) (s : nat),
+                    path_over P (lcancel_canon s m n) (f m n) (f (m+s)%nat (n+s)%nat)))
+             (m n : nat)
+    : grp_compl_BSigma_ind_set P f base_change act_add
+                               (BSigma_to_Z (canon_BSigma m) (canon_BSigma n)) = f m n.
+  Proof.
+    simpl.
+    refine (deloop_double_ind_set_beta_pt' (pFin m) (pFin n) _ _ _ ).
+  Defined.             
+  
+  Definition in_component_0 : Z -> hProp.
+  Proof.
+    srefine (@grp_compl_BSigma_rec_set hProp _ _ _).
+    - intros a b.
+      exact (BuildTruncType -1 (a = b)).
+    - intros. simpl.
+      apply path_trunctype. simpl.
+      apply equiv_iff_hprop.
+      + apply (ap (fun x => s +' x)).
+      + intro p.
+        apply (nat_lemmas.nat_plus_cancelL s).
+        refine (_ @ p @ _);
+          apply nat_plus_comm.
+  Defined.
+
+  Definition in_component_0_canon (a b : nat)
+    : in_component_0 (BSigma_to_Z (canon_BSigma a) (canon_BSigma b)) <~> a = b.
+  Proof.
+    change (?X <~> a = b) with (X <~> BuildhProp (a = b)).
+    apply ((path_trunctype (n := -1))^-1). 
+    refine (grp_compl_BSigma_ind_set_beta_pt _ _ _ _ a b).
+  Defined.
+    
+
+  Definition Z0_card (z : Z)
+    : in_component_0 z <~> (card_Z z = nat_to_integer 0).
+  Proof.
+    revert z. srapply @grp_compl_BSigma_ind_hprop.
+    intros. hnf.
+    refine (_ oE (in_component_0_canon m n)).
+    apply equiv_iff_hprop.
+    + simpl. intros [].
+      apply inverse.
+      refine (rcancel_integers m 0 0 @ _).
+      apply (ap011 natnat_to_integer);
+        apply (nat_plus_n_O m)^.
+    + apply diff_zero.
+  Defined.
+    
+
   (* Definition Z0 := {z : Z & merely (z = BSigma_to_Z (canon_BSigma 2) (canon_BSigma 2))}. *)
-  Definition Z0 := {z : Z & card_Z z = nat_to_int 0}.
+  Definition Z0 := {z : Z & card_Z z = nat_to_integer 0}.
+  (* Definition Z0 := {z : Z & in_component_0 z}. *)
+  
+  Definition cancel_zero (a : nat) : natnat_to_integer a a = nat_to_integer 0.
+  Proof.
+    apply inverse.
+    refine (rcancel_integers a _ _ @ _). simpl.
+    apply (ap011 natnat_to_integer);
+      apply inverse; apply (nat_plus_n_O a).
+  Defined.
+
+  Definition FinFin_to_Z0 {a : nat} : Finite_Types a -> Finite_Types a -> Z0.
+  Proof.
+    intros x y.
+    exists (Fin_to_Z x y).    
+    (* refine (equiv_inverse (Z0_card (Fin_to_Z x y)) _). simpl. *)
+    apply cancel_zero.
+  Defined.             
+
+  Definition canon_Z0 (a : nat) : Z0
+    := FinFin_to_Z0 (canon a) (canon a).
+
+  Definition lcancel_canon_Z0 (s a : nat)
+    : canon_Z0 a = canon_Z0 (s +' a).
+  Proof.
+    apply path_sigma_hprop. simpl.
+    apply (lcancel_canon s a a).
+  Defined.
+
+  (* move *)
+  Definition equiv_diff_zero (a b : nat) : (natnat_to_integer a b = nat_to_integer 0) <~> a = b.
+  Proof.
+    apply equiv_iff_hprop.
+    - apply diff_zero.
+    - intros [].
+      apply cancel_zero.
+  Defined.
+
+  Definition Z0_forall_canon (P : Z0 -> Type) (a : nat)
+    : P (canon_Z0 a) ->
+      (forall (b : nat)
+              (p : card_Z (BSigma_to_Z (canon_BSigma a) (canon_BSigma b)) = nat_to_integer 0),
+          P (Fin_to_Z (canon a) (canon b); p)).
+  Proof.
+    intros f b p.
+    refine (transport P _ (f)).
+    apply path_sigma_hprop. simpl.
+    apply (ap (fun x => Fin_to_Z (canon a) (canon x))). apply diff_zero. exact p.
+  Defined.
+
+  (* Definition Z0_forall_canon_retr (P : Z0 -> Type) (a b : nat)  *)
+  (*            (p : card_Z (BSigma_to_Z (canon_BSigma a) (canon_BSigma b)) = nat_to_integer 0) *)
+  (*            (f : forall a : nat, P (canon_Z0 a)) *)
+  (*   : Z0_forall_canon P a (f a) b p = f a. *)
+
+  Instance isequiv_Z0_forall_canon (P : Z0 -> Type) (a : nat)
+    : IsEquiv (Z0_forall_canon P a).
+  Proof.
+    srapply @isequiv_adjointify.
+    - intro f. apply f.
+    - intro f.
+      apply path_forall. intro b. apply path_forall. intro p.
+      unfold Z0_forall_canon.
+      destruct (diff_zero a b p). simpl.
+      refine (_ @ transport_1 P _).
+      assert (h : cancel_zero a = p).
+      { apply (istrunc_trunctype_type (n := 0)). }
+      destruct h. simpl. 
+      rewrite (path_sigma_hprop_1 (FinFin_to_Z0 (canon a) (canon a))).
+      reflexivity.
+    - intro f. 
+      refine (_ @ transport_1 P _).
+      apply (ap (fun x => transport P x (f))).
+      assert (h : diff_zero a a (cancel_zero (card_BSigma (fin_to_BSigma (canon a)))) = idpath).
+      { apply hset_nat. }
+      rewrite h. simpl.
+      apply path_sigma_hprop_1.
+  Defined.
+
+  Definition double_pathover_forall
+             {A B C : Type}
+             (D :  A -> B -> C -> Type)
+             {a a' : A} (p : a = a')
+             {b b' : B} (q : b = b')
+             (d : forall (c : C), D a b c)
+             (d' : forall (c : C), D a' b' c)
+    : (forall (c : C), double_pathover (fun a b => D a b c) p q (d c) (d' c))
+      ->
+      double_pathover (fun a b => (forall c : C, D a b c)) p q d d'.
+  Proof.
+    intro h. destruct p. destruct q. simpl. simpl in h.
+    apply path_forall. intro c. apply h.
+  Defined.
+
+  Definition Z0_ind_set (P : Z0 -> Type) {isset_P : forall z : Z0, IsHSet (P z)}
+             (f : forall (a : nat), P (canon_Z0 a))
+             (base_change:
+                forall (a : nat) (alpha : canon a = canon a) (betta : canon a = canon a),
+                  double_pathover (fun (x : Finite_Types a) (y : Finite_Types a) =>
+                                     P (FinFin_to_Z0 x y))
+                                  alpha betta (f a) (f a))
+             (act_add :
+                forall s a : nat, path_over P (lcancel_canon_Z0 s a) (f a) (f (s +' a)))
+    : forall z : Z0, P z.
+  Proof.
+    intros [z p]. revert z p.
+    srapply (grp_compl_BSigma_ind_set).
+    - hnf. intros a b p.
+      refine (transport P _ (f a)).
+      apply path_sigma_hprop. simpl.
+      apply (ap (fun x => Fin_to_Z (canon a) (canon x))).
+      apply (diff_zero _ _ p).
+    - intros. simpl.
+      apply double_pathover_forall.
+      intro p. revert p.
+      apply (equiv_functor_forall_pf (equiv_diff_zero a b)). intro p.      
+      simpl. destruct p.
+      assert (h : (diff_zero a a (cancel_zero a)) = idpath).
+      { apply hset_nat. } rewrite h. rewrite path_sigma_hprop_1. clear h.
+      simpl. apply base_change.
+    - 
+      
+      simpl.
+      destruct p. simpl.
+      simpl.
+      intro p. simpl.
+      
+      destruct (diff_zero a b p). simpl.
+      
+      rewrite path_sigma_hprop_1.
+      
+      
+      assert (double_pathover_forall : forall (A B : Type) (C : Type)
+                                              (D :  A -> B -> C -> Type)
+                                              (a a' : A) (p : a = a')
+                                              (b b' : B) (q : b = b')
+                                              (d : forall (c : C), D a b c)
+                                              (d' : forall (c : C), D a' b' c), 
+                 (forall (c : C), double_pathover (fun a b => D a b c) p q
+                                                      (d c) (d' c)
+                                  ->
+                        double_pathover (fun a b => (forall c : C, D a b c)) p q d d')).
+      { intros A B C D
+                                            
+                   
+                 
+      apply path_forall.
+      
+      apply path_to_double_pathover. 
+      apply path_forall. intro p. 
+      unfold uncurry.
+      
+      refine (transport_forall _ _ _ @ _).
+      cut (double_pathover
+             (fun (x y : Finite_Types a) => P (Fin_to_Z x y; ?)) alpha betta
+             (f a) (f a)).
+        
+      apply (equiv_inverse (Z0_forall_canon P)). exact f.
+    - hnf. intros. simpl.
+
+      double_pathover (
+      
+      apply path_to_double_pathover. unfold uncurry.
+      apply path_forall. intro q.
+      
+      
+      refine (moveL_equiv_V (f := Z0_forall_canon P) _ _ _).
+      apply (equiv_inj (Z0_forall_canon P)).
+      
+      refine (_ @ transport_1 (fun p0 : Finite_Types a * Finite_Types b =>
+                                 forall p1 : card_Z (Fin_to_Z (fst p0) (snd p0)) = nat_to_integer 0,
+                                   P (Fin_to_Z (fst p0) (snd p0); p1)) (((Z0_forall_canon P)^-1)%equiv f a b)).
+      
+      refine (transport_forall _ _ p @ _). simpl. 
+      refine
+        
+        (transport_forall (path_prod (canon a, canon b) (canon a, canon b) alpha betta)
+                          (((Z0_forall_canon P)^-1)%equiv f a b) q @ _).
+      refine (transport_path_prod _ _ _ _ @ _).
+      change (fst (?a, _)) with a. change (fst (?a, _)) with a.
+      change (snd (_ , ?b)) with b. change (snd (_ , ?b)) with b. simpl.
+      apply path_forall. intro p. simpl. 
+      refine (transport_transport _ betta alpha (f a) @ _).
+      
+      admit.
+    - intros a b s. simpl.
+      apply path_to_double_pathover. unfold uncurry. apply path_forall. intro p.
+      
+      refine (transport_forall _ _ p @ _).
+      refine (transport_path_prod _ _ _ _ @ _).
+      change (fst (?a, _)) with a. change (fst (?a, _)) with a.
+      change (snd (_ , ?b)) with b. change (snd (_ , ?b)) with b.
+      
+
+      intros a b. hnf.
+      apply (equiv_functor_forall_pf (in_component_0_canon a b)).
+      intro p.
+      cut ((P (canon_Z0 a)) <~>
+           (P (Fin_to_Z (canon a) (canon b); equiv_inverse (in_component_0_canon a b) p))
+                        ).
+      { intro e. apply e. exact (f a). }
+      apply equiv_transport.
+      unfold canon_Z0. unfold FinFin_to_Z0.
+      apply path_sigma_hprop. simpl.
+      destruct p. reflexivity.
+    - intros.
+      apply (ap (Fin_to_Z (canon a))). (ap (fun n => canon n) p)^).
+      
+      apply (equiv_functor_forall_pf (Z0_card (Fin_to_Z (canon a) (canon b)))).
+      intro p.
+      
+        equiv_functor_forall_pb
+      refine (_ o (equiv_inverse (Z0_card (Fin_to_Z (canon a) (canon b))))).
+      
+      destruct (diff_zero _ _ p).
+      assert (h : cancel_zero a = p).
+      { apply (istrunc_trunctype_type (n := 0)). }
+      destruct h.
+      apply f.
+    - intros. simpl. 
+      apply (path_to_double_pathover).
+      admit.
+    - intros. apply path_to_path_over. apply path_forall. intro p.
+      refine (transport_forall (lcancel_canon s m n) _ p @ _).
+      destruct (diff_zero _ _ p).
+      simpl. 
+      
+      assert (
+      clear p.
+
+  Definition component_card (z : Z) :
+    merely (z = BSigma_to_Z (canon_BSigma 2) (canon_BSigma 2)) <~>
+           card_Z z = nat_to_integer 0.
+  Proof.
+    apply equiv_iff_hprop.
+    - intro p. strip_truncations.
+      refine (ap card_Z p @ _). simpl.
+      apply inverse.
+      apply (rcancel_integers 2).
+    - revert z.
+      srapply (grp_compl_BSigma_ind_hprop).
+      simpl. intros a b p. simpl.
+      rewrite <- (diff_zero a b p). apply tr.
+      apply path_base_2.
+  Defined.
   
   Definition Z0_to_fin2 : Z0 -> Finite_Types 2.
   Proof.
     intros [z  p]. exact (grpcompl_to_fin2 z).
-  Defined.
-
-  
-
-  (* Definition component_card (z : Z) : *)
-  (*   merely (z = BSigma_to_Z (canon_BSigma 2) (canon_BSigma 2)) <~> *)
-  (*          card_Z z = nat_to_int 0. *)
-  (* Proof. *)
-  (*   apply equiv_iff_hprop. *)
-  (*   - intro p. strip_truncations. *)
-  (*     refine (ap card_Z p @ _). simpl. *)
-  (*     apply inverse. *)
-  (*     srefine (lcancel_group_completion _ _ _ _ @ _). {exact 2. } reflexivity. *)
-  (*   - revert z. *)
-  (*     srapply (grp_compl_BSigma_ind_set). *)
-  (*     + simpl. intros a b p. *)
-      
-      
-             
-      
-  
+  Defined.  
 
   Definition fin2_to_Z0 : Finite_Types 2 -> Z0.
   Proof.
     intro x.
     exists (fin2_to_grpcompl x). simpl.
-    unfold nat_to_int.
     apply inverse.
-    srefine (lcancel_group_completion _ _ _ _ @ _).
-    { exact 2. } reflexivity.
-
-    (* assert (merely (canon 2 = x)). *)
-    (* { apply isconn_finite_types. } *)
-    (* strip_truncations. rewrite <- X. *)
-    (* apply tr. reflexivity. *)
+    apply (rcancel_integers 2).
   Defined.
   
   Definition issect_toZ : fin2_to_Z0 o Z0_to_fin2 == idmap.
   Proof.
-    intros [x p]. 
+    intros [z p]. 
     unfold fin2_to_Z0. apply path_sigma_hprop. simpl.
     unfold Z0_to_fin2.
     unfold fin2_to_grpcompl.
     change {| card_BSigma := 2; fintype_of_BSigma := ?f ?z |}
            with (fin_to_BSigma (f z)).
+    revert p. revert z.
     srapply (grp_compl_BSigma_ind_set).
-    - simpl. intros.
+    - simpl. intros a b p.
+      destruct (diff_zero _ _ p).  clear p.
+      unfold BDet_uncurry.
+      refine (ap011 BSigma_to_Z (BDet_sum_canon2 a a) idpath @ _).
       
       
     - admit.

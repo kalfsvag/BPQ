@@ -3057,6 +3057,58 @@ simpl. *) *)
       apply path_sigma_hprop_1.
   Defined.
 
+  (* move *)
+  Definition pathover_sigma_hprop {A : Type} {B : A -> Type} {isprop_B : (forall a : A, IsHProp (B a))}
+             (C : forall a : A, B a -> Type)
+             {a1 a2 : A} (p : a1 = a2)
+             (c1 : forall b : B a1, C a1 b) (c2 : forall b : B a2, C a2 b)
+    : 
+      (forall (b1 : B a1)       (*(b2 : B a2) *),  (* transport B p b1*)
+          path_over (fun ab : {a : A & B a} => C (pr1 ab) (pr2 ab))
+                    (path_sigma_hprop (a1; b1) (a2; transport B p b1) p)
+                    (c1 b1) (c2 (transport B p b1))) ->
+      path_over (fun a : A => forall b : B a, C a b) p c1 c2.
+  Proof.
+    destruct p. simpl. 
+    intro q. apply (path_over_single_fiber^-1).
+    apply path_forall. intro b.
+    set (q' := q b).
+    rewrite path_sigma_hprop_1 in q'.
+    exact (path_over_single_fiber q').
+  Defined.
+
+  Definition pathover_sigma_hprop' {A : Type} {B : A -> Type} {isprop_B : (forall a : A, IsHProp (B a))}
+             (C : {a : A &  B a} -> Type)
+             {a1 a2 : A} (p : a1 = a2)
+             (c1 : forall b : B a1, C (a1; b)) (c2 : forall b : B a2, C (a2; b))
+    : 
+      (forall (b1 : B a1)       (*(b2 : B a2) *),  (* transport B p b1*)
+          path_over C
+                    (path_sigma_hprop (a1; b1) (a2; transport B p b1) p)
+                    (c1 b1) (c2 (transport B p b1))) ->
+      path_over (fun a : A => forall b : B a, C (a; b)) p c1 c2.
+  Proof.
+    destruct p. simpl. 
+    intro q. apply (path_over_single_fiber^-1).
+    apply path_forall. intro b.
+    set (q' := q b).
+    rewrite path_sigma_hprop_1 in q'.
+    exact (path_over_single_fiber q').
+  Defined.
+
+  (* not needed? *)
+  Definition pathover_forall {A B : Type} (C : A -> B -> Type)
+             {a1 a2 : A} (p : a1 = a2)
+             (c1 : forall b : B, C a1 b) (c2 : forall b : B, C a2 b)
+    : (forall b : B, path_over (fun a : A => C a b) p (c1 b) (c2 b)) ->
+      path_over (fun a : A => forall b : B, C a b) p c1 c2.
+  Proof.
+    destruct p. intro q.
+    apply path_over_single_fiber^-1.
+    apply path_forall. intro b.
+    apply (path_over_single_fiber (q b)).
+  Defined.             
+
   Definition double_pathover_forall
              {A B C : Type}
              (D :  A -> B -> C -> Type)
@@ -3093,120 +3145,44 @@ simpl. *) *)
     - intros. simpl.
       apply double_pathover_forall.
       intro p. revert p.
-      apply (equiv_functor_forall_pf (equiv_diff_zero a b)). intro p.      
+      apply (equiv_functor_forall_pf (equiv_diff_zero a b)). intro p.
+      (* change (diff_zero a b ?x) with (equiv_diff_zero a b x). *)
+      (* rewrite (eisretr (equiv_diff_zero a b) p). *)
       simpl. destruct p.
       assert (h : (diff_zero a a (cancel_zero a)) = idpath).
       { apply hset_nat. } rewrite h. rewrite path_sigma_hprop_1. clear h.
       simpl. apply base_change.
-    - 
-      
-      simpl.
-      destruct p. simpl.
-      simpl.
-      intro p. simpl.
-      
-      destruct (diff_zero a b p). simpl.
-      
-      rewrite path_sigma_hprop_1.
-      
-      
-      assert (double_pathover_forall : forall (A B : Type) (C : Type)
-                                              (D :  A -> B -> C -> Type)
-                                              (a a' : A) (p : a = a')
-                                              (b b' : B) (q : b = b')
-                                              (d : forall (c : C), D a b c)
-                                              (d' : forall (c : C), D a' b' c), 
-                 (forall (c : C), double_pathover (fun a b => D a b c) p q
-                                                      (d c) (d' c)
-                                  ->
-                        double_pathover (fun a b => (forall c : C, D a b c)) p q d d')).
-      { intros A B C D
-                                            
-                   
-                 
-      apply path_forall.
-      
-      apply path_to_double_pathover. 
-      apply path_forall. intro p. 
-      unfold uncurry.
-      
-      refine (transport_forall _ _ _ @ _).
-      cut (double_pathover
-             (fun (x y : Finite_Types a) => P (Fin_to_Z x y; ?)) alpha betta
-             (f a) (f a)).
-        
-      apply (equiv_inverse (Z0_forall_canon P)). exact f.
-    - hnf. intros. simpl.
-
-      double_pathover (
-      
-      apply path_to_double_pathover. unfold uncurry.
-      apply path_forall. intro q.
-      
-      
-      refine (moveL_equiv_V (f := Z0_forall_canon P) _ _ _).
-      apply (equiv_inj (Z0_forall_canon P)).
-      
-      refine (_ @ transport_1 (fun p0 : Finite_Types a * Finite_Types b =>
-                                 forall p1 : card_Z (Fin_to_Z (fst p0) (snd p0)) = nat_to_integer 0,
-                                   P (Fin_to_Z (fst p0) (snd p0); p1)) (((Z0_forall_canon P)^-1)%equiv f a b)).
-      
-      refine (transport_forall _ _ p @ _). simpl. 
-      refine
-        
-        (transport_forall (path_prod (canon a, canon b) (canon a, canon b) alpha betta)
-                          (((Z0_forall_canon P)^-1)%equiv f a b) q @ _).
-      refine (transport_path_prod _ _ _ _ @ _).
-      change (fst (?a, _)) with a. change (fst (?a, _)) with a.
-      change (snd (_ , ?b)) with b. change (snd (_ , ?b)) with b. simpl.
-      apply path_forall. intro p. simpl. 
-      refine (transport_transport _ betta alpha (f a) @ _).
-      
-      admit.
     - intros a b s. simpl.
-      apply path_to_double_pathover. unfold uncurry. apply path_forall. intro p.
       
-      refine (transport_forall _ _ p @ _).
-      refine (transport_path_prod _ _ _ _ @ _).
-      change (fst (?a, _)) with a. change (fst (?a, _)) with a.
-      change (snd (_ , ?b)) with b. change (snd (_ , ?b)) with b.
+      apply pathover_sigma_hprop'. intro p. simpl in p.
+      (* assert ((path_sigma_hprop (BSigma_to_Z (canon_BSigma a) (canon_BSigma b); p) *)
+      (*  (BSigma_to_Z (canon_BSigma (s +' a)) (canon_BSigma (s +' b)); *)
+      (*  transport (fun a0 : Z => card_Z a0 = nat_to_integer 0) (lcancel_canon s a b) p) *)
+      (*  (lcancel_canon s a b)) = (lcancel_canon_Z0 s a) *)
+      (* revert p. *)
       
-
-      intros a b. hnf.
-      apply (equiv_functor_forall_pf (in_component_0_canon a b)).
-      intro p.
-      cut ((P (canon_Z0 a)) <~>
-           (P (Fin_to_Z (canon a) (canon b); equiv_inverse (in_component_0_canon a b) p))
-                        ).
-      { intro e. apply e. exact (f a). }
-      apply equiv_transport.
-      unfold canon_Z0. unfold FinFin_to_Z0.
-      apply path_sigma_hprop. simpl.
-      destruct p. reflexivity.
-    - intros.
-      apply (ap (Fin_to_Z (canon a))). (ap (fun n => canon n) p)^).
+      (* assert ((fun ab : {a0 : Z & card_Z a0 = nat_to_integer 0} => P (ab.1; ab.2)) = P). *)
+      (* { apply path_arrow.  intros [a' b']. reflexivity. } *)
+      (* rewrite X. *)
       
-      apply (equiv_functor_forall_pf (Z0_card (Fin_to_Z (canon a) (canon b)))).
-      intro p.
+      assert (diff_zero (s +' a) (s +' b)
+                        (transport (fun a0 : Z => card_Z a0 = nat_to_integer 0) (lcancel_canon s a b)
+                                   p) =
+              ap (fun x => s +' x) (diff_zero a b p)).
+      { apply hset_nat. } rewrite X. clear X.
       
-        equiv_functor_forall_pb
-      refine (_ o (equiv_inverse (Z0_card (Fin_to_Z (canon a) (canon b))))).
-      
-      destruct (diff_zero _ _ p).
-      assert (h : cancel_zero a = p).
+      generalize (diff_zero a b p). intro q.
+      assert ((equiv_diff_zero a b)^-1 q = p).
       { apply (istrunc_trunctype_type (n := 0)). }
-      destruct h.
-      apply f.
-    - intros. simpl. 
-      apply (path_to_double_pathover).
-      admit.
-    - intros. apply path_to_path_over. apply path_forall. intro p.
-      refine (transport_forall (lcancel_canon s m n) _ p @ _).
-      destruct (diff_zero _ _ p).
-      simpl. 
-      
-      assert (
-      clear p.
+      destruct X. destruct q. simpl.
+      unfold lcancel_canon_Z0 in act_add. unfold canon_Z0 in act_add.
+      assert
+        (transport (fun a0 : Z => card_Z a0 = nat_to_integer 0) (lcancel_canon s a a) (cancel_zero a)
+                   = cancel_zero (s +' a)).
+      { apply (istrunc_trunctype_type (n := 0)). } rewrite X. clear X.
+      rewrite path_sigma_hprop_1. rewrite path_sigma_hprop_1. simpl.
+      apply act_add.
+  Defined.
 
   Definition component_card (z : Z) :
     merely (z = BSigma_to_Z (canon_BSigma 2) (canon_BSigma 2)) <~>

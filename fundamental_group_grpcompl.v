@@ -3124,7 +3124,62 @@ simpl. *) *)
     apply path_forall. intro c. apply h.
   Defined.
 
-  Definition Z0_ind_set (P : Z0 -> Type) {isset_P : forall z : Z0, IsHSet (P z)}
+  Definition path_over_arrow' {A : Type} (B C : A -> Type)
+             {a1 a2 : A} (p : a1 = a2)
+             (f1 : B a1 -> C a1) (f2 : B a2 -> C a2)
+    : (forall b : B a1,
+          path_over C p (f1 b) (f2 (transport B p b))) ->
+      path_over (fun a => B a -> C a) p f1 f2.
+  Proof.
+    destruct p.  simpl.
+    intro h.
+    apply (path_over_single_fiber^-1). apply path_arrow.
+    intro b. exact (path_over_single_fiber (h b)).
+  Defined.
+                           
+
+  Definition Z0_ind_set (P : forall z : Z, Type) {isset_P : forall z : Z, IsHSet (P z)}
+             (f : forall (a : nat), P (Fin_to_Z (canon a) (canon a)))
+             (base_change :
+                forall (a : nat) (alpha : canon a = canon a) (betta : canon a = canon a),
+                  double_pathover (fun (x : Finite_Types a) (y : Finite_Types a) =>
+                                     P (Fin_to_Z x y))
+                                  alpha betta (f a) (f a))
+             (act_add :
+                forall s a : nat, path_over P (lcancel_canon s a a) (f a) (f (s +' a)))
+    : forall (z : Z), (card_Z z = nat_to_integer 0) -> P z.
+  Proof.
+    srapply (grp_compl_BSigma_ind_set).
+    - hnf. intros a b p.
+      refine (transport P _ (f a)).
+      apply (ap (fun x => Fin_to_Z (canon a) (canon x))).
+      apply (diff_zero _ _ p).
+    - intros. simpl.
+      apply double_pathover_forall.
+      intro p. revert p.
+      apply (equiv_functor_forall_pf (equiv_diff_zero a b)). intro p.
+      (* change (diff_zero a b ?x) with (equiv_diff_zero a b x). *)
+      (* rewrite (eisretr (equiv_diff_zero a b) p). *)
+      simpl. destruct p.
+      assert (h : (diff_zero a a (cancel_zero a)) = idpath).
+      { apply hset_nat. } rewrite h. simpl.
+      apply base_change.
+    - intros a b s. simpl.
+      apply path_over_arrow'.
+      simpl. intro p.      
+      assert (diff_zero
+                (s +' a) (s +' b)
+                (transport (fun a0 : Z => card_Z a0 = nat_to_integer 0) (lcancel_canon s a b) p) =
+              ap (fun x => s +' x)
+                 (diff_zero a b p)).
+      { apply hset_nat. } rewrite X. clear X.
+      destruct (diff_zero a b p). simpl.
+      exact (act_add s a).
+  Defined.
+                      
+             
+
+  Definition Z0_ind_set' (P : Z0 -> Type) {isset_P : forall z : Z0, IsHSet (P z)}
              (f : forall (a : nat), P (canon_Z0 a))
              (base_change:
                 forall (a : nat) (alpha : canon a = canon a) (betta : canon a = canon a),
@@ -3184,12 +3239,13 @@ simpl. *) *)
       apply act_add.
   Defined.
 
+
   Definition component_card (z : Z) :
     merely (z = BSigma_to_Z (canon_BSigma 2) (canon_BSigma 2)) <~>
            card_Z z = nat_to_integer 0.
   Proof.
     apply equiv_iff_hprop.
-    - intro p. strip_truncations.
+    - intro p. strip_truncations. simpl in p.
       refine (ap card_Z p @ _). simpl.
       apply inverse.
       apply (rcancel_integers 2).
@@ -3212,15 +3268,314 @@ simpl. *) *)
     apply inverse.
     apply (rcancel_integers 2).
   Defined.
-  
-  Definition issect_toZ : fin2_to_Z0 o Z0_to_fin2 == idmap.
+
+  Definition double_pathover_path {A B C: Type} 
+             (f g : A -> B -> C)
+             {a a' : A} (alpha : a = a')
+             {b b' : B} (betta : b = b')
+             (p : f a b = g a b) (q : f a' b' = g a' b')
+    : (ap011 f alpha betta)^ @ p @ (ap011 g alpha betta) =  q ->
+      double_pathover (fun a b => f a b = g a b) alpha betta p q.
   Proof.
+    destruct alpha. destruct betta. simpl.
+    intro h. refine (_ @ h).
+    apply inverse.
+    refine (concat_p1 _ @ _).
+    apply concat_1p.
+  Defined.
+
+  Definition loops_functor_uncurried' {A B : Type} {a0 : A} {b0 : B} (f : A -> B)
+    : (f a0 = b0) -> (a0 = a0) -> (b0 = b0).
+  Proof.
+    intro p.
+    intro q.
+    exact (p^ @ (ap f q @ p)).
+  Defined.
+
+  Definition ispointed_compose {A B C : Type} {a0 : A} {b0 : B} {c0 : C}
+             (g : B -> C) (pt_g : g b0 = c0)
+             (f : A -> B) (pt_f : f a0 = b0)
+    : g (f a0) = c0.
+  Proof.
+    exact (ap g (pt_f) @ pt_g).
+  Defined.
+
+  Definition loops_functor_uncurried_compose {A B C : Type} {a0 : A} {b0 : B} {c0 : C}
+             (f : A -> B) (pt_f : f a0 = b0)
+             (g : B -> C) (pt_g : g b0 = c0)
+    : loops_functor_uncurried' (g o f) (ispointed_compose g pt_g f pt_f) ==
+      loops_functor_uncurried' g pt_g o loops_functor_uncurried' f pt_f.
+  Proof.
+    intro p. unfold loops_functor_uncurried'.
+    unfold ispointed_compose. destruct pt_g. destruct pt_f. 
+    simpl. destruct p. reflexivity.
+  Defined.
+  
+
+  
+  Definition isidmap_Z0 (f : Z -> Z)
+             (f_comp0 : forall (z : Z), card_Z z = nat_to_integer 0 -> card_Z (f z) = nat_to_integer 0)
+             (f_canon : forall a : nat,
+                 f (Fin_to_Z (canon a) (canon a)) = (Fin_to_Z (canon a) (canon a)))
+             (f_bc : forall (a : nat) (alpha betta : canon a = canon a),
+                 loops_functor_uncurried' f (f_canon a) ((ap011 Fin_to_Z alpha betta))= 
+                 (* (f_canon a)^ @ (ap f (ap011 Fin_to_Z alpha betta) @ f_canon a) = *)
+                 ap011 Fin_to_Z alpha betta)  
+             (f_add : forall (s a : nat),
+                 (f_canon a)^ @ (ap f (lcancel_canon s a a) @ f_canon (s +' a))=
+                 lcancel_canon s a a)
+
+             (* (f_canon : forall a : nat, *)
+             (*     (Fin_to_Z (canon a) (canon a)) = f (Fin_to_Z (canon a) (canon a))) *)
+             (* (f_bc : forall (a : nat) (alpha betta : canon a = canon a), *)
+             (*     (ap011 Fin_to_Z alpha betta)^ @ f_canon a @ *)
+             (*      ap011 (fun x y : Finite_Types a => f (Fin_to_Z x y)) alpha betta = f_canon a) *)
+
+             (* (f_add : forall (s a : nat), *)
+             (*     (lcancel_canon s a a)^ @ f_canon a @ ap f (lcancel_canon s a a) = *)
+             (*     f_canon (s +' a)) *)
+             
+    : forall (z : Z), (card_Z z = nat_to_integer 0) -> f z = z.
+  Proof.
+    srapply Z0_ind_set.
+    - intro a. (* apply inverse. *) apply f_canon.
+    - intros. 
+      apply double_pathover_path. simpl.
+      refine (concat_pp_p _ _ _ @ _).
+      apply moveR_Vp. apply moveR_Mp. apply inverse.
+      refine (_ @ f_bc a alpha betta).
+      apply whiskerL. apply whiskerR.
+      destruct alpha. destruct betta. reflexivity.
+    - intros s a.
+      apply path_to_path_over.
+      refine (transport_paths_FlFr (lcancel_canon s a a) (f_canon a) @ _).
+      rewrite ap_idmap.
+      apply moveR_Mp. apply inverse.
+      refine (_ @ f_add s a).
+      rewrite inv_Vp.
+      refine (concat_pp_p _ _ _ ).
+  Defined.
+
+  (* move *)
+  Definition loops_BDet (a : nat) (alpha : canon a = canon a)
+    : loops_functor (BDet a) alpha =
+      path_finite_types 2 (canon 2) (canon 2)
+                        (determinant a (pft_inv alpha)).
+  Proof.
+    unfold BDet.
+    refine (deloop_fin_loop a 2 _ _ ).
+  Defined.
+
+  Definition loops_BDet' (a : nat) (alpha : Fin a <~> Fin a)
+    : loops_functor (BDet a) (equiv_path_finite_types a (canon a) (canon a) alpha) =
+      path_finite_types 2 (canon 2) (canon 2) (determinant a alpha).
+  Proof.
+    refine (loops_BDet a _ @ _).
+    apply (ap (path_finite_types _ _ _ )). apply (ap (determinant a)).
+    srefine (eissect (equiv_path_finite_types a (canon a) (canon a)) alpha).
+  Defined.
+
+  Definition issect_toZ' (z : Z) (p : card_Z z = nat_to_integer 0)
+    : fin2_to_grpcompl (grpcompl_to_fin2 z) = z.
+  Proof.
+    revert z p.
+    srapply isidmap_Z0.
+    - intros z p. simpl.
+      exact (rcancel_integers 2 0 0)^.
+    - hnf. intro a.
+      
+      
+
+      srefine (ispointed_compose fin2_to_grpcompl (b0 := canon 2) _ _ _).
+      + apply inverse. apply path_base_2.
+      + change (grpcompl_to_fin2 (Fin_to_Z ?A ?B)) with
+        (BDet _ ((sum_finite_types A B))).
+        apply BDet_sum_canon2.
+    - intros.  hnf.
+      rewrite (loops_functor_uncurried_compose ).
+      assert (loops_functor_uncurried' (a0 := Fin_to_Z (canon a) (canon a))
+                                       grpcompl_to_fin2 (BDet_sum_canon2 a a)
+                                       (ap011 Fin_to_Z alpha betta) =
+              loops_functor_uncurried' (BDet (a +' a)) (BDet_sum_canon2 a a)
+                                       (ap011 sum_finite_types alpha betta)).
+      { unfold loops_functor_uncurried'. apply whiskerL. apply whiskerR.
+        destruct alpha. destruct betta. reflexivity. }
+      rewrite X. clear X.
+      assert (loops_functor_uncurried' (BDet (a +' a)) (BDet_sum_canon2 a a)
+                                       (ap011 sum_finite_types alpha betta) =
+              path_finite_types 2 (canon 2) (canon 2)
+                                (determinant _ (block_sum (pft_inv alpha) (pft_inv betta)))).
+      { unfold loops_functor_uncurried'.
+        rewrite blocksum_is_ap011.
+        refine (_ @ loops_BDet (a +' a)  _).
+        unfold BDet_sum_canon2. rewrite inv_pp.
+        change (loops_functor (BDet ?m) ?x)
+        with ((point_eq (BDet m))^ @ (ap (BDet m) x @ (point_eq (BDet m)))).
+        change (point_eq (BDet ?m)) with (deloop_fin_canon m 2 (dethom m)).
+        destruct (deloop_fin_canon (a +' a) 2 (dethom (a +' a))).
+        rewrite concat_1p. rewrite concat_1p. rewrite concat_p1. rewrite concat_p1.
+        rewrite ap_pp. 
+        apply concat2.
+        { rewrite ap_V. reflexivity. }
+        rewrite ap_pp. reflexivity. }
+      rewrite X. clear X. unfold loops_functor_uncurried'.
+      rewrite inv_V. apply moveR_Mp. apply moveR_pV.
+      refine (_ @ concat_p_pp _ _ _).
+      
+      transitivity ((path_base_2 _)^
+                     @ (ap011 Fin_to_Z (path_finite_types (a +' a) (canon (a +' a)) (canon (a +' a))
+                                                          (block_sum (pft_inv alpha) (pft_inv betta)))
+                              idpath
+                     @ path_base_2 _)).
+      { admit. }
+      
+        apply ap_pp.
+        
+simpl.
+        
+        unfold loops_functor. hnf.
+        simpl.
+        
+                  (path_finite_types (a +' a)
+                                     (sum_finite_types (canon a) (canon a))
+                                     (sum_finite_types (canon a) (canon a))
+                                     (block_sum (pft_inv alpha) (pft_inv betta))) @ _).
+
+        
+      unfold loops_functor_uncurried'. rewrite 
+      
+      change (loops_functor_uncurried' (BDet (a +' a)) (BDet_sum_canon2 a a) (ap011 sum_finite_types alpha betta))
+      with (loops_functor (BDet (a +' a)) (ap011 sum_finite_types alpha betta)).
+      
+      rewrite inv_pV.
+      refine (concat_pp_p _ _ _ @ _). apply moveR_Mp.
+      refine (concat_p_pp _ _ _ @ _). refine (concat_p_pp _ _ _ @ _).
+      apply moveR_pV.
+      rewrite (ap_compose grpcompl_to_fin2 fin2_to_grpcompl).
+      rewrite <- ap_V. rewrite <- ap_pp. rewrite <- ap_pp.
+      
+      assert (ap_ap011_compose :
+                forall (A B C D : Type) (f : A -> B -> C) (g : C -> D)
+                       (x x' : A) (p : x = x')
+                       (y y' : B) (q : y = y'),
+                  ap g (ap011 f p q) = ap011 (fun a b => g (f a b)) p q).
+      { intros. destruct p. destruct q. reflexivity. }
+      
+      rewrite ap_ap011_compose.
+      change (grpcompl_to_fin2 (Fin_to_Z ?A ?B)) with
+      (BDet _ ((sum_finite_types A B))).
+      rewrite <- (ap_ap011_compose _ _ _ _ (@sum_finite_types a a) (BDet (a +' a))).
+      unfold BDet_sum_canon2.
+      rewrite inv_pp.
+      rewrite (concat_pp_p _ _ (ap (BDet (a +' a)) (ap011 sum_finite_types alpha betta))).
+      rewrite <- ap_V. rewrite <- ap_pp.
+      rewrite (concat_pp_p (deloop_fin_canon (a +' a) 2 (dethom (a +' a)))^).
+      rewrite (concat_p_pp _ _ (deloop_fin_canon (a +' a) 2 (dethom (a +' a)))).
+      rewrite <- ap_pp.
+                                     
+
+      refine (concat_pp_p _ _ _ @ _).
+      apply moveR_Vp. refine (concat_pp_p _ _ _ @ _).
+      apply moveR_Mp.
+      change (grpcompl_to_fin2 (Fin_to_Z ?A ?B)) with
+      (BDet _ ((sum_finite_types A B))).
+      (* revert betta. *)
+      (* apply (equiv_functor_forall_pb (equiv_path_finite_types a (canon a) (canon a))). *)
+      (* intro betta. *)
+      (* revert alpha. *)
+      (* apply (equiv_functor_forall_pb (equiv_path_finite_types a (canon a) (canon a))). *)
+      (* intro alpha. *)
+            
+      transitivity
+        (ap fin2_to_grpcompl
+            (equiv_path_finite_types _ (canon 2) (canon 2)
+                                     (determinant
+                                        _
+                                        (block_sum ((equiv_path_finite_types _ _ _)^-1 alpha)
+                                                   ((equiv_path_finite_types _ _ _)^-1 betta))))).
+      
+      { refine (_ @ ap (fun p => ap fin2_to_grpcompl p) (loops_BDet' (a +' a) _)).
+        
+        rewrite blocksum_is_ap011.
+
+        rewrite <- (loops_BDet' (a +' a) (block_sum ((equiv_path_finite_types a (canon a) (canon a))^-1 alpha)
+             ((equiv_path_finite_types a (canon a) (canon a))^-1 betta))).
+
+        transitivity (ap fin2_to_grpcompl
+                         (loops_functor (BDet (a +' a))
+                                 (equiv_path_finite_types 2 (canon 2) (canon 2)
+                                                          (determinant (a +' a)
+                                                                       (block_sum ((equiv_path_finite_types a (canon a) (canon a))^-1 alpha)
+             ((equiv_path_finite_types a (canon a) (canon a))^-1 betta)))))).
+        rewrite det_block_sum.
+        
+        refine (_ @ ap (ap fin2_to_grpcompl)
+                  (path_finite_types_compose 2 (canon 2) (canon 2) (canon 2) _ _)^).
+        
+        
+                  (path_finite_types_compose 2 (canon 2) (canon 2) (canon 2) _ (determinant a ((equiv_path_finite_types a (canon a) (canon a))^-1 betta)))^).
+        rewrite .
+        .admit. }
+      
+      
+      rewrite blocksum_is_ap011.
+      
+      
+      change (fin2_to_grpcompl ?A) with (BSigma_to_Z (Build_BSigma 2 A) (canon_BSigma 2)).
+      
+      unfold fin2_to_grpcompl. 
+      
+      
+      unfold grpcompl_to_fin2. 
+simpl.
+      
+
+
+                                       
+simpl.
+      
+      
+      
+            
+      unfold fin2_to_grpcompl. change {| card_BSigma := 2; fintype_of_BSigma := ?f ?z |}
+                                      with (fin_to_BSigma (f z)).
+      
+    srapply Z0_ind_set.
+    - intro a. simpl.
+      apply path_sigma_hprop. simpl.
+      change (Z0_to_fin2 (canon_Z0 a)) with (BDet _ ((sum_finite_types (canon a) (canon a)))).
+
+      unfold fin2_to_grpcompl.
+
+      
+      refine (ap011 BSigma_to_Z (ap fin_to_BSigma (BDet_sum_canon2 a a)) idpath @ _).
+      apply inverse. apply path_base_2.
+    - intros a alpha betta.
+      simpl.
+      apply path_to_double_pathover. unfold uncurry.
+      refine (transport_paths_FlFr (path_prod (canon a, canon a) (canon a, canon a) alpha betta)
+                                   (path_sigma_hprop (fin2_to_Z0 (Z0_to_fin2 (canon_Z0 a))) (canon_Z0 a)
+       (ap011 BSigma_to_Z (ap fin_to_BSigma (BDet_sum_canon2 a a)) 1 @
+        (path_base_2 (fin_to_BSigma (canon a)))^)) @ _).
+      
+      apply double_pathover_forall.
+      
+
+      
+      change (grpcompl_to_fin2 (Fin_to_Z ?A ?B))
+      with (BDet _ ((sum_finite_types A B))).
+      
+
+      
+      unfold grpcompl_to_fin2.
+      
+      unfold fin2_to_Z0.
+
+      
     intros [z p]. 
     unfold fin2_to_Z0. apply path_sigma_hprop. simpl.
     unfold Z0_to_fin2.
     unfold fin2_to_grpcompl.
-    change {| card_BSigma := 2; fintype_of_BSigma := ?f ?z |}
-           with (fin_to_BSigma (f z)).
     revert p. revert z.
     srapply (grp_compl_BSigma_ind_set).
     - simpl. intros a b p.

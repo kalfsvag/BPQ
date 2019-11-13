@@ -3421,6 +3421,10 @@ simpl. *) *)
       rewrite X. clear X. unfold loops_functor_uncurried'.
       rewrite inv_V. apply moveR_Mp. apply moveR_pV.
       refine (_ @ concat_p_pp _ _ _).
+      refine (_ @ path_is_det _ (block_sum (pft_inv alpha) (pft_inv betta)) @ _).
+      
+
+      Check path_is_det _ (block_sum (pft_inv alpha) (pft_inv betta)).
       
       transitivity ((path_base_2 _)^
                      @ (ap011 Fin_to_Z (path_finite_types (a +' a) (canon (a +' a)) (canon (a +' a))

@@ -10,7 +10,6 @@ Section Monoid_action.
   Open Scope monoid_scope.
 
 
-  (* (* move this closer to definition *) *)
   (* Global Instance isset_hom {M N : Monoid} : IsHSet (Hom M N). *)
   (* Proof. *)
   (*   apply (trunc_equiv' _ (issig_hom M N)). *)
@@ -280,7 +279,6 @@ Section Group_Completion_Quotient.
   Defined.
 
 
-  (* (* move this *) *)
   (* Definition antihom_inv {G : Group} : *)
   (*   forall (g1 g2 : G), *)
   (*     grp_inv (g1 + g2) = grp_inv g2 + grp_inv g1. *)

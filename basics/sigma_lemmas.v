@@ -14,6 +14,19 @@ Proof.
     srapply @path_sigma; reflexivity.
 Defined.
   
+Lemma path_sigma_hprop_compose {A : Type} {P : A -> Type} {isprop : forall a : A, IsHProp (P a)}
+      (x y z: { a : A & P a}) (p : x.1 = y.1) (q : y.1 = z.1) :
+  path_sigma_hprop _ _ (p @ q) = (path_sigma_hprop _ _ p) @ (path_sigma_hprop _ _ q).
+Proof.
+  destruct x as [x1 x2]. destruct y as [y1 y2]. destruct z as [z1 z2]. simpl in p,q.
+  destruct q. destruct p. cbn.
+  destruct (center _ (isprop x1 x2 z2)).
+  destruct (center _ (isprop x1 x2 y2)).    
+  refine (path_sigma_hprop_1 _ @ _).
+  apply inverse.
+  apply (concat2 (path_sigma_hprop_1 (x1; x2)) (path_sigma_hprop_1 (x1; x2))).
+Defined.
+
 
 
 

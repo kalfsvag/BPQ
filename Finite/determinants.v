@@ -26,21 +26,6 @@ Section Determinant.
 
   Arguments equiv_sum_assoc : simpl nomatch.
 
-  (* move *)
-  Lemma inj_finl {m n : nat} (i j : Fin m) :
-    finl m n i = finl m n j -> i = j.
-  Proof.
-    intro p. apply (path_sum_inl (Fin n)).
-    apply (equiv_inj (finsum m n)).  exact p.
-  Qed.
-  
-  Lemma inj_finr {m n : nat} (i j : Fin n) :
-    finr m n i = finr m n j -> i = j.
-  Proof.
-    intro p. apply (path_sum_inr (Fin m)).
-    apply (equiv_inj (finsum m n)).  exact p.
-  Qed.
-
 
   Lemma swap_fix_last {n : nat} (e : Fin n.+1 <~> Fin n.+1) :
     (swap_last e oE e) (inr tt) = inr tt.

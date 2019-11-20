@@ -73,32 +73,8 @@ Section Equiv_Finsum.
       exact (functor_sum IHn idmap).
   Defined.
 
-  (* move *)
-  Definition sum_assoc (A B C : Type)
-    : A + B + C -> A + (B + C).
-  Proof.
-    intros [[a | b] | c].
-    - exact (inl a).
-    - exact (inr (inl b)).
-    - exact (inr (inr c)).
-  Defined.
-  
-  Definition sum_assoc_inv (A B C : Type)
-    : A + (B + C) -> (A + B) + C.
-  Proof.
-    intros [a | [b | c]].
-    - exact (inl (inl a)).
-    - exact (inl (inr b)).
-    - exact (inr c).
-  Defined.
 
-  Definition equiv_sum_assoc' (A B C : Type)
-    : (A + B) + C <~> A + (B + C).
-  Proof.
-    apply (equiv_adjointify (sum_assoc A B C) (sum_assoc_inv A B C)).
-    - intros [a | [b | c]]; reflexivity.
-    - intros [[a | b] | c]; reflexivity.
-  Defined.
+  (* move *)
 
   Definition finsum (m n : nat) : Fin m + Fin n -> Fin (n+m).
   Proof.
@@ -182,6 +158,23 @@ Section Equiv_Finsum.
 
   (* Definition equiv_finsum_last (m n : nat) : *)
   (*   equiv_finsum m n.+1 (inr (inr tt)) = (inr tt) := idpath. *)
+
+  Lemma inj_finl {m n : nat} (i j : Fin m) :
+    finl m n i = finl m n j -> i = j.
+  Proof.
+    intro p. apply (path_sum_inl (Fin n)).
+    apply (equiv_inj (finsum m n)).  exact p.
+  Qed.
+  
+  Lemma inj_finr {m n : nat} (i j : Fin n) :
+    finr m n i = finr m n j -> i = j.
+  Proof.
+    intro p. apply (path_sum_inr (Fin m)).
+    apply (equiv_inj (finsum m n)).  exact p.
+  Qed.
+
+
+  
 End Equiv_Finsum.
 
 Require Import (* B_Aut *) pointed_lemmas.
@@ -355,20 +348,6 @@ Section Path_Finite_Types.
     refine (ap10 (transport_pr1_path_sigma_uncurried (pr1^-1 (path_universe_uncurried e))
                                                      (fun A : Type => A -> X)) x @ _).
     exact (transport_exp X A.1 B.1 e x).
-  Defined.
-
-  (* move *)
-  Lemma path_sigma_hprop_compose {A : Type} {P : A -> Type} {isprop : forall a : A, IsHProp (P a)}
-        (x y z: { a : A & P a}) (p : x.1 = y.1) (q : y.1 = z.1) :
-    path_sigma_hprop _ _ (p @ q) = (path_sigma_hprop _ _ p) @ (path_sigma_hprop _ _ q).
-  Proof.
-    destruct x as [x1 x2]. destruct y as [y1 y2]. destruct z as [z1 z2]. simpl in p,q.
-    destruct q. destruct p. cbn.
-    destruct (center _ (isprop x1 x2 z2)).
-    destruct (center _ (isprop x1 x2 y2)).    
-    refine (path_sigma_hprop_1 _ @ _).
-    apply inverse.
-    apply (concat2 (path_sigma_hprop_1 (x1; x2)) (path_sigma_hprop_1 (x1; x2))).
   Defined.
 
   (* Lemma path_finite_types_id (m : nat) (A : Finite_Types m) : *)

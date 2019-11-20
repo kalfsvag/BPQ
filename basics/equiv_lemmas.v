@@ -20,6 +20,33 @@ Proof.
     apply equiv_path_arrow.
 Defined.
 
+Definition sum_assoc (A B C : Type)
+  : A + B + C -> A + (B + C).
+Proof.
+  intros [[a | b] | c].
+  - exact (inl a).
+  - exact (inr (inl b)).
+  - exact (inr (inr c)).
+Defined.
+
+Definition sum_assoc_inv (A B C : Type)
+  : A + (B + C) -> (A + B) + C.
+Proof.
+  intros [a | [b | c]].
+  - exact (inl (inl a)).
+  - exact (inl (inr b)).
+  - exact (inr c).
+Defined.
+
+Definition equiv_sum_assoc' (A B C : Type)
+  : (A + B) + C <~> A + (B + C).
+Proof.
+  apply (equiv_adjointify (sum_assoc A B C) (sum_assoc_inv A B C)).
+  - intros [a | [b | c]]; reflexivity.
+  - intros [[a | b] | c]; reflexivity.
+Defined.
+
+
 (* Definition equiv_emoveL `{Funext} {A B C : Type} (e : A <~> B) (f : B -> C) (g : A -> C) :  *)
 (*   g = f o e <~> g o e^-1 = e f. *)
 (* Proof. *)

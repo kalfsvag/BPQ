@@ -53,16 +53,6 @@ Section BSigma_set_ind.
     apply inverse. apply concat_p1.
   Defined.
     
-
-  
-Definition finsum_id (m n : nat) :
-  sum_BSigma (canon_BSigma m) (canon_BSigma n) = canon_BSigma (n+m) :=
-  path_BSigma (sum_BSigma (canon_BSigma m) (canon_BSigma n)) (canon_BSigma (n+m)) (equiv_finsum m n).
-
-Definition finsum_id_fix (m n : nat)
-  : sum_finite_types (canon m) (canon n) = canon (n + m) :=
-  path_finite_types _ (sum_finite_types (canon m) (canon n)) (canon (n+m)) (equiv_finsum m n).
-
 Definition canon_grpclBSigma_sum (m1 m2 n1 n2 : nat) :
   BSigma_to_Z (sum_BSigma (canon_BSigma m1) (canon_BSigma n1))
               (sum_BSigma (canon_BSigma m2) (canon_BSigma n2)) =
@@ -208,8 +198,6 @@ Proof.
   reflexivity.
 Defined.
 
-(* move *)
-(* Arguments Build_BSigma {card_BSigma}. *)
 
 Definition path_Z_compose {A1 B1 A2 B2 A3 B3: BSigma} (S T: BSigma)
            (p1 : sum_BSigma S A1 = A2) (q1 : sum_BSigma S B1 = B2)
@@ -306,22 +294,6 @@ Proof.
   apply (path_Z_fr (canon_BSigma s)); apply finsum_id.
   (* refine (lcancel_Z_fr _ _ (canon_BSigma s) @ _). *)
   (* apply (ap011 BSigma_to_Z); apply finsum_id. *)
-Defined.
-
-(* move *)
-Definition path_BSigma_blocksum {a b : nat}
-           (alpha : canon_BSigma a <~> canon_BSigma a)
-           (betta : canon_BSigma b <~> canon_BSigma b)
-  : path_BSigma (canon_BSigma (a +' b)) (canon_BSigma (a +' b)) (block_sum alpha betta) =
-
-    (finsum_id a b)^ @ (ap011 sum_BSigma (path_BSigma _ _ alpha) (path_BSigma _ _ betta) @
-                       finsum_id a b).
-Proof.
-  unfold finsum_id.
-  rewrite <- path_BSigma_sum.
-  rewrite path_BSigma_V.
-  rewrite <- path_BSigma_compose. rewrite <- path_BSigma_compose.
-  reflexivity.
 Defined.
 
 Definition lcancel_canon_path_fr (s a b : nat)

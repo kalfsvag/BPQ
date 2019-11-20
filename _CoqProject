@@ -8,13 +8,12 @@ basics/path_lemmas.v
 basics/pointed_lemmas.v
 basics/set_quotient.v
 basics/nat_lemmas.v
-basics/B_Aut.v
 basics/delooping.v
 basics/monoids_and_groups.v
+basics/group_completion_quotient.v
 Finite/finite_lemmas.v
 Finite/permutations.v
 Finite/determinants.v
-group_completion_quotient.v
 Monoidal_1Type/monoidal_1type.v
 Monoidal_1Type/group_complete_1type.v
 Monoidal_1Type/BSigma.v

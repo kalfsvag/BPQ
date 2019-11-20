@@ -1,6 +1,7 @@
 Require Import HoTT.
 
-From GC Require Import pointed_lemmas finite_lemmas nat_lemmas trunc_lemmas (* monoidal_1type *)
+From GC Require Import equiv_lemmas pointed_lemmas finite_lemmas nat_lemmas trunc_lemmas permutations
+                       (* monoidal_1type *)
                        group_complete_1type.
 
 (*Defining the monoidal 1-type of finite sets and isomorphisms*)
@@ -260,7 +261,33 @@ Section BSigma.
     apply (ap (path_BSigma _ _)).
     apply path_equiv. apply path_arrow.
     intros [a | a]; reflexivity.
-  Defined.                               
+  Defined.
+  
+  
+  Definition finsum_id (m n : nat) :
+    sum_BSigma (canon_BSigma m) (canon_BSigma n) = canon_BSigma (n+m) :=
+    path_BSigma (sum_BSigma (canon_BSigma m) (canon_BSigma n)) (canon_BSigma (n+m)) (equiv_finsum m n).
+
+  Definition finsum_id_fix (m n : nat)
+    : sum_finite_types (canon m) (canon n) = canon (n + m) :=
+    path_finite_types _ (sum_finite_types (canon m) (canon n)) (canon (n+m)) (equiv_finsum m n).
+
+
+
+  Definition path_BSigma_blocksum {a b : nat}
+             (alpha : canon_BSigma a <~> canon_BSigma a)
+             (betta : canon_BSigma b <~> canon_BSigma b)
+    : path_BSigma (canon_BSigma (a +' b)) (canon_BSigma (a +' b)) (block_sum alpha betta) =
+
+      (finsum_id a b)^ @ (ap011 sum_BSigma (path_BSigma _ _ alpha) (path_BSigma _ _ betta) @
+                                finsum_id a b).
+  Proof.
+    unfold finsum_id.
+    rewrite <- path_BSigma_sum.
+    rewrite path_BSigma_V.
+    rewrite <- path_BSigma_compose. rewrite <- path_BSigma_compose.
+    reflexivity.
+  Defined.
 
   (* rename the following and define them using the previous lemma *)
   Definition natural_path_BSigma_l {S1 S2 S3: BSigma} (e : S1 <~> S2)

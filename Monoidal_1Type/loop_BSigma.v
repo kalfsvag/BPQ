@@ -3,7 +3,7 @@ Require Import HoTT.
 From GC Require Import BSigma.
 From GC Require Import group_complete_1type.
 Require Import delooping.
-Require Import monoids_and_groups B_Aut permutations.
+Require Import monoids_and_groups (* B_Aut *) permutations.
 
 Definition iso_loop_symgrp (m : nat) :
   Isomorphism  (SymGrp m)

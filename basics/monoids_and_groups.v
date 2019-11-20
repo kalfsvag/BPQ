@@ -552,7 +552,7 @@ End Homomorphism.
 Notation "'Hom'" := Homomorphism : monoid_scope.
 Infix "oH" := compose_hom (at level 40, left associativity).
 
-(* move *)
+(* move? *)
 Definition homcompose_f_ff {K L M N : Monoid}
            (f : Homomorphism K L) (g : Homomorphism L M) (h : Homomorphism M N)
   : h oH (g oH f) = (h oH g) oH f.
@@ -795,7 +795,7 @@ Section Product.
     apply isequiv_functor_prod.
   Defined.
 
-  (* move *)
+  (* move? *)
   Definition functor_mon_prod {A1 A2 B1 B2 C1 C2 D1 D2}
              (f1 : Homomorphism C1 A1)
              (f2 : Homomorphism C2 A2)
@@ -811,7 +811,7 @@ Section Product.
     apply path_hom. apply path_arrow. intros [c1 c2]; reflexivity.
   Defined.
 
-  (* move *)
+  (* move? *)
   Definition mon_prod_hom_compose {A1 A2 A3 B1 B2 B3 : Monoid}
              (f1 : Homomorphism A1 A2)
              (f2 : Homomorphism A2 A3)

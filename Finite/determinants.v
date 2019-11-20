@@ -9,14 +9,6 @@ From GC Require Import finite_lemmas permutations.
 
 
 
-(* should be moved. . . *)
-Definition functor_not {A B : Type} :
-  (B -> A) -> (not A) -> (not B).
-Proof.
-  intro f. intros n false. apply n. exact (f false).
-Qed.
-
-  
 
 Section Determinant.
   
@@ -30,7 +22,7 @@ Section Determinant.
   (*   - exact ι. *)
   (* Defined. *)
 
-  Definition swap_last {n : nat} (e : Fin n.+1 <~> Fin n.+1) := fin_transpose (e (inr tt)) (inr tt).
+  (* Definition swap_last {n : nat} (e : Fin n.+1 <~> Fin n.+1) := fin_transpose (e (inr tt)) (inr tt). *)
 
   Arguments equiv_sum_assoc : simpl nomatch.
 
@@ -50,42 +42,6 @@ Section Determinant.
   Qed.
 
 
-
-    
-  Definition blocksum_transpose {m n : nat}
-             (x y : Fin n) :
-    fin_transpose (finr _ _ x) (finr _ _ y) ==
-    @block_sum m n equiv_idmap (fin_transpose x y).    
-  Proof.
-    apply fin_transpose_eta.
-    - rewrite block_sum_beta_finr.
-      rewrite fin_transpose_beta_l.  reflexivity.
-    - rewrite block_sum_beta_finr.
-      rewrite fin_transpose_beta_r. reflexivity.
-    - apply (fin_decompose_ind
-               (fun i : Fin (n+m) =>
-               i <> finr m n x -> i <> finr m n y ->
-               (block_sum equiv_idmap (fin_transpose x y)) i = i)).
-      + intros i neqx neqy.
-        apply block_sum_beta_finl.
-      + intros i neqx neqy.
-        refine (block_sum_beta_finr _ _ _ @ _).
-        apply (ap (finr m n)).  apply (fin_transpose_other x y i).
-        { apply (functor_not (ap (finr m n)) neqx). }
-        { apply (functor_not (ap (finr m n)) neqy). }
-  Qed.
-  
-  Definition swap_last_blocksum {m n : nat}
-             (e1 : Fin m <~> Fin m)
-             (e2 : Fin n.+1 <~> Fin n.+1) :
-    swap_last (block_sum e1 e2) ==
-    block_sum equiv_idmap (swap_last e2) .
-  Proof.
-    unfold swap_last.
-    rewrite (block_sum_beta_finr (n := n.+1) e1 e2 (inr tt)).
-    apply (@blocksum_transpose m n.+1 (e2 (inr tt)) ((inr (Fin n) tt))).
-  Qed.  
-
   Lemma swap_fix_last {n : nat} (e : Fin n.+1 <~> Fin n.+1) :
     (swap_last e oE e) (inr tt) = inr tt.
   Proof.
@@ -102,71 +58,6 @@ Section Determinant.
   (* Defined. *)
 
   (* Arguments det_twist  !n !k. *)
-
-  Definition transpose_and_restrict {n : nat} (e : Fin n.+1 <~> Fin n.+1)  :
-    Fin n <~> Fin n :=
-    (equiv_restrict (swap_last e oE e) (swap_fix_last e)).
-
-  Definition transpose_and_restrict_eta {n : nat} (e : Fin n.+1 <~> Fin n.+1) :
-    (transpose_and_restrict e) +E 1 == (swap_last e) oE e.
-  Proof.
-    apply equiv_restrict_eta.
-  Defined.
-
-  Definition transpose_and_restrict_id {n : nat} :
-    @transpose_and_restrict n equiv_idmap == equiv_idmap.
-  Proof.
-    intro x. simpl.
-    destruct n; reflexivity.
-  Qed.
-
-  Definition transpose_and_restrict_transpose_nfx {n : nat} (x : Fin n.+1) :
-    transpose_and_restrict (fin_transpose x (inr tt)) == equiv_idmap.
-  Proof.
-    apply (inj_equiv_plus1 ).
-    intro i.
-    refine (transpose_and_restrict_eta _ i @ _).
-    unfold swap_last.
-    ev_equiv.
-    assert (h : (1 +E 1) i = i). { destruct i as [i | []]; reflexivity. }
-    rewrite h. clear h.
-    rewrite fin_transpose_beta_r.
-    apply (fin_transpose_invol x (inr tt)).
-  Qed.
-
-  Definition transpose_and_restrict_transpose_fixlast {n : nat} (x y : Fin n) :
-    transpose_and_restrict (fin_transpose (n := n.+1) (inl x) (inl y)) == fin_transpose x y.
-  Proof.
-    apply (inj_equiv_plus1 ).
-    intro i.
-    refine (transpose_and_restrict_eta _ i @ _).
-    unfold swap_last.
-    ev_equiv.
-    assert (h : fin_transpose (n := n.+1) (inl x) (inl y) (inr tt) = inr tt).
-    { apply fin_transpose_other; apply inr_ne_inl. }
-    rewrite h. clear h.
-    refine (fin_transpose_same_is_id (n := n.+1) (inr tt) _ @ _).
-    destruct i as [i | []]; reflexivity.
-  Qed.
-
-  Definition transpose_and_restrict_block_sum {m n : nat}
-             (e1 : Fin m <~> Fin m)
-             (e2 : Fin n.+1 <~> Fin n.+1) :
-    transpose_and_restrict (block_sum e1 e2) == block_sum e1 (transpose_and_restrict e2).
-  Proof.
-    apply inj_equiv_plus1.
-    intro x.
-    refine (equiv_restrict_eta _ _ _ @ _).
-    refine (swap_last_blocksum e1 e2 _ @ _).
-    refine ((block_sum_compose' equiv_idmap e1 (swap_last e2) e2 x)^ @ _).
-    rewrite (ecompose_1e).
-    refine (_ @ (block_sum_plus1 _ _ x)).
-    apply (ap (fun g => ((block_sum (n:=n.+1) e1 g) x))).
-    apply path_equiv. apply path_arrow.
-    intro y.
-    apply inverse.
-    apply transpose_and_restrict_eta.
-  Defined.    
 
   (* First determinant of transpositions with the last element *)
   Definition det_transpose {n : nat} (i : Fin n.+1) : (Fin 2 <~> Fin 2).

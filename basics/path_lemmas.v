@@ -28,6 +28,74 @@ Qed.
 
 
 
+Definition path_triple_prod {A B C : Type} (a1 a2 : A * (B * C)) :
+  (fst a1 = fst a2) * ((fst (snd a1) = fst (snd a2)) * (snd (snd a1) = snd (snd a2))) -> a1 = a2.
+Proof.
+  intros [p [q r]].
+  apply (path_prod a1 a2 p (path_prod (_,_) (_,_) q r)).
+Defined.
+  
+Definition equiv_path_triple_prod {A B C : Type} (a1 a2 : A * (B * C)) :
+  (fst a1 = fst a2) * ((fst (snd a1) = fst (snd a2)) * (snd (snd a1) = snd (snd a2))) <~> a1 = a2.
+Proof.
+  srapply (@equiv_adjointify _ _ (path_triple_prod a1 a2)).
+  - intro p.
+    exact (ap fst p, (ap fst (ap snd p), (ap snd (ap snd p)))).
+  - intros []. reflexivity.
+  - intros [p [q r]].
+    destruct a2 as [a2 [b2 c2]]. simpl in *.
+    destruct p,q,r. reflexivity.
+Defined.
+
+Definition double_pathover {A B : Type} (P : A -> B -> Type)
+           {a a' : A} (p : a = a')
+           {b b' : B} (q : b = b')
+           (c : P a b) (c' : P a' b') : Type.
+Proof.
+  destruct p,q. exact (c = c').
+Defined.
+
+Definition double_pathover_to_path {A B : Type} (P : A -> B -> Type)
+           {a a' : A} (p : a = a')
+           {b b' : B} (q : b = b')
+           (c : P a b) (c' : P a' b')
+  : double_pathover P p q c c' ->
+    transport (uncurry P) (path_prod (a,b) (a',b') p q) c = c'.
+Proof.
+  destruct p, q. exact idmap.
+Defined.
+
+Definition apd_po011
+           (A B : Type) (C : A -> B -> Type) (f : forall (a : A) (b : B), C a b)
+           (a1 a2 : A) (b1 b2 : B)
+           (p : a1 = a2) (q : b1 = b2)
+  : double_pathover C p q (f a1 b1) (f a2 b2).
+Proof.
+  destruct p. destruct q. reflexivity.
+Defined.
+
+
+Definition path_to_double_pathover {A B : Type} (P : A -> B -> Type)
+           {a a' : A} (p : a = a')
+           {b b' : B} (q : b = b') (c : P a b) (c' : P a' b')
+  : transport (uncurry P) (path_prod (a, b) (a', b') p q) c = c' ->
+    double_pathover P p q c c'.
+Proof.
+  destruct p. destruct q. exact idmap.
+Defined.
+
+Lemma ap011_VV
+  : forall {A B C: Type} (f : A -> B -> C)
+           {a0 a1 : A} {b0 b1 : B}
+           (p : a0 = a1) (q : b0 = b1),
+    (ap011 f p q)^ = ap011 f p^ q^.
+Proof.
+  intros. destruct p. destruct q. reflexivity.
+Defined.
+
+
+
+
 
 (* Definition pathover {A : Type} (B : A -> Type) {a a' : A} (p : a = a') (b : B a) (b' : B a') *)
 (*   := transport B p b = b'.            *)

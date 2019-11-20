@@ -665,6 +665,16 @@ Section HomFunctor.
     Homomorphism X1 X2 <~> Homomorphism Y1 Y2 :=
     BuildEquiv _ _ (functor_hom f1 f2) (isequiv_functor_hom f1 f2).
 
+  (* A version of equiv_functor_hom that stays covariant in both arguments *)
+  Definition equiv_functor_hom' {X1 X2 Y1 Y2 : Monoid}
+    : Isomorphism X1 Y1 -> Isomorphism X2 Y2 -> (Homomorphism X1 X2 <~> Homomorphism Y1 Y2).
+  Proof.
+    intros f g. apply equiv_functor_hom.
+    - apply iso_inv. exact f.
+    - exact g.
+  Defined.
+
+
   Lemma functor_hom_compose {X1 X2 Y1 Y2 Z1 Z2}
         (f1 : Homomorphism Y1 X1) (f2 : Homomorphism X2 Y2)
         (g1 : Homomorphism Z1 Y1) (g2 : Homomorphism Y2 Z2)
@@ -672,6 +682,20 @@ Section HomFunctor.
       functor_hom g1 g2 o functor_hom f1 f2 .
   Proof.
     intro h.
+    apply path_hom. reflexivity.
+  Defined.
+
+
+  Definition equiv_functor_hom_compose {X1 X2 Y1 Y2 Z1 Z2 : Monoid}
+             (f1 : Isomorphism X1 Y1) (f2 : Isomorphism X2 Y2)
+             (g1 : Isomorphism Y1 Z1) (g2 : Isomorphism Y2 Z2)
+    : equiv_functor_hom' (iso_compose g1 f1) (iso_compose g2 f2) ==
+      equiv_functor_hom' g1 g2 oE equiv_functor_hom' f1 f2.
+  Proof.
+    intro x.
+    refine (_ @ functor_hom_compose _ _ _ _ _).
+    unfold equiv_functor_hom'.
+    apply (ap (fun e => functor_hom e (g2 oH f2) x)).
     apply path_hom. reflexivity.
   Defined.
 

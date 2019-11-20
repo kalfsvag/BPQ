@@ -417,6 +417,16 @@ Section functor_deloop.
     : pMap X Y <~> Homomorphism (loopGroup X (point X)) (loopGroup Y (point Y))
     := BuildEquiv _ _ functor_loop _.
 
+  Definition functor_deloop_loop
+             (f : Homomorphism (loopGroup X (point X)) (loopGroup Y (point Y)))
+    : loops_functor (functor_deloop f) == f.
+  Proof.
+    intro ω. unfold loops_functor. simpl.
+    refine (concat_p_pp _ _ _ @ _). apply deloop_rec_beta_loop.
+  Defined.
+
+
+
 
 End functor_deloop.
 

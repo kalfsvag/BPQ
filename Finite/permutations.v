@@ -202,7 +202,30 @@ Section Sigma2.
         rewrite ecompose_e1. rewrite ecompose_1e. reflexivity.
     - rewrite (path_equiv (path_forall _ _ (sigma2_fixlast σ1 p))).
       rewrite ecompose_e1. rewrite ecompose_1e. reflexivity.
-  Qed.    
+  Qed.
+
+  Definition SymGrp2_cases (sigma : Fin 2 <~> Fin 2)
+    : (sigma = equiv_idmap) + (sigma = twist2).
+  Proof.
+    recall (sigma (inr tt)) as x eqn:p.
+    destruct x as [[[] | []] | []].
+    - apply inr.
+      apply path_equiv. apply path_arrow. apply sigma2_notfixlast. exact p.
+    - apply inl.
+      apply path_equiv. apply path_arrow. apply sigma2_fixlast. exact p.
+  Defined.
+
+  Lemma invol_SymGrp2 (sigma : Fin 2 <~> Fin 2)
+    : (sigma oE sigma) = equiv_idmap.
+  Proof.
+    destruct (SymGrp2_cases sigma) as [p | p].
+    - refine (ap011 equiv_compose' p p @ _).
+      apply path_equiv. reflexivity.
+    - refine (ap011 equiv_compose' p p @ _).
+      apply path_equiv. apply path_arrow.
+      intros [[[] | []] | []]; reflexivity.
+  Qed.
+
 
 End Sigma2.
 
@@ -292,6 +315,70 @@ Proof.
     + exact (Pl j).
     + exact (Pr j).
 Defined.
+
+Section Transpose_and_restrict.
+  
+  Definition transpose_and_restrict {n : nat} (e : Fin n.+1 <~> Fin n.+1)  :
+    Fin n <~> Fin n :=
+    (equiv_restrict (swap_last e oE e) (swap_fix_last e)).
+
+  Definition transpose_and_restrict_eta {n : nat} (e : Fin n.+1 <~> Fin n.+1) :
+    (transpose_and_restrict e) +E 1 == (swap_last e) oE e.
+  Proof.
+    apply equiv_restrict_eta.
+  Defined.
+
+  (* a reformulation *)
+  Definition factorize_permutation {a : nat} (alpha : Fin a.+1 <~> Fin a.+1)
+    : alpha = swap_last alpha oE (transpose_and_restrict alpha +E 1).
+  Proof.
+    apply emoveL_Me.
+    refine (_ @ (path_equiv (path_arrow _ _ (transpose_and_restrict_eta alpha)))^).
+    apply (ap (fun e => e oE alpha)).
+    unfold swap_last.
+    refine ((ecompose_e1 _)^ @ _).
+    apply emoveR_Ve. apply inverse.
+    apply path_equiv. apply path_arrow. apply fin_transpose_invol.
+  Defined.
+
+  
+
+  Definition transpose_and_restrict_id {n : nat} :
+    @transpose_and_restrict n equiv_idmap == equiv_idmap.
+  Proof.
+    intro x. simpl.
+    destruct n; reflexivity.
+  Qed.
+
+  Definition transpose_and_restrict_transpose_nfx {n : nat} (x : Fin n.+1) :
+    transpose_and_restrict (fin_transpose x (inr tt)) == equiv_idmap.
+  Proof.
+    apply (inj_equiv_plus1 ).
+    intro i.
+    refine (transpose_and_restrict_eta _ i @ _).
+    unfold swap_last.
+    ev_equiv.
+    assert (h : (1 +E 1) i = i). { destruct i as [i | []]; reflexivity. }
+    rewrite h. clear h.
+    rewrite fin_transpose_beta_r.
+    apply (fin_transpose_invol x (inr tt)).
+  Qed.
+
+  Definition transpose_and_restrict_transpose_fixlast {n : nat} (x y : Fin n) :
+    transpose_and_restrict (fin_transpose (n := n.+1) (inl x) (inl y)) == fin_transpose x y.
+  Proof.
+    apply (inj_equiv_plus1 ).
+    intro i.
+    refine (transpose_and_restrict_eta _ i @ _).
+    unfold swap_last.
+    ev_equiv.
+    assert (h : fin_transpose (n := n.+1) (inl x) (inl y) (inr tt) = inr tt).
+    { apply fin_transpose_other; apply inr_ne_inl. }
+    rewrite h. clear h.
+    refine (fin_transpose_same_is_id (n := n.+1) (inr tt) _ @ _).
+    destruct i as [i | []]; reflexivity.
+  Qed.
+End Transpose_and_restrict.
 
 Section Block_Sum.
   (* First a more general definition *)
@@ -400,6 +487,67 @@ Section Block_Sum.
       + reflexivity.
   Qed.
 
+  (* should be moved. . . *)
+  Definition functor_not {A B : Type} :
+    (B -> A) -> (not A) -> (not B).
+  Proof.
+    intro f. intros n false. apply n. exact (f false).
+  Qed.
+
+  Definition blocksum_transpose {m n : nat}
+             (x y : Fin n) :
+    fin_transpose (finr _ _ x) (finr _ _ y) ==
+    @block_sum m n equiv_idmap (fin_transpose x y).    
+  Proof.
+    apply fin_transpose_eta.
+    - rewrite block_sum_beta_finr.
+      rewrite fin_transpose_beta_l.  reflexivity.
+    - rewrite block_sum_beta_finr.
+      rewrite fin_transpose_beta_r. reflexivity.
+    - apply (fin_decompose_ind
+               (fun i : Fin (n+m) =>
+               i <> finr m n x -> i <> finr m n y ->
+               (block_sum equiv_idmap (fin_transpose x y)) i = i)).
+      + intros i neqx neqy.
+        apply block_sum_beta_finl.
+      + intros i neqx neqy.
+        refine (block_sum_beta_finr _ _ _ @ _).
+        apply (ap (finr m n)).  apply (fin_transpose_other x y i).
+        { apply (functor_not (ap (finr m n)) neqx). }
+        { apply (functor_not (ap (finr m n)) neqy). }
+  Qed.
+  
+  Definition swap_last_blocksum {m n : nat}
+             (e1 : Fin m <~> Fin m)
+             (e2 : Fin n.+1 <~> Fin n.+1) :
+    swap_last (block_sum e1 e2) ==
+    block_sum equiv_idmap (swap_last e2) .
+  Proof.
+    unfold swap_last.
+    rewrite (block_sum_beta_finr (n := n.+1) e1 e2 (inr tt)).
+    apply (@blocksum_transpose m n.+1 (e2 (inr tt)) ((inr (Fin n) tt))).
+  Qed.
+
+  
+  Definition transpose_and_restrict_block_sum {m n : nat}
+             (e1 : Fin m <~> Fin m)
+             (e2 : Fin n.+1 <~> Fin n.+1) :
+    transpose_and_restrict (block_sum e1 e2) == block_sum e1 (transpose_and_restrict e2).
+  Proof.
+    apply inj_equiv_plus1.
+    intro x.
+    refine (equiv_restrict_eta _ _ _ @ _).
+    refine (swap_last_blocksum e1 e2 _ @ _).
+    refine ((block_sum_compose' equiv_idmap e1 (swap_last e2) e2 x)^ @ _).
+    rewrite (ecompose_1e).
+    refine (_ @ (block_sum_plus1 _ _ x)).
+    apply (ap (fun g => ((block_sum (n:=n.+1) e1 g) x))).
+    apply path_equiv. apply path_arrow.
+    intro y.
+    apply inverse.
+    apply transpose_and_restrict_eta.
+  Defined.    
+  
 End Block_Sum.
 
 Require Import monoids_and_groups.

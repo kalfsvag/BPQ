@@ -107,7 +107,7 @@ Section BSigma.
 
 
   Definition inv_equiv_path_BSigma (A B : BSigma) : 
-    (equiv_path_BSigma A B)^-1 == inv_path_BSigma.
+    (equiv_inverse (equiv_path_BSigma A B)) == inv_path_BSigma.
   Proof.
     intros []. reflexivity.
   Defined.
@@ -145,13 +145,13 @@ Section BSigma.
     unfold path_BSigma. unfold equiv_path_BSigma. ev_equiv.
     apply moveR_equiv_V. unfold equiv_path_finite_types'. ev_equiv.
     apply moveR_equiv_M. simpl.
-    apply moveR_equiv_M. reflexivity.
+    apply (moveR_equiv_M (f := equiv_path_universe _ _)). reflexivity.
   Defined.
 
   Definition path_BSigma_V {A B : BSigma} (e : A <~> B)
     : (path_BSigma _ _ e)^ = path_BSigma _ _ (equiv_inverse e).
   Proof.
-    refine (_ @ ap (fun g => path_BSigma _ _ (equiv_inverse g)) (eissect (@path_BSigma A B) e)).
+    refine (_ @ ap (fun g => path_BSigma B A (equiv_inverse g)) (eissect (@path_BSigma A B) e)).
     generalize (path_BSigma A B e).  intros [].
     simpl. apply inverse.
     refine (_ @ path_BSigma_1 A).
@@ -200,7 +200,7 @@ Section BSigma.
     (* path_BSigma e2 @ path_BSigma e1 = path_BSigma (e1 oE e2). *)
   Proof.
     refine
-      (ap011 (fun g1 g2 => path_BSigma _ _ (g2 oE g1))
+      (ap011 (fun g1 g2 => path_BSigma A C (g2 oE g1))
              (eissect (path_BSigma A B) e1)^ (eissect (path_BSigma B C) e2)^ @ _).
     generalize (path_BSigma _ _ e2). intros []. 
     generalize (path_BSigma _ _ e1). intros []. simpl.
@@ -246,6 +246,23 @@ Section BSigma.
         
 
   (* path_BSigma behaves well with respect to sum *)
+  Lemma path_BSigma_sum (A1 A2 B1 B2 : BSigma)
+        (e1 : A1 <~> B1) (e2  : A2 <~> B2)
+    : path_BSigma (sum_BSigma A1 A2) (sum_BSigma B1 B2) (e1 +E e2)
+      = ap011 sum_BSigma (path_BSigma _ _ e1) (path_BSigma _ _ e2).
+  Proof.
+    rewrite (ap011 equiv_functor_sum'
+                   (eissect (equiv_path_BSigma A1 B1) e1)^ (eissect (equiv_path_BSigma A2 B2) e2)^).
+    change ((equiv_path_BSigma ?A ?B) ?e) with (path_BSigma A B e).
+    destruct (path_BSigma A1 B1 e1). destruct (path_BSigma A2 B2 e2).
+    simpl.
+    refine (_ @ path_BSigma_1 _).
+    apply (ap (path_BSigma _ _)).
+    apply path_equiv. apply path_arrow.
+    intros [a | a]; reflexivity.
+  Defined.                               
+
+  (* rename the following and define them using the previous lemma *)
   Definition natural_path_BSigma_l {S1 S2 S3: BSigma} (e : S1 <~> S2)
     : ap (fun x : BSigma => x ⊕ S3) (path_BSigma _ _ e)
     = path_BSigma (S1 ⊕ S3) (S2 ⊕ S3) (equiv_functor_sum_r (B := S3) e).

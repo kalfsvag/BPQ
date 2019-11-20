@@ -18,3 +18,6 @@ group_completion_quotient.v
 Monoidal_1Type/monoidal_1type.v
 Monoidal_1Type/group_complete_1type.v
 Monoidal_1Type/BSigma.v
+Monoidal_1Type/Bdet.v
+Monoidal_1Type/group_complete_BSigma.v
+Monoidal_1Type/fundamental_group_grpcompl.v

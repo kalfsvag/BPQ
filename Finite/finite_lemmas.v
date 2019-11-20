@@ -6,8 +6,9 @@ Require Import category_lemmas.
 Require Import UnivalenceAxiom.
 
 
-
-
+(* move to where? *)
+(* Reverse the notation of plus so that n.+1 = n+1 by definition *)
+Notation "a +' b" := (Peano.plus b a) (at level 50).
 
 Definition equiv_fin2_bool : Fin 2 <~> Bool.
 Proof.
@@ -295,6 +296,34 @@ Section Path_Finite_Types.
   Definition equiv_path_finite_types' (s t : {A : Type & Finite A}) :
     (s.1 <~> t.1) <~> s = t :=
     equiv_path_sigma_hprop _ _ oE equiv_path_universe _ _.
+
+  Lemma path_finite_types_sum {a1 a2 : nat}
+        (A1 : Finite_Types a1) (A2 : Finite_Types a2)
+        (B1 : Finite_Types a1) (B2 : Finite_Types a2)
+        (e1 : A1 <~> B1) (e2 : A2 <~> B2)
+    : path_finite_types _ (sum_finite_types A1 A2) (sum_finite_types B1 B2)
+                        (e1 +E e2)
+      = ap011 sum_finite_types
+              (path_finite_types _ _ _ e1)
+              (path_finite_types _ _ _ e2).
+  Proof.
+    revert e1.
+    apply (equiv_functor_forall_pf (equiv_path_finite_types _ A1 B1)).
+    intro p. revert e2.
+    apply (equiv_functor_forall_pf (equiv_path_finite_types _ A2 B2)).
+    intro q.
+    destruct p. destruct q.
+    simpl.
+    refine (_ @ path_finite_types_id (a2 + a1) (sum_finite_types A1 A2) @ _).
+    - apply (ap (path_finite_types (a2 + a1) (sum_finite_types A1 A2) (sum_finite_types A1 A2))).
+      apply path_equiv. apply path_arrow. intros [x | y]; reflexivity.
+    - apply inverse.
+      apply (ap011 (ap011 sum_finite_types)
+                   (path_finite_types_id a1 A1)
+                   (path_finite_types_id a2 A2)).
+  Defined.
+
+
 
   
   Definition transport_exp_finite_fix (n : nat) {X : Type} {A B : Finite_Types n}

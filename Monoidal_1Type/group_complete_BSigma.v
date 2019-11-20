@@ -6,7 +6,7 @@ Require Import Category.Core.
 Add Rec LoadPath "~/Coq-projects/groupoids" as GR.
 From GR Require Import cquot cquot_principles.
 
-Local Definition Z := cquot (group_completion_BSigma).
+Definition Z := cquot (group_completion_BSigma).
 
 
 Definition ccleq_concat_Z (S A1 B1 : BSigma) (A2 A3 : BSigma * BSigma)

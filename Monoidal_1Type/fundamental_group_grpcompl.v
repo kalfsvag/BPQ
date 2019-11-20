@@ -5,10 +5,20 @@ Require Import HoTT.
 (* Print LoadPath. *)
 
 
-From GC Require Import finite_lemmas (* path_finite_types *) monoids_and_groups
-                       group_completion_quotient path_lemmas
-                       group_complete_1type BSigma delooping permutations determinants pointed_lemmas
-                       Bdet.
+
+From GC Require Import path_lemmas finite_lemmas pointed_lemmas delooping monoids_and_groups
+                       group_completion_quotient
+                       BSigma permutations determinants Bdet.
+Add Rec LoadPath "~/Coq-projects/groupoids" as GR.
+From GR Require Import path_over.
+From GC Require Import group_complete_BSigma.
+
+
+
+(* From GC Require Import finite_lemmas (* path_finite_types *) monoids_and_groups *)
+(*                        group_completion_quotient path_lemmas *)
+(*                        group_complete_1type BSigma delooping permutations determinants pointed_lemmas *)
+(*                        Bdet. *)
 
 
 
@@ -2450,3 +2460,4 @@ simpl. *) *)
   Defined.
   
   
+End IsEquiv_GrpCompl_To_Fin2.

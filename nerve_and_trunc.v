@@ -68,6 +68,99 @@ Proof.
     reflexivity.
 Defined.
 
+  (* The functor given by the constructors of cquot *)
+  Definition include_in_cquot (C : PreCategory)
+  : Functor C (Core.groupoid_category (cquot C)).
+  Proof.
+    srapply @Build_Functor.
+    - apply ccl.
+    - apply ccleq.
+    - apply cconcat.
+    - apply ce.
+  Defined.
+
+    Definition functor_groupoid_category
+             (X Y : Type) {istrunc_X : IsTrunc 1 X} {istrunc_Y : IsTrunc 1 Y}
+    : (X -> Y) -> Functor (Core.groupoid_category X) (Core.groupoid_category Y).
+  Proof.
+    intro f.
+    srapply @Build_Functor.
+    + exact f.
+    + intros x1 x2. simpl. exact (ap f).
+    + intros x1 x2 x3 p1 p2. simpl in *.
+      apply ap_pp.
+    + reflexivity.
+  Defined.
+
+
+
+
+  Definition univ_cquot (C : PreCategory) (Y : Type) {istrunc_Y : IsTrunc 1 Y}
+    : (cquot C -> Y) <~> Functor C (Core.groupoid_category Y).
+  Proof.
+    srapply @equiv_adjointify.
+    - intro f.
+      refine (_ o (include_in_cquot C))%functor.
+      apply functor_groupoid_category. exact f.
+    - intro F.
+      srapply @cquot_rec.
+      + exact (object_of F).
+      + apply (morphism_of F). 
+      + apply (identity_of F).
+      + apply (composition_of F).
+    - intro F.
+      srapply @path_functor'.
+      + reflexivity.
+      + intros a b f. simpl.
+        apply cquot_rec_beta_ccleq.
+    - intro F. apply path_arrow. intro x. revert x.
+      srapply @cquot_ind_set.
+      + intro c. simpl. reflexivity.
+      + intros c1 c2 f. simpl.
+        apply path_to_path_over.
+        refine (transport_paths_FlFr _ _ @ _).
+        simpl. rewrite concat_p1.
+        apply moveR_Vp. rewrite concat_p1.
+        apply inverse.
+        refine (cquot_rec_beta_ccleq _ _ _ _ _ _ _ _ _ _).
+  Defined.
+
+  (* move *)
+  Definition functor_cquot {C D : PreCategory}
+    : Functor C D -> (cquot C -> cquot D).
+  Proof.
+    intro F.
+    apply (univ_cquot _ _)^-1.
+    refine (include_in_cquot _ o F)%functor.
+    (* srapply @cquot_rec. *)
+    (* - intro c. apply ccl. exact (F c). *)
+    (* - intros c1 c2 f. simpl. *)
+    (*   apply ccleq. apply (morphism_of F). exact f. *)
+    (* - intro c. simpl. *)
+    (*   rewrite identity_of. apply ce. *)
+    (* - intros c1 c2 c3 f g. simpl. *)
+    (*   rewrite composition_of. apply cconcat. *)
+  Defined.
+
+  Definition univ_cquot_beta_ccleq {C : PreCategory}
+             (Y : Type) {istrunc_Y : IsTrunc 1 Y}
+             (F : Functor C (Core.groupoid_category Y))
+             {c1 c2 : C} (f : morphism C c1 c2)             
+    : ap ((univ_cquot C Y)^-1 F) (ccleq C f) = (morphism_of F f).
+  Proof.
+    unfold univ_cquot. simpl.
+    apply cquot_rec_beta_ccleq.
+  Defined.             
+
+  Definition functor_cquot_beta_ccleq {C D : PreCategory}
+             (F : Functor C D)
+             {c1 c2 : C} (f : morphism C c1 c2)
+    : ap (functor_cquot F) (ccleq C f) =
+      ccleq D (morphism_of F f).
+  Proof.
+    unfold functor_cquot.
+    apply univ_cquot_beta_ccleq.
+  Defined.
 
 
 
@@ -305,7 +398,143 @@ Defined.
 Definition component_cat (C : PreCategory) (c0 : pi0_cat C) :=
   full_subcategory C (fun c => class_of _ c = c0).
 
+Definition include_component_cat (C : PreCategory) (c0 : pi0_cat C)
+  : Functor (component_cat C c0) C.
+Proof.
+  apply include_full_subcategory.
+Defined.
+
+(* Definition fib_cquot_include (C : PreCategory) (c0 : pi0_cat C) *)
+(*   : cquot C -> hProp. *)
+(* Proof. *)
+(*   srapply @cquot_rec. *)
+(*   - intro c. exact (BuildTruncType -1 (class_of_pi0cat c = c0)). *)
+(*   - intros c1 c2 f. simpl. *)
+(*     apply path_trunctype. simpl. *)
+(*     apply (BuildEquiv _ _ (fun p => (path_pi0_cat f)^ @ p)). *)
+(*     apply isequiv_concat_l. *)
+(*   - intro c. simpl. *)
+(*     apply (istrunc_paths _ -1). *)
+(*   - intros. simpl. apply (istrunc_paths _ -1). *)
+(* Defined. *)
+
+(* Definition isembedding_cquot_include (C : PreCategory) (c0 : pi0_cat C) *)
+(*   : IsEmbedding (functor_cquot (include_component_cat C c0)). *)
+(* Proof. *)
+(*   unfold IsEmbedding. *)
+(*   srapply @cquot_ind_prop. *)
+(*   intro c. simpl. *)
+(*   unfold hfiber. *)
+(*   intros [x1 p1] [x2 p2]. *)
+(*   (* revert x2 p2. srapply @cquot_ind_prop. *) *)
+(*   (* intros x2 p2. *) *)
+(*   revert x1 p1. srapply @cquot_ind_prop. *)
+(*   intros [x1 q1] p1.  *)
+(*   unfold functor_cquot in p1. simpl in p1.   *)
+(*   srapply @BuildContr. *)
+(*   - srapply @path_sigma. *)
+(*     + simpl. *)
+
+(*   (* apply (trunc_equiv' ((pi0_cat_cquot C)^-1 (tr y) = c0)). *) *)
+(*   apply (trunc_equiv' (class_of_pi0cat c = c0)). *)
+(*   - srapply @equiv_adjointify. *)
+(*     + intro p. unfold hfiber. *)
+(*       exists (ccl (component_cat C c0) (c; p)). *)
+(*       reflexivity. *)
+(*     + intros [x p]. revert x p. *)
+(*       srapply @cquot_ind_prop. *)
+(*       intros [d p]. *)
+(*       unfold functor_cquot. simpl. *)
+(*       intro q. refine (_ @ p). *)
+(*       apply (equiv_inj (pi0_cat_cquot C)). *)
+(*       simpl. *)
+(*       apply (ap tr). exact q^. *)
+(*     + intros [x p]. simpl. *)
+(*       revert x p. srapply @cquot_ind_set. *)
+(*       * intros [d q]. unfold functor_cquot. simpl. intro p. *)
+(*         srapply @path_sigma. *)
+(*         { simpl. apply ccleq. *)
+(*           simpl.  *)
+(*           apply path *)
+          
+(*         destruct q. simpl. *)
+        
+        
+      
+(*        admit. *)
+
+(*     + intro p. apply (set_quotient_set). *)
+(*   - apply (istrunc_paths _ -1). *)
+      
+
+
+(* Definition isembedding_cquot_include (C : PreCategory) (P : C -> Type) *)
+(*            {isprop_P : forall c : C, IsHProp (P c)} *)
+(*   : IsEmbedding (functor_cquot (include_full_subcategory C P)). *)
+(* Proof. *)
+(*   unfold IsEmbedding. *)
+(*   srapply @cquot_ind_prop. *)
+(*   intro c. simpl. *)
+(*   apply (trunc_equiv' (P c)). *)
+(*   - srapply @equiv_adjointify. *)
+(*     + intro p. unfold hfiber. *)
+(*       exists (ccl (full_subcategory C P) (c; p)). *)
+(*       reflexivity. *)
+(*     + intros [x p]. revert x p. *)
+(*       srapply @cquot_ind_prop. *)
+(*       intros [d p]. simpl. *)
+(*       unfold functor_cquot. simpl. *)
+(*       intro q.  *)
+      
+
+      
+  
+  
+
+(* istruncmap_fiber *)
+
 End Component.
+
+
+Definition cquot_comp_to_comp_cquot (C : PreCategory) (x : pi0_cat C)
+  : cquot (component_cat C x) -> component (cquot C) (pi0_cat_cquot C x).
+Proof.
+  intro c.
+  srapply @exist.
+  - revert c. apply functor_cquot.
+    apply include_component_cat.
+  - revert c.
+    srapply @cquot_ind_prop.
+    intro c. simpl. unfold functor_cquot. simpl.
+    revert x c.
+    srapply @set_quotient_ind_prop. intro x. simpl.
+    intros [c p].
+    apply (equiv_inj (pi0_cat_cquot C)^-1). simpl.
+    exact p.
+Defined.
+
+Definition comp_cquot_to_cquot_comp (C : PreCategory) (x : pi0_cat C)
+  : component (cquot C) (pi0_cat_cquot C x) -> cquot (component_cat C x).
+Proof.
+  intros [c p]. revert c p.
+  srapply @cquot_ind.
+  - intros c p. simpl.
+    apply ccl. exists c.
+    apply (equiv_inj (pi0_cat_cquot C)). simpl.
+    apply p.
+  - intros c1 c2 f.
+    apply path_over_arrow.
+    + intro p.  apply const_path_over.
+      apply ccleq. simpl. exact f.
+    + exact _.
+  - intro c. admit.
+  - intros. admit.
+    
+    simpl.
+    
+  
+    
+
 
 Section Decompose_cat.
 
@@ -656,80 +885,12 @@ End Decompose_cat.
 Section Cquot_sum.
   (* move *)
 
-  (* The functor given by the constructors of cquot *)
-  Definition include_in_cquot (C : PreCategory)
-  : Functor C (Core.groupoid_category (cquot C)).
-  Proof.
-    srapply @Build_Functor.
-    - apply ccl.
-    - apply ccleq.
-    - apply cconcat.
-    - apply ce.
-  Defined.
 
-  Definition functor_groupoid_category
-             (X Y : Type) {istrunc_X : IsTrunc 1 X} {istrunc_Y : IsTrunc 1 Y}
-    : (X -> Y) -> Functor (Core.groupoid_category X) (Core.groupoid_category Y).
-  Proof.
-    intro f.
-    srapply @Build_Functor.
-    + exact f.
-    + intros x1 x2. simpl. exact (ap f).
-    + intros x1 x2 x3 p1 p2. simpl in *.
-      apply ap_pp.
-    + reflexivity.
-  Defined.
 
       
       
 
   
-  Definition univ_cquot (C : PreCategory) (Y : Type) {istrunc_Y : IsTrunc 1 Y}
-    : (cquot C -> Y) <~> Functor C (Core.groupoid_category Y).
-  Proof.
-    srapply @equiv_adjointify.
-    - intro f.
-      refine (_ o (include_in_cquot C))%functor.
-      apply functor_groupoid_category. exact f.
-    - intro F.
-      srapply @cquot_rec.
-      + exact (object_of F).
-      + apply (morphism_of F). 
-      + apply (identity_of F).
-      + apply (composition_of F).
-    - intro F.
-      srapply @path_functor'.
-      + reflexivity.
-      + intros a b f. simpl.
-        apply cquot_rec_beta_ccleq.
-    - intro F. apply path_arrow. intro x. revert x.
-      srapply @cquot_ind_set.
-      + intro c. simpl. reflexivity.
-      + intros c1 c2 f. simpl.
-        apply path_to_path_over.
-        refine (transport_paths_FlFr _ _ @ _).
-        simpl. rewrite concat_p1.
-        apply moveR_Vp. rewrite concat_p1.
-        apply inverse.
-        refine (cquot_rec_beta_ccleq _ _ _ _ _ _ _ _ _ _).
-  Defined.
-
-  (* move *)
-  Definition functor_cquot {C D : PreCategory}
-    : Functor C D -> (cquot C -> cquot D).
-  Proof.
-    intro F.
-    apply (univ_cquot _ _)^-1.
-    refine (include_in_cquot _ o F)%functor.
-    (* srapply @cquot_rec. *)
-    (* - intro c. apply ccl. exact (F c). *)
-    (* - intros c1 c2 f. simpl. *)
-    (*   apply ccleq. apply (morphism_of F). exact f. *)
-    (* - intro c. simpl. *)
-    (*   rewrite identity_of. apply ce. *)
-    (* - intros c1 c2 c3 f g. simpl. *)
-    (*   rewrite composition_of. apply cconcat. *)
-  Defined.
 
   Definition cat_sum_pr1 (X : Type) {istrunc_X : IsTrunc 1 X} (C : X -> PreCategory)
     : Functor (cat_sum X C) (Core.groupoid_category X).
@@ -741,14 +902,125 @@ Section Cquot_sum.
     - intro c. simpl. reflexivity.
   Defined.
 
-  Definition sum_grpd_to_grpd (
+  Definition functor_cat_sum_id
+             (X : Type) {istrunc_X : IsTrunc 1 X} (C D : X -> PreCategory)
+    : (forall x : X, Functor (C x) (D x)) ->
+      Functor (cat_sum X C) (cat_sum X D).
+  Proof.
+    intro F.
+    srapply (univ_cat_sum _ C (cat_sum X D))^-1.
+    intro x.
+    refine (_ o (F x))%functor.
+    apply include_summand.
+  Defined.
+
+  Definition cquot_unique (C : PreCategory) (Y : Type) {istrunc_Y : IsTrunc 1 Y}
+             (F G : cquot C -> Y)
+             (p0 : forall c : C, F (ccl _ c) = G (ccl _ c))
+             (p1 : forall (c1 c2 : C) (f : morphism C c1 c2),
+                 (p0 c1)^ @ ap F (ccleq _ f) @ (p0 c2) = ap G (ccleq _ f))
+    : forall (c : cquot C), F c = G c.
+  Proof.
+    intro c. revert c.
+    srapply @cquot_ind_set.
+    - apply p0.
+    - intros c1 c2 f.
+      apply path_to_path_over.
+      refine (transport_paths_FlFr _ _ @ _).
+      destruct (p1 c1 c2 f).
+      destruct (p0 c1). destruct (p0 c2).
+      destruct (ccleq C f). reflexivity.
+  Defined.
+
       
 
 Definition cquot_sum (X : Type) {istrunc_X : IsTrunc 1 X} (C : X -> PreCategory)
   :  cquot (cat_sum X C) <~> {x : X & (cquot (C x))}.
 Proof.
   srapply @equiv_adjointify.
-  - apply (univ_cquot _ _)^-1.
+  - apply (univ_cquot _ _)^-1.    
+    refine (cat_sum_to_groupoid _ _ o _)%functor.
+    apply functor_cat_sum_id.
+    intro x. apply include_in_cquot.
+  - intros [x c]. revert c.
+    apply functor_cquot. apply include_summand.
+  - intros [x c]. 
+    srefine
+      (cquot_unique
+         (C x) _
+         (fun c => (univ_cquot (cat_sum X C) {x0 : X & cquot (C x0)})^-1
+                     (cat_sum_to_groupoid
+                        X (fun x0 : X => cquot (C x0)) o
+                        functor_cat_sum_id X C
+                        (fun x0 : X => Core.groupoid_category (cquot (C x0)))
+                        (fun x0 : X => include_in_cquot (C x0)))%functor
+                     (functor_cquot (include_summand X C x) c))
+         (fun c => (x; c)) _ _ c) .
+    + simpl. reflexivity.
+    + intros c1 c2 f.
+      rewrite concat_p1. rewrite concat_1p.
+      rewrite (ap_compose (functor_cquot (include_summand X C x))).
+      rewrite functor_cquot_beta_ccleq.
+      rewrite univ_cquot_beta_ccleq. simpl.
+      destruct (ccleq (C x) f). reflexivity.
+  - intro c.
+    (* assert *)
+    (*   ((univ_cquot (cat_sum X C) {x : X & cquot (C x)})^-1 *)
+    (*        (cat_sum_to_groupoid X (fun x : X => cquot (C x)) *)
+    (*                             o functor_cat_sum_id X C *)
+    (*                             (fun x : X => Core.groupoid_category (cquot (C x))) *)
+    (*                             (fun x : X => include_in_cquot (C x)))%functor c *)
+    (*    = (pr1 c; ccl _ (pr2 c))). *)
+    
+    srefine
+      (cquot_unique
+         (cat_sum X C) _
+         (fun c
+          => functor_cquot
+               (include_summand X C
+                 ((univ_cquot
+                     (cat_sum X C)
+                     {x : X &
+                      cquot (C x)})^-1 (cat_sum_to_groupoid
+                                          X
+                                          (fun x : X => cquot (C x))
+                                          o functor_cat_sum_id X C
+                                          (fun x : X => Core.groupoid_category
+                                                          (cquot (C x)))
+                                          (fun x : X => include_in_cquot
+                                                          (C x)))%functor c).1)
+               ((univ_cquot
+                   (cat_sum X C)
+                   {x : X & cquot (C x)})^-1
+                          (cat_sum_to_groupoid X (fun x : X => cquot (C x))
+                                               o functor_cat_sum_id X C
+                                               (fun x : X =>
+                                                  Core.groupoid_category
+                                                    (cquot (C x)))
+                                               (fun x : X => include_in_cquot
+                                                               (C x)))%functor c).2 )
+                    idmap _ _ ).
+    +  simpl. intro c.
+       reflexivity.
+    + intros [x1 c1] [x2 c2]. intro f.
+      rewrite concat_1p. rewrite concat_p1.
+      rewrite ap_idmap. 
+      rewrite (ap_compose (fun c => 
+      destruct p. simpl in f.
+      apply 
+simpl.
+      
+      rewrite (ap_compose _ (functor_cquot
+       (include_summand X C
+          ((univ_cquot (cat_sum X C) {x : X & cquot (C x)})^-1
+             (cat_sum_to_groupoid X (fun x : X => cquot (C x))
+              o functor_cat_sum_id X C (fun x : X => Core.groupoid_category (cquot (C x)))
+                  (fun x : X => include_in_cquot (C x)))%functor c).1))).
+      unfold functor_cquot.
+      assert (ap (functor_cquot (include_summand X C x)) (ccleq (C x) f) =
+              ccleq _ 
+      
+simpl.
     
     
     srapply @exist.

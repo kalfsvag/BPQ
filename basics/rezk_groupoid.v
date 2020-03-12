@@ -7,69 +7,168 @@ From GR Require Import path_over.
 Require Import Functor Categories Category Morphisms(* Category.Core *) .
 
 
-(* move *)
-Definition path_sigma' {A : Type} {B : A -> Type} {ab ab' : {a : A & B a}}
-           (p : ab.1 = ab'.1) (q : path_over B p (ab.2) (ab'.2))
-  : ab = ab'.
-Proof.
-  destruct ab as [a b]. destruct ab' as [a' b']. simpl in *.
-  destruct q. reflexivity.
-Defined.
-
-Definition path_sigma_concat' {A : Type} {B : A -> Type} {x y z : {a : A & B a}}
-           (p : x.1 = y.1) (q : path_over B p (x.2) (y.2))
-           (p' : y.1 = z.1) (q' : path_over B p' (y.2) (z.2))
-  : path_sigma' p q @ path_sigma' p' q' =
-    path_sigma' (p @ p') (path_over_concat q q').
-Proof.
-  destruct x as [x1 x2]. destruct y as [y1 y2]. destruct z as [z1 z2]. simpl in *.
-  destruct q'. destruct q. reflexivity.
-Defined.
-
-
-Definition equiv_path_sigma' {A : Type} {B : A -> Type} (ab ab' : {a : A & B a}) :
-  {p : ab.1 = ab'.1 & path_over B p (ab.2) (ab'.2)} <~> ab = ab'.
-Proof.
-  srapply @equiv_adjointify.
-  - intros [p q]. exact (path_sigma' p q).
-  - intros []. exists idpath. apply path_over_id.
-  - intros []. reflexivity.
-  - intros [p q].
-    destruct ab as [a b]. destruct ab' as [a' b']. simpl in *.
-    destruct p. destruct q. reflexivity.
-Defined.
-
-  Lemma equiv_path_over_id {A : Type} {B : A -> Type} (a : A) (b1 b2 : B a)
-    : path_over B (idpath a) b1 b2 <~> b1 = b2.
-  Proof.
-    srapply @equiv_adjointify.
-    - apply (path_over_to_path (p := idpath a)).
-    - apply (path_to_path_over (p := idpath a)).
-    - simpl. intros []. reflexivity.
-    - intro q. destruct q. reflexivity.
-  Defined.      
-
-  Definition isequiv_path_over_concat {A : Type} {B : A -> Type}
-             {a1 a2 a3: A} {p1 : a1 = a2} (p2 : a2 = a3)
-             {b1 : B a1} {b2 : B a2} (q : path_over B p1 b1 b2)
-             (b3 : B a3) 
-    : IsEquiv (path_over_concat (p₂ := p2) (c₃ := b3) q).
-  Proof.
-    srapply @isequiv_adjointify.
-    - destruct p2. destruct q. exact idmap.
-    - destruct q. destruct p2. 
-      intro q. simpl in q. revert q.
-      apply (equiv_functor_forall_pf (equiv_path_over_id a c b3)).
-      intros []. reflexivity.
-    - destruct q. destruct p2. simpl.
-      apply (equiv_functor_forall_pf (equiv_path_over_id a c b3)).
-      intros []. reflexivity.
-  Defined.
-  
-
-
-
 (* Making an induction principle for pointed connected 1-types, based on notes by Thierry Coquand *)
+  
+Section rezk_rec.
+  Context (X : Type) (* `{IsTrunc_X : IsTrunc 1 X} *). (* the latter variable not strictly necessary *)
+  (* Context (X : Type) (x0 : X) (* (istrunc_X : IsTrunc 1 X) *) *)
+  (*         `{isconn_X : forall (x : X), merely (x0 = x)}. *)
+
+  Context (C : PreCategory)
+          (* (H : Functor C (groupoid_category X)) *)
+          (* (isfullyfaithful_H : IsFullyFaithful H) *)
+          (* (isessentiallysurjective_H : IsEssentiallySurjective H). *)
+          (* The following is uncurrying a weak equivalence from C to X *)
+          (H_0 : C -> X)
+          `{merely_surj_H : forall (x : X), merely {c : C & H_0 c = x}}
+          (H_1 : forall {c1 c2 : C},
+              morphism C c1 c2 -> H_0 c1 = H_0 c2)
+          `{isequiv_H1 : forall (c1 c2 : C), IsEquiv (@H_1 c1 c2)}
+          (H_2 : forall (c1 c2 c3 : C) (g : morphism C c1 c2) (h : morphism C c2 c3),
+              H_1 (h o g)%morphism = H_1 g @ H_1 h)
+          (H_idhom : forall (c : C), H_1 (identity c) = idpath).
+  Arguments H_1 {c1 c2}.
+  Arguments H_2 {c1 c2 c3}.
+
+  Context (Y : Type)
+          `{istrunc_Y : IsTrunc 1 (Y)}
+          (f0 : C -> Y)
+          (f1 : forall {c1 c2 : C} (g : morphism C c1 c2),
+              (f0 c1) =  (f0 c2))
+          (f2 : forall (c1 c2 c3 : C) (g : morphism C c1 c2) (h : morphism C c2 c3),
+                        (f1 (h o g)%morphism) =
+                        ((f1 g) @ (f1 h))).
+  Arguments f1 {c1 c2} g.
+  Arguments f2 {c1 c2 c3} g h.
+
+  Lemma f1_idhom (c : C) : f1 (identity c) = idpath.
+  Proof.
+    apply (equiv_inj (concat (f1 1))).
+    refine (_ @ (concat_p1 _)^).
+    apply inverse.
+    refine (_ @ f2 1 1).
+    apply (ap f1).
+    apply inverse.
+    apply left_identity.
+  Qed.
+
+  
+  Definition B (x : X) (y : Y) :=
+    {q : forall (c : C) (p : H_0 c = x), (f0 c) = y &
+     forall (c1 c2 : C) (g : morphism C c1 c2) (p : H_0 c2 = x),
+       q c1 (H_1 g @ p) =
+       (f1 g) @ (q c2 p)}.
+
+  Lemma q_is_f1 (c1 c2 : C) (y : Y) (q : B (H_0 c2) y) (h : morphism C c1 c2) :
+    q.1 c1 (H_1 h) =
+    (f1 h) @ (q.1 c2 idpath).
+  Proof.
+    destruct q as [q b]. simpl.
+    refine (ap (q c1) (concat_p1 (H_1 h))^ @ _).
+    apply b.
+  Qed.
+  
+  Definition B_base : forall (c : C) (y : Y), (B (H_0 c) y) <~> (f0 c = y).
+  Proof.
+    intros c y. unfold B.
+    transitivity
+      {q : forall c0 : C, morphism C c0 c -> f0 c0 = y &
+         forall (c1 c2 : C) (g : morphism C c1 c2) (h : morphism C c2 c),
+           q c1 (h o g)%morphism = f1 g @ q c2 h}.
+    { srapply @equiv_functor_sigma'.
+      - apply equiv_functor_forall_id.
+        intro c1.
+        apply (equiv_precompose').
+        exact (BuildEquiv _ _ H_1 _).
+      - intro q. simpl.
+        apply equiv_functor_forall_id. intro c1.
+        apply equiv_functor_forall_id. intro c2.
+        apply equiv_functor_forall_id. intro g.
+        srapply @equiv_functor_forall'.
+        { exact (BuildEquiv _ _ H_1 _). }
+        intro h. simpl.
+        unfold functor_forall.
+        apply equiv_concat_l.
+        apply (ap (q c1)).
+        apply H_2. }
+            
+    
+    srapply @equiv_adjointify.
+    - intros [q b].
+      apply (q c). apply identity.
+    - intro p. (* destruct p0. *)
+      srapply @exist.
+      + intros c1 h. refine (_ @ p).
+        apply f1. exact h.
+      + hnf. intros.
+        refine (_ @ concat_pp_p _ _ _ ). apply whiskerR.
+        refine (f2 _ _).
+    - intro p.
+      refine (whiskerR (f1_idhom _) _ @ _). apply concat_1p.
+    - intros [q b]. 
+      apply path_sigma_hprop. simpl.
+      apply path_forall. intro c1.
+      apply path_forall. intro g.
+      refine (_ @ ap (q c1) (left_identity _ _ _ _)).
+      apply inverse. apply b.
+  Defined.
+
+
+
+
+  Instance contr_B :
+    forall (x : X), Contr {y : Y & B x y}.
+  Proof.
+    intro x.
+    cut (merely ({c : C & H_0 c = x}) -> Contr {y : Y & B x y}).
+    { intro hyp. apply hyp.
+      apply merely_surj_H. }
+    apply Trunc_rec. intros [c []].
+    apply (contr_equiv' {y : Y & (f0 c = y)}).
+    { apply equiv_functor_sigma_id. intro y.
+      apply equiv_inverse.
+      apply B_base. }
+    apply contr_basedpaths.
+  Defined.
+
+  Definition rezk_rec : X -> Y
+    := fun x => (center _ (contr_B x)).1 .
+
+  (* Definition deloop_ind : forall (x : X), Y x *)
+  (*   := fun x => pr1 (center _ (contr_C x)) *)
+
+  Definition rezk_rec_q (x : X) (c : C):
+    forall (p : H_0 c = x), f0 c = rezk_rec x
+    := ((center {y : Y & B x y}).2.1 c).  
+
+  (* Definition deloop_ind_p (x : X) : forall ω : (point X) = x, transport Y ω y0 = deloop_ind x *)
+  (*   := pr1 (pr2 (center {y : Y x & C x y} )). *)
+  
+  Lemma q_is_ap_rezk_rec :
+    forall (x x': X) (c : C) (p : H_0 c = x) (q : x = x'),
+      rezk_rec_q x' c (p @ q) =
+      rezk_rec_q x c p @ ap rezk_rec q.
+      (* transport_pp Y α β _ @ ap (transport Y β) (deloop_ind_p x α) @ apD deloop_ind β. *)
+  Proof.
+    intros. destruct q. destruct p. simpl.
+    apply inverse. apply concat_p1.
+  Qed.
+
+  Definition rezk_rec_beta_obj (c : C) : rezk_rec (H_0 c) = f0 c:=
+    (rezk_rec_q (H_0 c) c idpath)^.
+
+
+  Definition rezk_rec_beta_morphism : forall (c1 c2 : C) (g :  morphism C c1 c2),
+      ap rezk_rec (H_1 g) = (rezk_rec_beta_obj c1) @ (f1 g) @ (rezk_rec_beta_obj c2)^.
+      (* (ap (transport Y ω) deloop_ind_beta_pt)^ @ apD deloop_ind ω @ deloop_ind_beta_pt = f ω. *)
+  Proof.
+    intros. unfold rezk_rec_beta_obj.
+    rewrite inv_V. refine (_ @ concat_p_pp _ _ _). apply moveL_Vp.
+    apply inverse.
+    refine (_ @ q_is_ap_rezk_rec _ _ _ _ _). rewrite concat_1p.
+    apply inverse. apply q_is_f1.
+  Defined.
+End rezk_rec.
 
 
 Section rezk_ind_set.
@@ -207,6 +306,16 @@ Section rezk_ind_set.
   (*   intros. destruct q. destruct p. simpl. *)
   (*   apply inverse. apply concat_p1. *)
   (* Qed. *)
+  Lemma equiv_path_over_id {A : Type} {B : A -> Type} (a : A) (b1 b2 : B a)
+    : path_over B (idpath a) b1 b2 <~> b1 = b2.
+  Proof.
+    srapply @equiv_adjointify.
+    - apply (path_over_to_path (p := idpath a)).
+    - apply (path_to_path_over (p := idpath a)).
+    - simpl. intros []. reflexivity.
+    - intro q. destruct q. reflexivity.
+  Defined.
+
 
   Definition rezk_ind_set_beta_obj (c : C) : (rezk_ind_set (H_0 c)) = f0 c.
   Proof.
@@ -369,16 +478,9 @@ Section rezk_ind_set.
   (* Defined. *)
 End rezk_ind_set.
 
-Section rezk_rec.
-  Context (X : Type) (* `{IsTrunc_X : IsTrunc 1 X} *). (* the latter variable not strictly necessary *)
-  (* Context (X : Type) (x0 : X) (* (istrunc_X : IsTrunc 1 X) *) *)
-  (*         `{isconn_X : forall (x : X), merely (x0 = x)}. *)
-
+Section Universal_principle.
+  Context (X : Type) `{istrunc_X : IsTrunc 1 (X)}.
   Context (C : PreCategory)
-          (* (H : Functor C (groupoid_category X)) *)
-          (* (isfullyfaithful_H : IsFullyFaithful H) *)
-          (* (isessentiallysurjective_H : IsEssentiallySurjective H). *)
-          (* The following is uncurrying a weak equivalence from C to X *)
           (H_0 : C -> X)
           `{merely_surj_H : forall (x : X), merely {c : C & H_0 c = x}}
           (H_1 : forall {c1 c2 : C},
@@ -387,148 +489,52 @@ Section rezk_rec.
           (H_2 : forall (c1 c2 c3 : C) (g : morphism C c1 c2) (h : morphism C c2 c3),
               H_1 (h o g)%morphism = H_1 g @ H_1 h)
           (H_idhom : forall (c : C), H_1 (identity c) = idpath).
-  Arguments H_1 {c1 c2}.
-  Arguments H_2 {c1 c2 c3}.
+  Context (Y : Type) `{istrunc_Y : IsTrunc 1 (Y)}.
 
-  Context (Y : Type)
-          `{istrunc_Y : IsTrunc 1 (Y)}
-          (f0 : C -> Y)
-          (f1 : forall {c1 c2 : C} (g : morphism C c1 c2),
-              (f0 c1) =  (f0 c2))
-          (f2 : forall (c1 c2 c3 : C) (g : morphism C c1 c2) (h : morphism C c2 c3),
-                        (f1 (h o g)%morphism) =
-                        ((f1 g) @ (f1 h))).
-  Arguments f1 {c1 c2} g.
-  Arguments f2 {c1 c2 c3} g h.
-
-  Lemma f1_idhom (c : C) : f1 (identity c) = idpath.
+  Definition pg_functor (f : X -> Y) : Functor (groupoid_category X) (groupoid_category Y).
   Proof.
-    apply (equiv_inj (concat (f1 1))).
-    refine (_ @ (concat_p1 _)^).
-    apply inverse.
-    refine (_ @ f2 1 1).
-    apply (ap f1).
-    apply inverse.
-    apply left_identity.
-  Qed.
-
+    srapply @Build_Functor; simpl.
+    - exact f.
+    - intros x y. exact (ap f).
+    - intros x y z p q. simpl. apply ap_pp.
+    - intro x. reflexivity.
+  Defined.
   
-  Definition B (x : X) (y : Y) :=
-    {q : forall (c : C) (p : H_0 c = x), (f0 c) = y &
-     forall (c1 c2 : C) (g : morphism C c1 c2) (p : H_0 c2 = x),
-       q c1 (H_1 g @ p) =
-       (f1 g) @ (q c2 p)}.
-
-  Lemma q_is_f1 (c1 c2 : C) (y : Y) (q : B (H_0 c2) y) (h : morphism C c1 c2) :
-    q.1 c1 (H_1 h) =
-    (f1 h) @ (q.1 c2 idpath).
+  Definition rezk_restrict : (X -> Y) -> Functor C (groupoid_category Y).
   Proof.
-    destruct q as [q b]. simpl.
-    refine (ap (q c1) (concat_p1 (H_1 h))^ @ _).
-    apply b.
-  Qed.
-  
-  Definition B_base : forall (c : C) (y : Y), (B (H_0 c) y) <~> (f0 c = y).
-  Proof.
-    intros c y. unfold B.
-    transitivity
-      {q : forall c0 : C, morphism C c0 c -> f0 c0 = y &
-         forall (c1 c2 : C) (g : morphism C c1 c2) (h : morphism C c2 c),
-           q c1 (h o g)%morphism = f1 g @ q c2 h}.
-    { srapply @equiv_functor_sigma'.
-      - apply equiv_functor_forall_id.
-        intro c1.
-        apply (equiv_precompose').
-        exact (BuildEquiv _ _ H_1 _).
-      - intro q. simpl.
-        apply equiv_functor_forall_id. intro c1.
-        apply equiv_functor_forall_id. intro c2.
-        apply equiv_functor_forall_id. intro g.
-        srapply @equiv_functor_forall'.
-        { exact (BuildEquiv _ _ H_1 _). }
-        intro h. simpl.
-        unfold functor_forall.
-        apply equiv_concat_l.
-        apply (ap (q c1)).
-        apply H_2. }
-            
-    
-    srapply @equiv_adjointify.
-    - intros [q b].
-      apply (q c). apply identity.
-    - intro p. (* destruct p0. *)
-      srapply @exist.
-      + intros c1 h. refine (_ @ p).
-        apply f1. exact h.
-      + hnf. intros.
-        refine (_ @ concat_pp_p _ _ _ ). apply whiskerR.
-        refine (f2 _ _).
-    - intro p.
-      refine (whiskerR (f1_idhom _) _ @ _). apply concat_1p.
-    - intros [q b]. 
-      apply path_sigma_hprop. simpl.
-      apply path_forall. intro c1.
-      apply path_forall. intro g.
-      refine (_ @ ap (q c1) (left_identity _ _ _ _)).
-      apply inverse. apply b.
+    intro f.
+    refine (Functor.compose (D := (groupoid_category X)) _ _).
+    - exact (pg_functor f).
+    - srapply @Build_Functor; simpl.
+      + exact H_0.
+      + exact H_1.
+      + apply H_2.
+      + apply H_idhom.
   Defined.
 
-
-
-
-  Instance contr_B :
-    forall (x : X), Contr {y : Y & B x y}.
+  Lemma isequiv_rezk_restrict : IsEquiv (rezk_restrict).
   Proof.
-    intro x.
-    cut (merely ({c : C & H_0 c = x}) -> Contr {y : Y & B x y}).
-    { intro hyp. apply hyp.
-      apply merely_surj_H. }
-    apply Trunc_rec. intros [c []].
-    apply (contr_equiv' {y : Y & (f0 c = y)}).
-    { apply equiv_functor_sigma_id. intro y.
-      apply equiv_inverse.
-      apply B_base. }
-    apply contr_basedpaths.
-  Defined.
+    srapply @isequiv_adjointify.
+    - intro F.
+      srefine (rezk_rec X C H_0 H_1 H_2 Y _ _ _ ).
+      { apply (merely_surj_H). }
+      + intro c. exact (F c).
+      + simpl. 
+        apply (morphism_of F).
+      + apply (composition_of F).
+    - intro F.
+      srapply @path_functor.
+      + simpl. apply path_arrow. intro c. simpl.
+        apply rezk_rec_beta_obj.
+      + simpl.
+        apply path_forall. intro c. apply path_forall. intro d.
+        apply path_arrow. intro h. simpl.
+        (* endre til at H er en funktor over, og tenk litt *)
+        rezk_rec_beta_morphism
+      
+                                                   
+      apply 
 
-  Definition rezk_rec : X -> Y
-    := fun x => (center _ (contr_B x)).1 .
-
-  (* Definition deloop_ind : forall (x : X), Y x *)
-  (*   := fun x => pr1 (center _ (contr_C x)) *)
-
-  Definition rezk_rec_q (x : X) (c : C):
-    forall (p : H_0 c = x), f0 c = rezk_rec x
-    := ((center {y : Y & B x y}).2.1 c).  
-
-  (* Definition deloop_ind_p (x : X) : forall ω : (point X) = x, transport Y ω y0 = deloop_ind x *)
-  (*   := pr1 (pr2 (center {y : Y x & C x y} )). *)
-  
-  Lemma q_is_ap_rezk_rec :
-    forall (x x': X) (c : C) (p : H_0 c = x) (q : x = x'),
-      rezk_rec_q x' c (p @ q) =
-      rezk_rec_q x c p @ ap rezk_rec q.
-      (* transport_pp Y α β _ @ ap (transport Y β) (deloop_ind_p x α) @ apD deloop_ind β. *)
-  Proof.
-    intros. destruct q. destruct p. simpl.
-    apply inverse. apply concat_p1.
-  Qed.
-
-  Definition rezk_rec_beta_obj (c : C) : rezk_rec (H_0 c) = f0 c:=
-    (rezk_rec_q (H_0 c) c idpath)^.
-
-
-  Definition rezk_rec_beta_morphism : forall (c1 c2 : C) (g :  morphism C c1 c2),
-      ap rezk_rec (H_1 g) = (rezk_rec_beta_obj c1) @ (f1 g) @ (rezk_rec_beta_obj c2)^.
-      (* (ap (transport Y ω) deloop_ind_beta_pt)^ @ apD deloop_ind ω @ deloop_ind_beta_pt = f ω. *)
-  Proof.
-    intros. unfold rezk_rec_beta_obj.
-    rewrite inv_V. refine (_ @ concat_p_pp _ _ _). apply moveL_Vp.
-    apply inverse.
-    refine (_ @ q_is_ap_rezk_rec _ _ _ _ _). rewrite concat_1p.
-    apply inverse. apply q_is_f1.
-  Defined.
-End rezk_rec.
 
 
 (* Section rezk_ind. *)

@@ -28,6 +28,8 @@ Qed.
 
 
 
+
+
 Definition path_triple_prod {A B C : Type} (a1 a2 : A * (B * C)) :
   (fst a1 = fst a2) * ((fst (snd a1) = fst (snd a2)) * (snd (snd a1) = snd (snd a2))) -> a1 = a2.
 Proof.
@@ -127,6 +129,70 @@ Definition transport_composeD {A : Type} (B : A -> Type) (C : forall a : A, B a 
 Proof.
   induction p. reflexivity.
 Defined.
+
+
+(* Definition path_sigma' {A : Type} {B : A -> Type} {ab ab' : {a : A & B a}} *)
+(*            (p : ab.1 = ab'.1) (q : path_over B p (ab.2) (ab'.2)) *)
+(*   : ab = ab'. *)
+(* Proof. *)
+(*   destruct ab as [a b]. destruct ab' as [a' b']. simpl in *. *)
+(*   destruct q. reflexivity. *)
+(* Defined. *)
+
+(* Definition path_sigma_concat' {A : Type} {B : A -> Type} {x y z : {a : A & B a}} *)
+(*            (p : x.1 = y.1) (q : path_over B p (x.2) (y.2)) *)
+(*            (p' : y.1 = z.1) (q' : path_over B p' (y.2) (z.2)) *)
+(*   : path_sigma' p q @ path_sigma' p' q' = *)
+(*     path_sigma' (p @ p') (path_over_concat q q'). *)
+(* Proof. *)
+(*   destruct x as [x1 x2]. destruct y as [y1 y2]. destruct z as [z1 z2]. simpl in *. *)
+(*   destruct q'. destruct q. reflexivity. *)
+(* Defined. *)
+
+
+(* Definition equiv_path_sigma' {A : Type} {B : A -> Type} (ab ab' : {a : A & B a}) : *)
+(*   {p : ab.1 = ab'.1 & path_over B p (ab.2) (ab'.2)} <~> ab = ab'. *)
+(* Proof. *)
+(*   srapply @equiv_adjointify. *)
+(*   - intros [p q]. exact (path_sigma' p q). *)
+(*   - intros []. exists idpath. apply path_over_id. *)
+(*   - intros []. reflexivity. *)
+(*   - intros [p q]. *)
+(*     destruct ab as [a b]. destruct ab' as [a' b']. simpl in *. *)
+(*     destruct p. destruct q. reflexivity. *)
+(* Defined. *)
+
+(*   Lemma equiv_path_over_id {A : Type} {B : A -> Type} (a : A) (b1 b2 : B a) *)
+(*     : path_over B (idpath a) b1 b2 <~> b1 = b2. *)
+(*   Proof. *)
+(*     srapply @equiv_adjointify. *)
+(*     - apply (path_over_to_path (p := idpath a)). *)
+(*     - apply (path_to_path_over (p := idpath a)). *)
+(*     - simpl. intros []. reflexivity. *)
+(*     - intro q. destruct q. reflexivity. *)
+(*   Defined.       *)
+
+(*   Definition isequiv_path_over_concat {A : Type} {B : A -> Type} *)
+(*              {a1 a2 a3: A} {p1 : a1 = a2} (p2 : a2 = a3) *)
+(*              {b1 : B a1} {b2 : B a2} (q : path_over B p1 b1 b2) *)
+(*              (b3 : B a3)  *)
+(*     : IsEquiv (path_over_concat (p₂ := p2) (c₃ := b3) q). *)
+(*   Proof. *)
+(*     srapply @isequiv_adjointify. *)
+(*     - destruct p2. destruct q. exact idmap. *)
+(*     - destruct q. destruct p2.  *)
+(*       intro q. simpl in q. revert q. *)
+(*       apply (equiv_functor_forall_pf (equiv_path_over_id a c b3)). *)
+(*       intros []. reflexivity. *)
+(*     - destruct q. destruct p2. simpl. *)
+(*       apply (equiv_functor_forall_pf (equiv_path_over_id a c b3)). *)
+(*       intros []. reflexivity. *)
+(*   Defined. *)
+  
+
+
+
+
 
 
 Section Dependent_paths.

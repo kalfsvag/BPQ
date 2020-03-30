@@ -61,12 +61,18 @@ Section Monoidal_Map.
      montype_map_id : montype_map (montype_id) = montype_id;
      montype_map_assoc (a b c : M) :
        ap montype_map (montype_assoc a b c) =
-       montype_map_mult (a ⊗ b) c @ ap (fun x => x ⊗ (montype_map c)) (montype_map_mult a b) @ montype_assoc (montype_map a) (montype_map b) (montype_map c) @
-                        (ap (montype_mult (montype_map a)) (montype_map_mult b c))^ @ (montype_map_mult a (b ⊗ c))^ ;
-     montype_map_lid (x : M) : ap montype_map (montype_lid x) =
-                               montype_map_mult montype_id x @ ap (fun s => s ⊗ montype_map x) montype_map_id @ montype_lid (montype_map x);
-     montype_map_rid (x : M) : ap montype_map (montype_rid x) =
-                               montype_map_mult x montype_id @ ap (montype_mult (montype_map x)) montype_map_id @ montype_rid (montype_map x) }.
+       montype_map_mult (a ⊗ b) c @ ap (fun x => x ⊗ (montype_map c)) (montype_map_mult a b) @
+                        montype_assoc (montype_map a) (montype_map b) (montype_map c) @
+                        (ap (montype_mult (montype_map a)) (montype_map_mult b c))^
+       @ (montype_map_mult a (b ⊗ c))^ ;
+     montype_map_lid (x : M)
+     : ap montype_map (montype_lid x) =
+       montype_map_mult montype_id x @
+                        ap (fun s => s ⊗ montype_map x) montype_map_id @ montype_lid (montype_map x);
+     montype_map_rid (x : M)
+     : ap montype_map (montype_rid x) =
+       montype_map_mult x montype_id @ ap (montype_mult (montype_map x)) montype_map_id
+                        @ montype_rid (montype_map x) }.
   
   Global Arguments montype_map_mult {M N} F a b : rename.
   Global Arguments montype_map_id {M N} F : rename.

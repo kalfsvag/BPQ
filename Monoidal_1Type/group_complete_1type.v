@@ -95,7 +95,59 @@ Section Localize.
       apply inverse. apply identity_identity.
     - reflexivity.
   Defined.
-      
+
+  Definition functor_monoidal_action_cat (M N : Monoidal_1Type) (X Y : 1-Type)
+             (act1 : monoidal_action M X) (left_cancel1 : left_faithful act1)
+             (act2 : monoidal_action N Y) (left_cancel2 : left_faithful act2)
+             (f : Monoidal_Map M N)
+             (g : X -> Y)
+             (act_mult : forall (a : M) (x : X),
+                 g (act1 a x) = act2 (f a) (g x))
+             (act_mult_assoc : forall (a b : M) (x : X),
+                 ap g (montype_act_mult act1 a b x) =
+                 act_mult _ x @ ap011 act2 (montype_map_mult f a b) idpath
+                          @ montype_act_mult act2 (f a) (f b) (g x)
+                          @ (ap011 act2 idpath (act_mult b x))^
+                          @ (act_mult a _)^)
+             (act_mult_lid : forall (x : X),
+                 ap g (montype_act_id act1 x) =
+                 act_mult montype_id x
+                          @ ap011 act2 (montype_map_id f) idpath
+                          @ montype_act_id act2 (g x))
+    : Functor (monoidal_action_cat M X act1 left_cancel1)
+              (monoidal_action_cat N Y act2 left_cancel2).
+  Proof.
+    srapply @Build_Functor.
+    - exact g.
+    - simpl. intros x y.
+      intros [s p].
+      exists (f s).
+      refine (_ @ ap g p).
+      apply inverse. apply act_mult.
+    - intros x y z.
+      intros [s p] [t q]. simpl.
+      destruct q. destruct p. simpl.
+      repeat rewrite concat_p1.
+      apply (path_sigma _ (_;_) (_;_) (montype_map_mult f t s)).
+      simpl.
+      refine (transport_paths_Fl (montype_map_mult f t s) _ @ _).
+      rewrite act_mult_assoc.
+      repeat rewrite concat_p_pp. apply whiskerR.
+      rewrite ap_V. apply whiskerR.
+      apply moveR_pM. rewrite concat_pV.
+      apply moveR_pM. rewrite concat_1p.
+      apply moveR_pM. apply whiskerR. destruct (montype_map_mult f t s).
+      reflexivity.
+    - simpl. intro x.
+      apply (path_sigma _ (_;_) (_;_) (montype_map_id f)).
+      refine (transport_paths_Fl (montype_map_id f) _ @ _).
+      rewrite act_mult_lid. simpl.
+      repeat rewrite concat_pp_p. apply moveR_Vp. apply moveR_Vp.
+      apply whiskerL. apply whiskerR.
+      generalize (montype_map_id f). intro p. destruct p.
+      reflexivity.
+  Defined.
+              
 
   (* Definition monoidal_action_fun_obj (M : Symmetric_Monoidal_1Type) (X : 1-Type) *)
   (*            (act : monoidal_action M X) (a : M) *)

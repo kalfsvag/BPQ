@@ -1418,7 +1418,7 @@ simpl. *) *)
   (* all nontrivial transpositions are above the transposition in canon 2 *)
   Definition transpose_Z_is_twist2 (a : nat) (i : Fin a)
     : (path_base_2 _)^ @ (transpose_Z a (inl i) @ path_base_2 _) = twist2_Z.
-  Proof.
+  Proof.    
     induction a.
     { destruct i. }
     destruct i as [i | []].
